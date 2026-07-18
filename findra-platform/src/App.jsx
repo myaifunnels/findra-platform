@@ -5542,6 +5542,17 @@ export function App() {
   const [notice, setNotice] = useState(null);
   const [session, setSession] = useState(null);
   useEffect(() => {
+    fetch("/api/listings", { credentials: "same-origin" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json();
+      })
+      .then((payload) => {
+        if (payload?.listings?.length) setListings(payload.listings);
+      })
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
     document.documentElement.dataset.theme =
       localStorage.getItem("findra-theme") || "light";
   }, []);
@@ -5588,6 +5599,20 @@ export function App() {
   const saveUserListing = (record, owner = "Ina de la Cruz") => {
     try {
       if (record.id) {
+        fetch(`/api/listings/${record.id}`, {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(record),
+        })
+          .then(async (response) => {
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error);
+            setListings((items) =>
+              items.map((item) => item.id === record.id ? payload.listing : item),
+            );
+          })
+          .catch((error) => setNotice({ type: "error", title: "Database update failed", message: error.message || "Your listing could not be saved to the server." }));
         setListings((items) =>
           items.map((item) =>
             item.id === record.id ? { ...item, ...record, owner } : item,
@@ -5599,6 +5624,18 @@ export function App() {
           message: `${record.name} now shows the latest details, contact information, and media. You can reopen the listing anytime to make more changes.`,
         });
       } else {
+        fetch("/api/listings", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(record),
+        })
+          .then(async (response) => {
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error);
+            setListings((items) => [payload.listing, ...items.filter((item) => item.name !== record.name)]);
+          })
+          .catch((error) => setNotice({ type: "error", title: "Database save failed", message: error.message || "Your listing could not be saved to the server." }));
         const id = Math.max(0, ...listings.map((item) => Number(item.id))) + 1;
         setListings((items) => [
           {
