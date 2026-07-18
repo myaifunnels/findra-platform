@@ -1,5 +1,6 @@
 import { query } from "./db.mjs";
 import { readSession } from "./auth.mjs";
+import { notify } from "./notifications.mjs";
 
 function json(response, status, body) {
   response.statusCode = status;
@@ -47,6 +48,7 @@ async function list(request, response) {
       ORDER BY listings.created_at DESC`,
     [onlyMine ? user.id : null, !onlyMine],
   );
+  notify({ userId: user.id, email: user.email, event: "listing-submitted" }).catch(() => {});
   return json(response, 200, { listings: result.rows.map(publicRecord) });
 }
 
@@ -63,6 +65,8 @@ async function create(request, response) {
      RETURNING *`,
     [user.id, status, name, String(record.category || ""), String(record.location || ""), JSON.stringify(record)],
   );
+  if (user.role === "admin" && record.status === "Published") notify({ userId: listing.owner_id, email: listing.data?.email, event: "listing-approved" }).catch(() => {});
+  if (user.role === "admin" && record.status === "Declined") notify({ userId: listing.owner_id, email: listing.data?.email, event: "listing-declined" }).catch(() => {});
   return json(response, 201, { listing: publicRecord({ ...result.rows[0], owner_name: user.display_name }) });
 }
 

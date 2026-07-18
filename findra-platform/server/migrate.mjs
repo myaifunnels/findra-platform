@@ -72,6 +72,13 @@ INSERT INTO packages (name, price, interval, status, featured, features)
 SELECT 'Findra Business Listing', 999, 'Yearly', 'Active', TRUE,
   '["Published business listing", "Logo, gallery, video, and attachments", "Customer inquiry and direct contact tools", "Business-owner dashboard access"]'::jsonb
 WHERE NOT EXISTS (SELECT 1 FROM packages);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGSERIAL PRIMARY KEY, user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  recipient_email TEXT, event TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
+  email_status TEXT NOT NULL DEFAULT 'queued', read_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS notifications_user_id_idx ON notifications(user_id, created_at DESC);
 `;
 
 try {

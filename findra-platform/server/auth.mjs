@@ -7,6 +7,7 @@ import {
 } from "node:crypto";
 import { promisify } from "node:util";
 import { databaseConfigured, query } from "./db.mjs";
+import { notify } from "./notifications.mjs";
 
 const scrypt = promisify(scryptCallback);
 const SESSION_COOKIE = "findra_session";
@@ -142,6 +143,7 @@ async function register(request, response) {
   );
   const user = result.rows[0];
   await createSession(response, user);
+  notify({ userId: user.id, email: user.email, event: "new-user" }).catch(() => {});
   return json(response, 201, { user: publicUser(user) });
 }
 
