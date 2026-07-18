@@ -408,12 +408,25 @@ function StatusModal({ notice, onClose }) {
 
 function Header({ go }) {
   const [menu, setMenu] = useState(false);
-  let session = null;
-  try {
-    session = JSON.parse(localStorage.getItem("findra-demo-session"));
-  } catch {
-    session = null;
-  }
+  const [session, setSession] = useState(null);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { credentials: "same-origin" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const payload = await response.json();
+        return sessionFromUser(payload.user);
+      })
+      .then((currentSession) => {
+        if (active) setSession(currentSession);
+      })
+      .catch(() => {
+        if (active) setSession(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   const dashboardPath = session?.role === "admin" ? "/admin" : "/user";
   return (
     <>
