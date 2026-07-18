@@ -286,6 +286,11 @@ const blankListing = {
   email: "",
   phone: "",
   website: "",
+  facebook: "",
+  instagram: "",
+  linkedin: "",
+  whatsapp: "",
+  viber: "",
   additionalCategory: "",
   categories: [],
   additionalCategories: [],
@@ -931,6 +936,8 @@ function ListingDetail({ go, item }) {
             ) : (
               <Globe />
             )}
+            {item.facebook && <a href={item.facebook} target="_blank" rel="noreferrer" aria-label={`${item.name} Facebook`}><FacebookLogo /></a>}
+            {item.instagram && <a href={item.instagram} target="_blank" rel="noreferrer" aria-label={`${item.name} Instagram`}><InstagramLogo /></a>}
           </div>
         </div>
         <div className="detail-columns">
@@ -945,7 +952,7 @@ function ListingDetail({ go, item }) {
                 <span key={s}>{s}</span>
               ))}
             </div>
-            {(item.email || item.phone || item.website) && (
+            {(item.email || item.phone || item.website || item.whatsapp || item.viber) && (
               <section className="listing-contact-details">
                 <h3>CONTACT INFORMATION</h3>
                 <div>
@@ -974,6 +981,16 @@ function ListingDetail({ go, item }) {
                         <small>Website / social page</small>
                         <strong>{item.website}</strong>
                       </span>
+                    </a>
+                  )}
+                  {item.whatsapp && (
+                    <a href={`https://wa.me/${item.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">
+                      <ChatCircleText /><span><small>WhatsApp</small><strong>{item.whatsapp}</strong></span>
+                    </a>
+                  )}
+                  {item.viber && (
+                    <a href={`viber://chat?number=${encodeURIComponent(item.viber.replace(/\D/g, ""))}`}>
+                      <ChatCircleText /><span><small>Viber</small><strong>{item.viber}</strong></span>
                     </a>
                   )}
                 </div>
@@ -2853,6 +2870,13 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
     .slice(0, 2)
     .toUpperCase();
   const current = listing || { ...blankListing, owner: displayName };
+  const pendingPayment = useMemo(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("findra-paymongo-pending"));
+    } catch {
+      return null;
+    }
+  }, []);
   const openListingFlow = () => {
     if (listing) {
       setEditing(true);
@@ -2951,6 +2975,19 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
             <CheckCircle weight="fill" />
             Listing changes saved
           </div>
+        )}
+        {pendingPayment && (
+          <section className="admin-content">
+            <div className="panel billing-card">
+              <div className="billing-icon"><CreditCard /></div>
+              <div>
+                <span>PAYMENT NOT FINISHED</span>
+                <h3>Finish checkout for {pendingPayment.draft?.name || "your listing"}</h3>
+                <p>Your business details and uploaded media are safe. Complete payment to submit the listing for review.</p>
+              </div>
+              <button className="admin-primary" onClick={() => go("/add-listing")}>Continue payment <ArrowRight /></button>
+            </div>
+          </section>
         )}
         {section === "Overview" ? (
           <div className="admin-content">
@@ -3083,17 +3120,13 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
             )}
           </div>
         ) : section === "Plan & Billing" ? (
-          <PlanBilling listing={listing} />
+          <PlanBilling listing={listing} resumePayment={pendingPayment ? () => go("/add-listing") : null} />
+        ) : section === "Inquiries" ? (
+          <UserInquiries listing={listing} />
+        ) : section === "Analytics" ? (
+          <UserAnalytics listing={listing} />
         ) : (
-          <AdminSection
-            section={
-              section === "Analytics"
-                ? "Inquiries"
-                : section === "Profile"
-                  ? "Users"
-                  : "Inquiries"
-            }
-          />
+          <UserAccountProfile session={session} listing={listing} onEdit={openListingFlow} />
         )}
       </main>
       {editing && (
@@ -3107,7 +3140,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
   );
 }
 
-function PlanBilling({ listing }) {
+function PlanBilling({ listing, resumePayment }) {
   const subscription = listing?.subscription;
   return (
     <div className="admin-content">
@@ -3162,11 +3195,40 @@ function PlanBilling({ listing }) {
                 PayMongo payment.
               </p>
             </div>
+            {resumePayment && <button className="admin-primary" onClick={resumePayment}>Continue payment <ArrowRight /></button>}
           </>
         )}
       </section>
     </div>
   );
+}
+
+function UserInquiries({ listing }) {
+  return <div className="admin-content">
+    <section className="welcome-row"><div><h2>Customer inquiries</h2><p>Messages sent through your public business profile will appear here.</p></div></section>
+    <section className="panel admin-empty"><ChatCircleText size={42} /><h3>No inquiries yet</h3><p>{listing ? "Publish and share your listing to start receiving customer messages." : "Create and complete a paid listing to receive customer inquiries."}</p></section>
+  </div>;
+}
+
+function UserAnalytics({ listing }) {
+  const views = listing?.views || 0;
+  return <div className="admin-content">
+    <section className="welcome-row"><div><h2>Listing performance</h2><p>A clear view of how customers discover and engage with your business.</p></div></section>
+    <section className="metric-grid simple">
+      {[["Profile views", views, Eye, "green"], ["Inquiry rate", listing ? "—" : "0%", ChatCircleText, "blue"], ["Profile completeness", listing ? "92%" : "0%", ChartLineUp, "violet"]].map(([label, value, Icon, tone]) => <article key={label}><div className={`metric-icon ${tone}`}><Icon /></div><div className="metric-copy"><p>{label}</p><h3>{value}</h3><span className="positive">Updates as customers interact</span></div></article>)}
+    </section>
+  </div>;
+}
+
+function UserAccountProfile({ session, listing, onEdit }) {
+  const channels = [
+    ["Website", listing?.website], ["Facebook", listing?.facebook], ["Instagram", listing?.instagram], ["LinkedIn", listing?.linkedin], ["WhatsApp", listing?.whatsapp], ["Viber", listing?.viber],
+  ].filter(([, value]) => value);
+  return <div className="admin-content">
+    <section className="welcome-row"><div><h2>Account & profile</h2><p>Keep your account and the customer contact channels on your public profile current.</p></div><button className="admin-primary" onClick={onEdit}><PencilSimple /> Edit business profile</button></section>
+    <section className="panel"><h3>Account owner</h3><div className="account-detail-grid"><article><small>NAME</small><strong>{session?.name || "Business owner"}</strong></article><article><small>EMAIL</small><strong>{session?.email || "—"}</strong></article><article><small>ACCOUNT ROLE</small><strong>Business Owner</strong></article></div></section>
+    <section className="panel"><h3>Public contact channels</h3>{channels.length ? <div className="account-detail-grid">{channels.map(([label, value]) => <article key={label}><small>{label.toUpperCase()}</small><strong>{value}</strong></article>)}</div> : <p>Add a website, social profile, and a preferred chat channel to make it easier for customers to reach you.</p>}</section>
+  </div>;
 }
 
 function AdminSection({ section }) {
@@ -4876,7 +4938,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage })
                 <section className="form-block presence-block">
                   <SectionLabel>Online Presence</SectionLabel>
                   <label>
-                    <FieldLabel>Website / Facebook Page / Instagram</FieldLabel>
+                    <FieldLabel>Business Website</FieldLabel>
                     <input
                       type="url"
                       value={form.website}
@@ -4884,6 +4946,14 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage })
                       placeholder="https://yourbusiness.com"
                     />
                   </label>
+                  <div className="form-grid two">
+                    <label><FieldLabel>Facebook Page</FieldLabel><input type="url" value={form.facebook || ""} onChange={change("facebook")} placeholder="https://facebook.com/yourbusiness" /></label>
+                    <label><FieldLabel>Instagram Profile</FieldLabel><input type="url" value={form.instagram || ""} onChange={change("instagram")} placeholder="https://instagram.com/yourbusiness" /></label>
+                    <label><FieldLabel>LinkedIn Page (optional)</FieldLabel><input type="url" value={form.linkedin || ""} onChange={change("linkedin")} placeholder="https://linkedin.com/company/yourbusiness" /></label>
+                    <label><FieldLabel>WhatsApp Number</FieldLabel><input type="tel" value={form.whatsapp || ""} onChange={change("whatsapp")} placeholder="+63 917 123 4567" /></label>
+                    <label><FieldLabel>Viber Number</FieldLabel><input type="tel" value={form.viber || ""} onChange={change("viber")} placeholder="+63 917 123 4567" /></label>
+                  </div>
+                  <small>Add only channels you actively monitor. We recommend a website, Facebook or Instagram, and one fast messaging channel such as WhatsApp or Viber.</small>
                 </section>
                 <section className="form-block address-block">
                   <SectionLabel>Business Address</SectionLabel>
