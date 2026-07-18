@@ -5585,18 +5585,9 @@ export function App() {
       active = false;
     };
   }, []);
-  useEffect(() => {
-    try {
-      localStorage.setItem(listingStorageKey, JSON.stringify(listings));
-    } catch {
-      setNotice({
-        type: "error",
-        title: "Your update could not be stored",
-        message:
-          "Browser storage is full. Try using smaller images or removing large attachments, then save again.",
-      });
-    }
-  }, [listings]);
+  // Listings are now saved through the server API. Do not mirror their media
+  // payloads into localStorage: base64 images can exceed browser quotas and
+  // would incorrectly make a successful server save look like a failed update.
   const login = (account) => {
     setSession(account);
     go(account.role === "admin" ? "/admin" : "/user");

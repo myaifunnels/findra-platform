@@ -12,7 +12,13 @@ async function readJson(request) {
   let body = "";
   for await (const chunk of request) {
     body += chunk;
-    if (body.length > 5_000_000) throw new Error("Listing request is too large.");
+    if (body.length > 5_000_000) {
+      const error = new Error(
+        "This listing contains media that is too large to save directly. Please use smaller files while cloud media storage is being connected.",
+      );
+      error.status = 413;
+      throw error;
+    }
   }
   return body ? JSON.parse(body) : {};
 }
