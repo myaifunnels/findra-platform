@@ -440,7 +440,6 @@ function Header({ go }) {
     setAccountMenu(false);
     go("/");
   };
-  const initials = (session?.name || "A").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
   return (
     <>
       <div className="top-strip">FIND THE RIGHT PARTNER, FAST.</div>
@@ -474,15 +473,10 @@ function Header({ go }) {
         </nav>
         <div className="account-nav">
           <ThemeToggle />
-          <UserCircle size={47} weight="thin" />
           {session ? (
-            <>
-              <Link to={dashboardPath} go={go} className="header-dashboard-link">
-                <SquaresFour weight="bold" /> Dashboard
-              </Link>
-              <div className="header-account-menu">
-                <button type="button" className="header-account-trigger" aria-label="Open account menu" aria-expanded={accountMenu} onClick={() => setAccountMenu((value) => !value)}>
-                  <span>{initials}</span><CaretDown size={13} />
+            <div className="header-account-menu">
+                <button type="button" className="header-dashboard-link" aria-label="Open dashboard menu" aria-expanded={accountMenu} onClick={() => setAccountMenu((value) => !value)}>
+                  <SquaresFour weight="bold" /> Dashboard <CaretDown size={13} />
                 </button>
                 {accountMenu && <div className="header-account-dropdown">
                   <div><strong>{session.name}</strong><small>{session.email}</small></div>
@@ -491,7 +485,6 @@ function Header({ go }) {
                   <button type="button" onClick={signOut}><SignOut /> Sign out</button>
                 </div>}
               </div>
-            </>
           ) : (
             <>
               <Link to="/login" go={go}>
@@ -503,9 +496,7 @@ function Header({ go }) {
               </Link>
             </>
           )}
-          <Link to="/packages" go={go} className="discover-link">
-            Add Business <Plus weight="bold" />
-          </Link>
+          {!session && <Link to="/packages" go={go} className="discover-link">Add Business <Plus weight="bold" /></Link>}
         </div>
         <div className="mobile-header-actions">
           <ThemeToggle />

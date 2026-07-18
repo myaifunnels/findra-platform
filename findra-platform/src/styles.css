@@ -6644,6 +6644,27 @@ th {
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58), inset 0 1px rgba(255, 255, 255, 0.07);
 }
 
+/* Final readability pass: deliberate hierarchy, hidden scrollbars, and high-contrast status tokens. */
+.site-header .wordmark { display: inline-flex; flex: 0 0 auto; }
+.site-header .wordmark .brand-logo { width: 102px; }
+.admin-sidebar, .notification-popover-list { scrollbar-width: none; -ms-overflow-style: none; }
+.admin-sidebar::-webkit-scrollbar, .notification-popover-list::-webkit-scrollbar { width: 0; height: 0; }
+.admin-sidebar { overflow-y: auto; }
+.status { gap: 5px; padding: 6px 10px; border: 1px solid transparent; font-size: 11px; font-weight: 800; letter-spacing: 0.01em; }
+.status.published { background: #d9f8e6; border-color: #8fd9ab; color: #075f30; }
+.status.pending { background: #fff0ce; border-color: #f0c96e; color: #714200; }
+.status.declined { background: #ffe2e2; border-color: #eea0a0; color: #8a2424; }
+.status.draft { background: #e9efec; border-color: #b9c8c1; color: #385047; }
+[data-theme="dark"] .status.published { background: #164c31; border-color: #3c9a61; color: #c8ffdb; }
+[data-theme="dark"] .status.pending { background: #5a4012; border-color: #bb8530; color: #fff0bf; }
+[data-theme="dark"] .status.declined { background: #57282a; border-color: #bb6267; color: #ffd9dc; }
+[data-theme="dark"] .status.draft { background: #31423a; border-color: #647b70; color: #e3eee8; }
+.admin-sidebar nav button, .signout { font-size: 14px; font-weight: 700; }
+.admin-sidebar nav button span { font-size: 12px; font-weight: 800; }
+.listing-manager th { color: #7f9a8d; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; }
+.listing-manager td { color: var(--surface-text); font-size: 14px; }
+[data-theme="dark"] .listing-manager td { color: #dcebe4; }
+
 @keyframes dashboard-enter {
   from {
     opacity: 0;
