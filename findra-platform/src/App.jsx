@@ -5346,12 +5346,19 @@ function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan })
   const [method, setMethod] = useState("gcash");
   const [processing, setProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [testMode, setTestMode] = useState(false);
   const methods = [
     ["gcash", "GCash", "Mobile wallet"],
     ["paymaya", "Maya", "Mobile wallet"],
     ["grab_pay", "GrabPay", "Mobile wallet"],
     ["card", "Credit / debit card", "Visa or Mastercard"],
   ];
+  useEffect(() => {
+    fetch("/api/paymongo/integration", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((status) => setTestMode(status?.mode === "test"))
+      .catch(() => {});
+  }, []);
   useEffect(() => {
     const paymentResult = new URLSearchParams(window.location.search).get(
       "payment",
@@ -5484,6 +5491,7 @@ function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan })
             <ArrowLeft /> Back to account
           </button>
           <span className="checkout-kicker">Complete your subscription</span>
+          {testMode && <div className="paymongo-note"><CheckCircle weight="fill" /><span><strong>PayMongo test mode</strong><small>This is a sandbox checkout. No live customer payment should be used here.</small></span></div>}
           <h1>Get {draft.name} discovered.</h1>
           <p>
             Select how you want to pay through PayMongo. Your listing will be
