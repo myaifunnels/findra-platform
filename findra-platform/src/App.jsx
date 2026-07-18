@@ -2853,6 +2853,15 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
     .slice(0, 2)
     .toUpperCase();
   const current = listing || { ...blankListing, owner: displayName };
+  const openListingFlow = () => {
+    if (listing) {
+      setEditing(true);
+      return;
+    }
+    // New listings must use the package checkout journey. Editing an existing
+    // listing remains available directly from the business dashboard.
+    go("/add-listing");
+  };
   const save = (record) => {
     const result = onSave(record);
     if (result === false) return;
@@ -2954,7 +2963,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
                 className="admin-primary"
                 onClick={() => {
                   setSection("My Listing");
-                  setEditing(true);
+                  openListingFlow();
                 }}
               >
                 <PencilSimple /> {listing ? "Edit listing" : "Create listing"}
@@ -3025,7 +3034,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
                 <p>Add your business details to start getting discovered.</p>
                 <button
                   className="admin-primary"
-                  onClick={() => setEditing(true)}
+                  onClick={openListingFlow}
                 >
                   <Plus /> Create listing
                 </button>
@@ -3043,7 +3052,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
               </div>
               <button
                 className="admin-primary"
-                onClick={() => setEditing(true)}
+                onClick={openListingFlow}
               >
                 <PencilSimple /> {listing ? "Edit details" : "Create listing"}
               </button>
