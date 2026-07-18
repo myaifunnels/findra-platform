@@ -40,6 +40,21 @@ CREATE TABLE IF NOT EXISTS email_verification_tokens (
   used_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS listings (
+  id BIGSERIAL PRIMARY KEY,
+  owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'Draft',
+  name TEXT NOT NULL,
+  category TEXT,
+  location TEXT,
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS listings_owner_id_idx ON listings(owner_id);
+CREATE INDEX IF NOT EXISTS listings_status_idx ON listings(status);
 `;
 
 try {

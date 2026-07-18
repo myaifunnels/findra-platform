@@ -104,7 +104,7 @@ async function createSession(response, user) {
   );
 }
 
-async function readSession(request) {
+export async function readSession(request) {
   const token = parseCookies(request.headers.cookie)[SESSION_COOKIE];
   if (!token) return null;
   const result = await query(
