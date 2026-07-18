@@ -1,4 +1,6 @@
 import { activePackage } from "./packages.mjs";
+import { query } from "./db.mjs";
+import { notify } from "./notifications.mjs";
 const PAYMONGO_API = "https://api.paymongo.com/v1";
 const ALLOWED_METHODS = new Set(["card", "gcash", "grab_pay", "paymaya"]);
 let runtimeSecretKey = "";
@@ -231,6 +233,19 @@ async function retrieveCheckoutSession(request, response, id) {
   const paid =
     payment?.attributes?.status === "paid" ||
     attributes.payment_intent?.attributes?.status === "succeeded";
+  if (paid) {
+    const email = String(attributes.metadata?.account_email || "").toLowerCase();
+    if (email) {
+      const userResult = await query("SELECT id, email FROM users WHERE email = $1", [email]);
+      const user = userResult.rows[0];
+      const recent = await query(
+        "SELECT 1 FROM notifications WHERE recipient_email = $1 AND event = 'subscription-started' AND created_at > NOW() - INTERVAL '10 minutes' LIMIT 1",
+        [email],
+      );
+      if (user && !recent.rowCount)
+        notify({ userId: user.id, email: user.email, event: "subscription-started" }).catch(() => {});
+    }
+  }
 
   return json(response, 200, {
     amount: payment?.attributes?.amount || 0,
