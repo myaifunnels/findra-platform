@@ -1,9 +1,9 @@
 import { activePackage } from "./packages.mjs";
 import { query } from "./db.mjs";
 import { notify } from "./notifications.mjs";
+import { readSession } from "./auth.mjs";
 const PAYMONGO_API = "https://api.paymongo.com/v1";
 const ALLOWED_METHODS = new Set(["card", "gcash", "grab_pay", "paymaya"]);
-let runtimeSecretKey = "";
 let runtimeEnabled = null;
 let runtimeConnectedAt = "";
 let runtimePaymentMethods = [];
@@ -25,7 +25,14 @@ async function readJson(request) {
 }
 
 function activeSecretKey() {
-  return runtimeSecretKey || process.env.PAYMONGO_SECRET_KEY || "";
+  const mode = configuredMode();
+  return mode === "live"
+    ? process.env.PAYMONGO_LIVE_SECRET_KEY || process.env.PAYMONGO_SECRET_KEY || ""
+    : process.env.PAYMONGO_TEST_SECRET_KEY || process.env.PAYMONGO_SECRET_KEY || "";
+}
+
+function configuredMode() {
+  return String(process.env.PAYMONGO_MODE || "test").toLowerCase() === "live" ? "live" : "test";
 }
 
 function integrationEnabled() {
@@ -83,11 +90,7 @@ async function payMongoRequest(path, options = {}, secretKey) {
 function integrationStatus() {
   const secretKey = activeSecretKey();
   const configured = /^sk_(test|live)_/.test(secretKey);
-  const mode = secretKey.startsWith("sk_live_")
-    ? "live"
-    : secretKey.startsWith("sk_test_")
-      ? "test"
-      : "not configured";
+  const mode = configured ? configuredMode() : "not configured";
   return {
     configured,
     connectedAt: runtimeConnectedAt,
@@ -97,11 +100,11 @@ function integrationStatus() {
       : "",
     mode,
     paymentMethods: runtimePaymentMethods,
-    source: runtimeSecretKey
-      ? "admin dashboard"
-      : configured
-        ? "server environment"
-        : "not configured",
+    source: configured ? "server environment" : "not configured",
+    availableModes: {
+      test: Boolean(process.env.PAYMONGO_TEST_SECRET_KEY),
+      live: Boolean(process.env.PAYMONGO_LIVE_SECRET_KEY),
+    },
   };
 }
 
@@ -119,30 +122,7 @@ function paymentMethodNames(capabilities) {
 }
 
 async function connectIntegration(request, response) {
-  const body = await readJson(request);
-  const secretKey = String(body.secretKey || "").trim();
-  if (!/^sk_(test|live)_[A-Za-z0-9]+$/.test(secretKey)) {
-    return json(response, 400, {
-      error: "Enter a valid PayMongo sk_test_ or sk_live_ secret key.",
-    });
-  }
-  const previousEnabled = runtimeEnabled;
-  runtimeEnabled = true;
-  try {
-    const capabilities = await payMongoRequest(
-      "/merchants/capabilities/payment_methods",
-      {},
-      secretKey,
-    );
-    runtimeSecretKey = secretKey;
-    runtimeEnabled = body.enabled !== false;
-    runtimeConnectedAt = new Date().toISOString();
-    runtimePaymentMethods = paymentMethodNames(capabilities);
-    return json(response, 200, integrationStatus());
-  } catch (error) {
-    runtimeEnabled = previousEnabled;
-    throw error;
-  }
+  return json(response, 410, { error: "PayMongo keys are managed securely through Render environment variables. Set PAYMONGO_MODE and the corresponding secret key, then redeploy." });
 }
 
 async function updateIntegration(request, response) {
@@ -156,6 +136,13 @@ async function updateIntegration(request, response) {
     });
   runtimeEnabled = body.enabled;
   return json(response, 200, integrationStatus());
+}
+
+async function requireAdmin(request, response) {
+  const user = await readSession(request);
+  if (user?.role === "admin") return true;
+  json(response, 403, { error: "Administrator access is required." });
+  return false;
 }
 
 async function createCheckoutSession(request, response) {
@@ -277,6 +264,7 @@ export async function handlePayMongoRequest(request, response) {
       request.method === "POST" &&
       url.pathname === "/api/paymongo/integration/connect"
     ) {
+      if (!await requireAdmin(request, response)) return true;
       await connectIntegration(request, response);
       return true;
     }
@@ -284,6 +272,7 @@ export async function handlePayMongoRequest(request, response) {
       request.method === "PATCH" &&
       url.pathname === "/api/paymongo/integration"
     ) {
+      if (!await requireAdmin(request, response)) return true;
       await updateIntegration(request, response);
       return true;
     }

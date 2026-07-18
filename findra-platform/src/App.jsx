@@ -3371,8 +3371,6 @@ function IntegrationsAdmin({ onNotify }) {
     paymentMethods: [],
     source: "not configured",
   });
-  const [secretKey, setSecretKey] = useState("");
-  const [connectEnabled, setConnectEnabled] = useState(true);
   const [busy, setBusy] = useState("");
   const [inlineError, setInlineError] = useState("");
 
@@ -3400,36 +3398,6 @@ function IntegrationsAdmin({ onNotify }) {
   useEffect(() => {
     refreshStatus();
   }, []);
-
-  const connect = async (event) => {
-    event.preventDefault();
-    setBusy("connect");
-    setInlineError("");
-    try {
-      const result = await applyResponse(
-        await fetch("/api/paymongo/integration/connect", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ enabled: connectEnabled, secretKey }),
-        }),
-      );
-      setSecretKey("");
-      onNotify?.({
-        type: "success",
-        title: "PayMongo connected",
-        message: `${result.mode === "live" ? "Live" : "Test"} checkout is ${result.enabled ? "enabled" : "connected but disabled"}.`,
-      });
-    } catch (error) {
-      setInlineError(error.message);
-      onNotify?.({
-        type: "error",
-        title: "PayMongo could not be connected",
-        message: error.message,
-      });
-    } finally {
-      setBusy("");
-    }
-  };
 
   const toggleIntegration = async () => {
     if (!integration.configured) {
@@ -3557,47 +3525,31 @@ function IntegrationsAdmin({ onNotify }) {
           </footer>
         </article>
 
-        <form className="panel integration-connect-card" onSubmit={connect}>
+        <form className="panel integration-connect-card" onSubmit={(event) => { event.preventDefault(); setInlineError("PayMongo credentials are managed in Render. Change PAYMONGO_MODE, save, rebuild, and deploy."); }}>
           <div className="integration-card-title">
             <div>
               <Plug weight="duotone" />
             </div>
             <span>
               <small>SECURE CONNECTION</small>
-              <strong>
-                {integration.configured
-                  ? "Replace PayMongo credentials"
-                  : "Connect PayMongo"}
-              </strong>
+              <strong>PayMongo environment</strong>
             </span>
           </div>
           <label>
-            <FieldLabel required>Secret API key</FieldLabel>
+            <FieldLabel>Server-managed payment key</FieldLabel>
             <input
-              required
-              type="password"
-              autoComplete="off"
-              spellCheck="false"
-              value={secretKey}
-              onChange={(event) => setSecretKey(event.target.value)}
+              disabled
+              type="text"
               placeholder="sk_test_••••••••••••••••"
             />
-            <small>
-              Use a test key while setting up. Switch to a live key only when
-              your PayMongo account is activated.
-            </small>
+            <small>Set both secret keys in Render. Set PAYMONGO_MODE=test for sandbox checkout or PAYMONGO_MODE=live for real payments, then redeploy.</small>
           </label>
-          <label className="integration-enable-option">
-            <input
-              type="checkbox"
-              checked={connectEnabled}
-              onChange={(event) => setConnectEnabled(event.target.checked)}
-            />
+          <div className="integration-enable-option">
             <span>
-              <strong>Enable checkout after verification</strong>
-              <small>Customers can proceed to PayMongo immediately.</small>
+              <strong>{integration.mode === "test" ? "Test mode is active" : integration.mode === "live" ? "Live mode is active" : "Payment keys are not configured"}</strong>
+              <small>{integration.mode === "test" ? "Use a PayMongo test payment method to verify checkout and email delivery without a real charge." : "The active environment is selected securely through Render."}</small>
             </span>
-          </label>
+          </div>
           {inlineError && (
             <div className="integration-inline-error" role="alert">
               <WarningCircle weight="fill" /> {inlineError}
@@ -3605,7 +3557,7 @@ function IntegrationsAdmin({ onNotify }) {
           )}
           <button
             className="admin-primary integration-connect-button"
-            disabled={busy === "connect"}
+            disabled
             type="submit"
           >
             {busy === "connect"
