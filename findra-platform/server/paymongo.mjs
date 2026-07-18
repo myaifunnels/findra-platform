@@ -1,5 +1,5 @@
+import { activePackage } from "./packages.mjs";
 const PAYMONGO_API = "https://api.paymongo.com/v1";
-const FINDRA_PLAN_AMOUNT = 99900;
 const ALLOWED_METHODS = new Set(["card", "gcash", "grab_pay", "paymaya"]);
 let runtimeSecretKey = "";
 let runtimeEnabled = null;
@@ -158,6 +158,8 @@ async function updateIntegration(request, response) {
 
 async function createCheckoutSession(request, response) {
   const body = await readJson(request);
+  const plan = await activePackage();
+  if (!plan) return json(response, 409, { error: "There is no active subscription package. Please contact Findra." });
   const method = ALLOWED_METHODS.has(body.method) ? body.method : "gcash";
   const name = String(body.accountName || body.listingName || "Findra customer")
     .trim()
@@ -183,19 +185,20 @@ async function createCheckoutSession(request, response) {
         attributes: {
           billing: { name, email },
           cancel_url: `${baseUrl}/add-listing?payment=cancelled`,
-          description: `Annual Findra business listing for ${listingName}`,
+          description: `${plan.interval} ${plan.name} for ${listingName}`,
           line_items: [
             {
-              amount: FINDRA_PLAN_AMOUNT,
+              amount: Math.round(Number(plan.price) * 100),
               currency: "PHP",
-              description: "One year of Findra business directory access",
-              name: "Findra Business Listing",
+              description: `${plan.interval} Findra subscription`,
+              name: plan.name,
               quantity: 1,
             },
           ],
           metadata: {
             account_email: email,
             business_name: listingName,
+            package_id: String(plan.id),
           },
           payment_method_types: [method],
           reference_number: referenceNumber,
@@ -212,6 +215,7 @@ async function createCheckoutSession(request, response) {
     checkoutUrl: session.attributes.checkout_url,
     id: session.id,
     referenceNumber: session.attributes.reference_number || referenceNumber,
+    plan,
   });
 }
 
@@ -229,7 +233,7 @@ async function retrieveCheckoutSession(request, response, id) {
     attributes.payment_intent?.attributes?.status === "succeeded";
 
   return json(response, 200, {
-    amount: payment?.attributes?.amount || FINDRA_PLAN_AMOUNT,
+    amount: payment?.attributes?.amount || 0,
     id: session.id,
     paid,
     paymentId: payment?.id || "",

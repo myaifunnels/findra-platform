@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -761,21 +761,34 @@ export function SubscriptionsManagement({ onNotify }) {
   );
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
+  useEffect(() => {
+    fetch("/api/packages?admin=true", { credentials: "same-origin" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => { if (payload?.packages) setPackages(payload.packages); })
+      .catch(() => {});
+  }, []);
   const commit = (next) => {
     setPackages(next);
     saveStored(packagesKey, next);
   };
-  const save = (record) => {
+  const save = async (record) => {
     const nextRecord = {
       ...record,
       id: record.id || Math.max(0, ...packages.map((item) => item.id)) + 1,
       subscribers: record.subscribers || 0,
     };
-    commit(
-      record.id
-        ? packages.map((item) => (item.id === record.id ? nextRecord : item))
-        : [...packages, nextRecord],
-    );
+    try {
+      const response = await fetch(record.id ? `/api/packages/${record.id}` : "/api/packages", {
+        method: record.id ? "PATCH" : "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify(nextRecord),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      commit(record.id ? packages.map((item) => item.id === record.id ? payload.package : item) : [...packages, payload.package]);
+    } catch (error) {
+      onNotify?.({ type: "error", title: "Package save failed", message: error.message || "Please try again." });
+      return;
+    }
     setEditing(null);
     setCreating(false);
     onNotify?.({

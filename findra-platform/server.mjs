@@ -7,6 +7,7 @@ import { handleBrevoRequest } from "./server/brevo.mjs";
 import { handleAuthRequest } from "./server/auth.mjs";
 import { handleListingsRequest } from "./server/listings.mjs";
 import { handleMediaRequest } from "./server/media.mjs";
+import { handlePackagesRequest } from "./server/packages.mjs";
 
 const root = fileURLToPath(new URL("./dist/", import.meta.url));
 try {
@@ -40,6 +41,7 @@ createServer(async (request, response) => {
   if (await handleAuthRequest(request, response)) return;
   if (await handleListingsRequest(request, response)) return;
   if (await handleMediaRequest(request, response)) return;
+  if (await handlePackagesRequest(request, response)) return;
   if (await handleBrevoRequest(request, response)) return;
   if (await handlePayMongoRequest(request, response)) return;
   const pathname = decodeURIComponent(

@@ -4354,7 +4354,7 @@ function CustomListingFields({ fields, values = {}, onChange }) {
   );
 }
 
-function ListingEditor({ item, close, save, remove, planNotice, onViewPackage }) {
+function ListingEditor({ item, close, save, remove, planNotice, plan = findraPlan, onViewPackage }) {
   const managedTaxonomy = useMemo(readManagedTaxonomy, []);
   const managedCustomFields = useMemo(readCustomFields, []);
   const draftKey = `findra-listing-draft-${item.id || "new"}`;
@@ -5342,7 +5342,7 @@ const findraPlan = {
   billing: "year",
 };
 
-function PayMongoCheckout({ draft, account, back, complete }) {
+function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan }) {
   const [method, setMethod] = useState("gcash");
   const [processing, setProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -5392,10 +5392,11 @@ function PayMongoCheckout({ draft, account, back, complete }) {
         const completionError = complete(pending.draft, {
           account: pending.account,
           payment: {
-            amount: (result.amount || 99900) / 100,
+            amount: (result.amount || Number(plan.amount || plan.price) * 100) / 100,
             method: pending.method,
             reference: result.paymentId || result.referenceNumber,
             sessionId: result.id,
+            plan: pending.plan || plan,
           },
         });
         if (completionError) throw new Error(completionError);
@@ -5430,6 +5431,7 @@ function PayMongoCheckout({ draft, account, back, complete }) {
           accountName: account?.name,
           listingName: draft.name,
           method,
+          packageId: plan.id,
         }),
       });
       const checkout = await response.json();
@@ -5443,6 +5445,7 @@ function PayMongoCheckout({ draft, account, back, complete }) {
           account,
           draft,
           method,
+          plan,
           referenceNumber: checkout.referenceNumber,
           sessionId: checkout.id,
         }),
@@ -5554,7 +5557,7 @@ function PayMongoCheckout({ draft, account, back, complete }) {
               </small>
             </div>
           </div>
-          <h2>{findraPlan.name}</h2>
+          <h2>{plan.name}</h2>
           <ul>
             <li>
               <Check /> Complete public business profile
@@ -5602,10 +5605,23 @@ function GuestListingPage({ go, session, complete, createAccount }) {
     }
   }, []);
   const [draft, setDraft] = useState(pendingCheckout?.draft || null);
+  const [plan, setPlan] = useState(() => pendingCheckout?.plan || findraPlan);
   const [account, setAccount] = useState(
     session?.role === "user" ? session : pendingCheckout?.account || null,
   );
   const [stage, setStage] = useState(pendingCheckout ? "checkout" : "listing");
+  useEffect(() => {
+    fetch("/api/packages", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        const active = payload?.packages?.[0];
+        if (!active) return;
+        const nextPlan = { ...active, amount: active.price, billing: active.interval };
+        Object.assign(findraPlan, nextPlan);
+        setPlan(nextPlan);
+      })
+      .catch(() => {});
+  }, []);
   const submit = (record) => {
     setDraft(record);
     setStage(account ? "checkout" : "account");
@@ -5629,6 +5645,7 @@ function GuestListingPage({ go, session, complete, createAccount }) {
         account={account}
         back={() => setStage(session?.role === "user" ? "listing" : "account")}
         complete={complete}
+        plan={plan}
       />
     );
   return (
@@ -5637,6 +5654,7 @@ function GuestListingPage({ go, session, complete, createAccount }) {
       close={() => go("/")}
       save={submit}
       planNotice
+      plan={plan}
       onViewPackage={() => go("/packages")}
     />
   );
@@ -5857,9 +5875,9 @@ export function App() {
     const paidRecord = {
       ...record,
       subscription: {
-        plan: findraPlan.name,
-        amount: payment.amount || findraPlan.amount,
-        billing: findraPlan.billing,
+        plan: payment.plan?.name || findraPlan.name,
+        amount: payment.amount || payment.plan?.amount || payment.plan?.price || findraPlan.amount,
+        billing: payment.plan?.billing || payment.plan?.interval || findraPlan.billing,
         status: "Active",
         paymentMethod: payment.method || "paymongo",
         paymentReference: payment.reference || "PayMongo payment",

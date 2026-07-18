@@ -55,6 +55,23 @@ CREATE TABLE IF NOT EXISTS listings (
 
 CREATE INDEX IF NOT EXISTS listings_owner_id_idx ON listings(owner_id);
 CREATE INDEX IF NOT EXISTS listings_status_idx ON listings(status);
+
+CREATE TABLE IF NOT EXISTS packages (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  price INTEGER NOT NULL CHECK (price >= 0),
+  interval TEXT NOT NULL DEFAULT 'Yearly',
+  status TEXT NOT NULL DEFAULT 'Active',
+  featured BOOLEAN NOT NULL DEFAULT FALSE,
+  features JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO packages (name, price, interval, status, featured, features)
+SELECT 'Findra Business Listing', 999, 'Yearly', 'Active', TRUE,
+  '["Published business listing", "Logo, gallery, video, and attachments", "Customer inquiry and direct contact tools", "Business-owner dashboard access"]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM packages);
 `;
 
 try {
