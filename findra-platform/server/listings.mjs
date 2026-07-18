@@ -1,6 +1,6 @@
 import { query } from "./db.mjs";
 import { readSession } from "./auth.mjs";
-import { notify } from "./notifications.mjs";
+import { notify, notifyAdmins } from "./notifications.mjs";
 
 function json(response, status, body) {
   response.statusCode = status;
@@ -48,7 +48,6 @@ async function list(request, response) {
       ORDER BY listings.created_at DESC`,
     [onlyMine ? user.id : null, !onlyMine],
   );
-  notify({ userId: user.id, email: user.email, event: "listing-submitted" }).catch(() => {});
   return json(response, 200, { listings: result.rows.map(publicRecord) });
 }
 
@@ -58,16 +57,21 @@ async function create(request, response) {
   const record = await readJson(request);
   const name = String(record.name || "").trim();
   if (!name) return json(response, 400, { error: "Business name is required." });
-  const status = user.role === "admin" && record.status ? String(record.status) : "Draft";
+  const status = user.role === "admin" && record.status ? String(record.status) : "Pending";
   const result = await query(
     `INSERT INTO listings (owner_id, status, name, category, location, data)
      VALUES ($1, $2, $3, $4, $5, $6::jsonb)
      RETURNING *`,
     [user.id, status, name, String(record.category || ""), String(record.location || ""), JSON.stringify(record)],
   );
-  if (user.role === "admin" && record.status === "Published") notify({ userId: listing.owner_id, email: listing.data?.email, event: "listing-approved" }).catch(() => {});
-  if (user.role === "admin" && record.status === "Declined") notify({ userId: listing.owner_id, email: listing.data?.email, event: "listing-declined" }).catch(() => {});
-  return json(response, 201, { listing: publicRecord({ ...result.rows[0], owner_name: user.display_name }) });
+  const created = result.rows[0];
+  if (user.role === "admin" && status === "Published") notify({ userId: created.owner_id, email: record.email, event: "listing-approved" }).catch(() => {});
+  if (user.role === "admin" && status === "Declined") notify({ userId: created.owner_id, email: record.email, event: "listing-declined" }).catch(() => {});
+  if (user.role !== "admin") {
+    notify({ userId: user.id, email: user.email, event: "listing-submitted" }).catch(() => {});
+    notifyAdmins("listing-pending-admin").catch(() => {});
+  }
+  return json(response, 201, { listing: publicRecord({ ...created, owner_name: user.display_name }) });
 }
 
 async function update(request, response, id) {
@@ -79,13 +83,27 @@ async function update(request, response, id) {
   if (!listing) return json(response, 404, { error: "Listing not found." });
   if (user.role !== "admin" && listing.owner_id !== user.id)
     return json(response, 403, { error: "You do not own this listing." });
-  const name = String(record.name || listing.name).trim();
+  const nextData = { ...(listing.data || {}), ...record };
+  const name = String(nextData.name || listing.name).trim();
+  const nextStatus = user.role === "admin" && record.status ? String(record.status) : listing.status;
   const result = await query(
-    `UPDATE listings SET name = $1, category = $2, location = $3, data = $4::jsonb,
-       updated_at = NOW() WHERE id = $5 RETURNING *`,
-    [name, String(record.category || ""), String(record.location || ""), JSON.stringify(record), id],
+    `UPDATE listings SET name = $1, category = $2, location = $3, status = $4, data = $5::jsonb,
+       updated_at = NOW() WHERE id = $6 RETURNING *`,
+    [name, String(nextData.category || listing.category || ""), String(nextData.location || listing.location || ""), nextStatus, JSON.stringify(nextData), id],
   );
+  if (user.role === "admin" && listing.status !== nextStatus) {
+    const event = nextStatus === "Published" ? "listing-approved" : nextStatus === "Declined" ? "listing-declined" : null;
+    if (event) notify({ userId: listing.owner_id, email: listing.data?.email, event }).catch(() => {});
+  }
   return json(response, 200, { listing: publicRecord({ ...result.rows[0], owner_name: user.display_name }) });
+}
+
+async function remove(request, response, id) {
+  const user = await readSession(request);
+  if (!user || user.role !== "admin") return json(response, 403, { error: "Administrator access is required." });
+  const result = await query("DELETE FROM listings WHERE id = $1 RETURNING id, name", [id]);
+  if (!result.rows[0]) return json(response, 404, { error: "Listing not found." });
+  return json(response, 200, { deleted: result.rows[0] });
 }
 
 export async function handleListingsRequest(request, response) {
@@ -96,6 +114,7 @@ export async function handleListingsRequest(request, response) {
     if (request.method === "POST" && url.pathname === "/api/listings") return await create(request, response), true;
     const match = url.pathname.match(/^\/api\/listings\/(\d+)$/);
     if (request.method === "PATCH" && match) return await update(request, response, match[1]), true;
+    if (request.method === "DELETE" && match) return await remove(request, response, match[1]), true;
     return json(response, 404, { error: "Listing endpoint not found." }), true;
   } catch (error) {
     return json(response, error.status || 500, { error: error.message || "Listing request failed." }), true;

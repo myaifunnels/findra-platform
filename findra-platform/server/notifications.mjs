@@ -7,6 +7,7 @@ const copy = {
   "listing-declined": ["Action needed: Update your Business Details", "A few updates are needed before your business can go live. Please review and resubmit from your dashboard."],
   "subscription-started": ["Your Findra PH subscription is now active", "Your payment was successful. Your Business Details have been submitted for review."],
   "inquiry-received": ["You have a new inquiry on Findra PH", "A potential customer sent you an inquiry. Respond promptly to turn it into an opportunity."],
+  "listing-pending-admin": ["New business listing needs review", "A business owner submitted a listing. Review its details and publish or decline it from the Findra admin workspace."],
 };
 function json(res, status, body) { res.statusCode=status; res.setHeader("Content-Type","application/json"); res.end(JSON.stringify(body)); }
 async function send(email, subject, text) {
@@ -19,6 +20,10 @@ export async function notify({userId,email,event}) {
   const [title, body]=copy[event]||["Findra update", "There is a new update in your Findra account."];
   const status=await send(email,title,`Hi,\n\n${body}\n\nAccess your dashboard: ${process.env.PAYMONGO_APP_URL||"https://staging.findra.ph"}/user\n\nThe Findra PH Team`).catch(()=>"failed");
   await query("INSERT INTO notifications (user_id,recipient_email,event,title,body,email_status) VALUES ($1,$2,$3,$4,$5,$6)",[userId||null,email||null,event,title,body,status]);
+}
+export async function notifyAdmins(event) {
+  const admins = await query("SELECT id, email FROM users WHERE role = 'admin'");
+  await Promise.all(admins.rows.map((admin) => notify({ userId: admin.id, email: admin.email, event })));
 }
 export async function handleNotificationsRequest(req,res) {
   const url=new URL(req.url,`http://${req.headers.host||"localhost"}`); if(!url.pathname.startsWith("/api/notifications")) return false;

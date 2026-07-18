@@ -1771,40 +1771,84 @@ const sideItems = [
   ["Settings", Gear],
 ];
 
+function NotificationInbox() {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/notifications", { credentials: "same-origin" });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok) setItems(payload.notifications || []);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { if (open) refresh(); }, [open]);
+  const unread = items.filter((item) => !item.read_at).length;
+  const markRead = async (item) => {
+    if (item.read_at) return;
+    await fetch(`/api/notifications/${item.id}/read`, { method: "PATCH", credentials: "same-origin" }).catch(() => {});
+    setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read_at: new Date().toISOString() } : entry));
+  };
+  return <div className="notification-inbox">
+    <button className="icon-button" aria-label="Open notifications" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+      <Bell />
+      {unread > 0 && <i />}
+    </button>
+    {open && <section className="notification-popover">
+      <header><div><span>Activity</span><h3>Notifications</h3></div><button onClick={refresh} disabled={loading}>{loading ? "Loading…" : "Refresh"}</button></header>
+      <div className="notification-popover-list">
+        {items.map((item) => <button key={item.id} className={item.read_at ? "read" : "unread"} onClick={() => markRead(item)}>
+          <CheckCircle weight="fill" />
+          <span><strong>{item.title}</strong><small>{item.body}</small><em>{new Date(item.created_at).toLocaleString()}</em></span>
+        </button>)}
+        {!loading && !items.length && <p>No account activity yet.</p>}
+      </div>
+    </section>}
+  </div>;
+}
+
 function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
   const [section, setSection] = useState("Overview");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [confirmation, setConfirmation] = useState(null);
   const [toast, setToast] = useState("");
   const [mobileSide, setMobileSide] = useState(false);
   const notify = (message) => {
     setToast(message);
     setTimeout(() => setToast(""), 2400);
   };
-  const update = (id, next) => {
+  const update = async (id, next) => {
     try {
       const item = listings.find((listing) => listing.id === id);
-      setListings((items) =>
-        items.map((x) => (x.id === id ? { ...x, status: next } : x)),
-      );
-      setSelected((x) => (x ? { ...x, status: next } : x));
+      if (!item) throw new Error("Listing not found.");
+      const response = await fetch(`/api/listings/${id}`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...item, status: next }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "The listing could not be updated.");
+      setListings((items) => items.map((x) => (x.id === id ? payload.listing : x)));
+      setSelected((x) => (x ? payload.listing : x));
+      setConfirmation(null);
       notify(`Listing ${next.toLowerCase()}`);
-      if (next === "Published")
-        recordNotificationEvent("listing-approved", { recipient: item?.email || item?.owner });
-      if (next === "Declined")
-        recordNotificationEvent("listing-declined", { recipient: item?.email || item?.owner });
       onNotify?.({
         type: "success",
         title: `Listing marked ${next.toLowerCase()}`,
-        message: `${item?.name || "The business listing"} was updated successfully.`,
+        message: `${item.name || "The business listing"} was updated successfully. The owner has been notified.`,
       });
-    } catch {
+    } catch (error) {
       onNotify?.({
         type: "error",
         title: "The listing status could not be updated",
-        message: "Please try changing the listing status again.",
+        message: error.message || "Please try changing the listing status again.",
       });
     }
   };
@@ -1848,23 +1892,26 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
       });
     }
   };
-  const removeListing = (item) => {
-    if (!window.confirm(`Delete ${item.name}? This cannot be undone.`)) return;
+  const removeListing = async (item) => {
     try {
+      const response = await fetch(`/api/listings/${item.id}`, { method: "DELETE", credentials: "same-origin" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "The listing could not be deleted.");
       setListings((items) => items.filter((x) => x.id !== item.id));
       setSelected(null);
       setEditing(null);
+      setConfirmation(null);
       notify("Listing deleted");
       onNotify?.({
         type: "success",
         title: "Business listing deleted",
         message: `${item.name} was removed from the directory.`,
       });
-    } catch {
+    } catch (error) {
       onNotify?.({
         type: "error",
         title: "The listing could not be deleted",
-        message: "Please try deleting the business listing again.",
+        message: error.message || "Please try deleting the business listing again.",
       });
     }
   };
@@ -1935,10 +1982,7 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
               />
             </label>
             <ThemeToggle />
-            <button className="icon-button">
-              <Bell />
-              <i />
-            </button>
+            <NotificationInbox />
             <div className="admin-user">KS</div>
             <div className="admin-user-copy">
               <strong>Katrina S.</strong>
@@ -1963,8 +2007,12 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
             setStatus={setStatus}
             setSelected={setSelected}
             setEditing={setEditing}
-            update={update}
-            remove={removeListing}
+            update={(id, next) => {
+              const item = listings.find((listing) => listing.id === id);
+              if (item && next === "Published") setConfirmation({ type: "publish", item });
+              else if (item) update(id, next);
+            }}
+            remove={(item) => setConfirmation({ type: "delete", item })}
           />
         ) : section === "Integrations" ? (
           <IntegrationsAdmin onNotify={onNotify} />
@@ -1986,12 +2034,15 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
         <ListingModal
           item={selected}
           close={() => setSelected(null)}
-          update={update}
+          update={(id, next) => {
+            if (next === "Published") setConfirmation({ type: "publish", item: selected });
+            else update(id, next);
+          }}
           edit={() => {
             setEditing(selected);
             setSelected(null);
           }}
-          remove={() => removeListing(selected)}
+          remove={() => setConfirmation({ type: "delete", item: selected })}
         />
       )}
       {editing && (
@@ -1999,7 +2050,7 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
           item={editing}
           close={() => setEditing(null)}
           save={saveListing}
-          remove={editing.id ? () => removeListing(editing) : null}
+          remove={editing.id ? () => setConfirmation({ type: "delete", item: editing }) : null}
         />
       )}
       {toast && (
@@ -2007,6 +2058,13 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
           <CheckCircle weight="fill" />
           {toast}
         </div>
+      )}
+      {confirmation && (
+        <ListingActionConfirm
+          action={confirmation}
+          close={() => setConfirmation(null)}
+          confirm={() => confirmation.type === "publish" ? update(confirmation.item.id, "Published") : removeListing(confirmation.item)}
+        />
       )}
     </div>
   );
@@ -2959,10 +3017,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
               <House /> Main site
             </button>
             <ThemeToggle />
-            <button className="icon-button" aria-label="Notifications">
-              <Bell />
-              <i />
-            </button>
+            <NotificationInbox />
             <div className="admin-user">{initials}</div>
             <div className="admin-user-copy">
               <strong>{displayName}</strong>
@@ -3889,6 +3944,25 @@ function BrevoIntegration({ onNotify }) {
         </form>
       </div>
     </section>
+  );
+}
+
+function ListingActionConfirm({ action, close, confirm }) {
+  const publishing = action.type === "publish";
+  return (
+    <div className="modal-backdrop" onClick={close}>
+      <article className="listing-action-confirm" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="listing-action-title">
+        <button className="listing-action-close" onClick={close} aria-label="Close confirmation"><X /></button>
+        <div className={`listing-action-icon ${publishing ? "publish" : "delete"}`}>{publishing ? <CheckCircle weight="fill" /> : <Trash weight="fill" />}</div>
+        <span>{publishing ? "Ready to publish" : "Delete listing"}</span>
+        <h2 id="listing-action-title">{publishing ? `Publish ${action.item.name}?` : `Delete ${action.item.name}?`}</h2>
+        <p>{publishing ? "The listing will become publicly visible. Its owner will receive an in-app notification and a Brevo email when delivery is configured." : "This permanently removes the listing from Findra. This action cannot be undone."}</p>
+        <footer>
+          <button className="secondary-button" onClick={close}>Cancel</button>
+          <button className={publishing ? "admin-primary" : "danger-button"} onClick={confirm}>{publishing ? "Publish listing" : "Delete listing"}</button>
+        </footer>
+      </article>
+    </div>
   );
 }
 
