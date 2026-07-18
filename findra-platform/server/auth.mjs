@@ -130,11 +130,15 @@ async function register(request, response) {
     return json(response, 409, { error: "An account already uses this email. Please sign in instead." });
   const id = randomUUID();
   const passwordHash = await hashPassword(password);
+  const bootstrapAdminEmail = normaliseEmail(
+    process.env.BOOTSTRAP_ADMIN_EMAIL,
+  );
+  const role = bootstrapAdminEmail && email === bootstrapAdminEmail ? "admin" : "user";
   const result = await query(
-    `INSERT INTO users (id, email, display_name, password_hash)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO users (id, email, display_name, password_hash, role)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING id, email, display_name, role, email_verified_at`,
-    [id, email, name, passwordHash],
+    [id, email, name, passwordHash, role],
   );
   const user = result.rows[0];
   await createSession(response, user);
