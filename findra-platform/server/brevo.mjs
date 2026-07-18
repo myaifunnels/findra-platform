@@ -1,3 +1,4 @@
+import { readSession } from "./auth.mjs";
 const BREVO_API = "https://api.brevo.com/v3";
 let runtimeApiKey = "";
 let runtimeEnabled = null;
@@ -126,6 +127,21 @@ async function updateIntegration(request, response) {
   return json(response, 200, integrationStatus());
 }
 
+async function sendTestEmail(request, response) {
+  const user = await readSession(request);
+  if (!user || user.role !== "admin") return json(response, 403, { error: "Administrator access is required." });
+  const body = await readJson(request);
+  const recipient = String(body.email || user.email || "").trim().toLowerCase();
+  if (!recipient.includes("@")) return json(response, 400, { error: "Enter a valid recipient email." });
+  const apiKey = activeApiKey();
+  const sender = process.env.BREVO_FROM_EMAIL || "";
+  if (!integrationEnabled() || !apiKey || !sender) return json(response, 503, { error: "Brevo needs BREVO_ENABLED, BREVO_API_KEY, and BREVO_FROM_EMAIL configured on Render." });
+  const result = await fetch(`${BREVO_API}/smtp/email`, { method: "POST", headers: { "api-key": apiKey, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ sender: { email: sender, name: process.env.BREVO_FROM_NAME || "Findra PH" }, to: [{ email: recipient }], subject: "Findra PH email test", textContent: "This confirms that Findra PH can send transactional email through Brevo." }) });
+  const payload = await result.json().catch(() => ({}));
+  if (!result.ok) return json(response, result.status, { error: payload.message || payload.code || "Brevo rejected the test email." });
+  return json(response, 200, { ok: true, messageId: payload.messageId || "queued" });
+}
+
 export async function handleBrevoRequest(request, response) {
   const url = new URL(
     request.url,
@@ -149,6 +165,10 @@ export async function handleBrevoRequest(request, response) {
       url.pathname === "/api/brevo/integration"
     ) {
       await updateIntegration(request, response);
+      return true;
+    }
+    if (request.method === "POST" && url.pathname === "/api/brevo/test-email") {
+      await sendTestEmail(request, response);
       return true;
     }
     json(response, 404, { error: "Brevo endpoint not found." });
