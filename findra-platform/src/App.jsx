@@ -3585,6 +3585,7 @@ function BrevoIntegration({ onNotify }) {
     source: "not configured",
   });
   const [apiKey, setApiKey] = useState("");
+  const [testEmail, setTestEmail] = useState("");
   const [connectEnabled, setConnectEnabled] = useState(true);
   const [busy, setBusy] = useState("");
   const [inlineError, setInlineError] = useState("");
@@ -3665,6 +3666,35 @@ function BrevoIntegration({ onNotify }) {
       });
     } catch (error) {
       setInlineError(error.message);
+    } finally {
+      setBusy("");
+    }
+  };
+  const sendTestEmail = async (event) => {
+    event.preventDefault();
+    setBusy("test-email");
+    setInlineError("");
+    try {
+      const response = await fetch("/api/brevo/test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: testEmail }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok)
+        throw new Error(result.error || "Brevo could not send the test email.");
+      onNotify?.({
+        type: "success",
+        title: "Test email accepted by Brevo",
+        message: `Brevo accepted a test message for ${result.recipient}. Check its inbox, Spam, and Brevo's transactional logs.`,
+      });
+    } catch (error) {
+      setInlineError(error.message);
+      onNotify?.({
+        type: "error",
+        title: "Test email was not sent",
+        message: error.message,
+      });
     } finally {
       setBusy("");
     }
@@ -3769,6 +3799,31 @@ function BrevoIntegration({ onNotify }) {
               Open Brevo API settings <ArrowRight />
             </a>
           </footer>
+          <form className="brevo-test-email" onSubmit={sendTestEmail}>
+            <label htmlFor="brevo-test-recipient">
+              <span>Send a transactional test</span>
+              <small>Tests the live Findra server configuration only—no listing or payment required.</small>
+            </label>
+            <div>
+              <input
+                id="brevo-test-recipient"
+                required
+                type="email"
+                autoComplete="email"
+                value={testEmail}
+                onChange={(event) => setTestEmail(event.target.value)}
+                placeholder="you@example.com"
+                disabled={!integration.enabled || busy === "test-email"}
+              />
+              <button
+                type="submit"
+                className="secondary-button"
+                disabled={!integration.enabled || busy === "test-email"}
+              >
+                {busy === "test-email" ? "Sending…" : "Send test email"}
+              </button>
+            </div>
+          </form>
         </article>
         <form className="panel integration-connect-card" onSubmit={connect}>
           <div className="integration-card-title">
