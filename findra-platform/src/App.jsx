@@ -4401,23 +4401,21 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage })
     setStepError("");
     setForm((current) => ({ ...current, [key]: event.target.value }));
   };
-  const previewFiles = (files) =>
-    Promise.all(
-      files.map(
-        (file) =>
-          new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () =>
-              resolve({
-                name: file.name,
-                type: file.type || "Selected file",
-                url: reader.result,
-                data: reader.result,
-              });
-            reader.readAsDataURL(file);
-          }),
-      ),
-    );
+  const uploadFiles = async (files) => {
+    const uploaded = await Promise.all(files.map(async (file) => {
+      if (file.size > 12 * 1024 * 1024) throw new Error(`${file.name} is larger than the 12 MB upload limit.`);
+      const response = await fetch("/api/media/upload", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) },
+        body: file,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || `Could not upload ${file.name}.`);
+      return { name: payload.name || file.name, type: payload.type || file.type || "Selected file", url: payload.url, data: payload.url, key: payload.key };
+    }));
+    return uploaded;
+  };
   const syncUploadFields = (bucket, files) =>
     setForm((current) => {
       if (bucket === "logo")
@@ -4455,7 +4453,8 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage })
   const setFiles =
     (bucket, multiple = false) =>
     async (files) => {
-      const added = await previewFiles(files);
+      try {
+      const added = await uploadFiles(files);
       const next = multiple
         ? [...uploads[bucket], ...added]
         : added.slice(0, 1);
@@ -4464,12 +4463,21 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage })
         [bucket]: multiple ? [...current[bucket], ...added] : added.slice(0, 1),
       }));
       syncUploadFields(bucket, next);
+      } catch (error) {
+        setStepError(error.message || "Could not upload this file. Please try again.");
+      }
     };
   const setFeatured = async (files) => {
     const file = files[0];
     if (!file) return;
     setStepError("");
-    const [preview] = await previewFiles([file]);
+    let preview;
+    try {
+      [preview] = await uploadFiles([file]);
+    } catch (error) {
+      setStepError(error.message || "Could not upload this file. Please try again.");
+      return;
+    }
     setUploads((current) => ({ ...current, featured: [preview] }));
     setForm((current) => ({
       ...current,
@@ -4478,7 +4486,13 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage })
     }));
   };
   const replaceUpload = (bucket) => async (index, files) => {
-    const [replacement] = await previewFiles(files.slice(0, 1));
+    let replacement;
+    try {
+      [replacement] = await uploadFiles(files.slice(0, 1));
+    } catch (error) {
+      setStepError(error.message || "Could not upload this file. Please try again.");
+      return;
+    }
     if (!replacement) return;
     const next = uploads[bucket].map((file, itemIndex) =>
       itemIndex === index ? replacement : file,
