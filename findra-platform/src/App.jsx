@@ -66,20 +66,9 @@ import {
   UsersManagement,
 } from "./adminModules";
 
-const demoAccounts = {
-  admin: {
-    username: "admin@findra.ph",
-    password: "FindraAdmin2026!",
-    role: "admin",
-    name: "Katrina S.",
-  },
-  user: {
-    username: "eventsbyina",
-    password: "FindraUser2026!",
-    role: "user",
-    name: "Ina de la Cruz",
-  },
-};
+// Retained only while the legacy fallback code below is removed in the next
+// migration. It is never exposed or accepted by the production auth flow.
+const demoAccounts = {};
 
 function BrandLogo({ className = "" }) {
   return (
@@ -96,6 +85,32 @@ function BrandLogo({ className = "" }) {
       />
     </span>
   );
+}
+
+async function authRequest(path, body) {
+  const response = await fetch(path, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok)
+    throw new Error(payload.error || "We could not process your request.");
+  return payload;
+}
+
+function sessionFromUser(user) {
+  return user
+    ? {
+        id: user.id,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        username: user.email,
+        emailVerified: user.emailVerified,
+      }
+    : null;
 }
 
 function ThemeToggle() {
@@ -1591,11 +1606,29 @@ function LegalPage({ go }) {
 
 function LoginPage({ go, onLogin }) {
   const [tab, setTab] = useState("login");
+  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const submit = (e) => {
+  const [submitting, setSubmitting] = useState(false);
+  const submit = async (e) => {
     e.preventDefault();
+    setError("");
+    setSubmitting(true);
+    try {
+      const result = await authRequest(
+        tab === "register" ? "/api/auth/register" : "/api/auth/login",
+        tab === "register"
+          ? { name, email: username, password }
+          : { email: username, password },
+      );
+      onLogin(sessionFromUser(result.user));
+    } catch (requestError) {
+      setError(requestError.message || "We could not sign you in.");
+    } finally {
+      setSubmitting(false);
+    }
+    return;
     const account = Object.values(demoAccounts).find(
       (x) =>
         x.username.toLowerCase() === username.trim().toLowerCase() &&
@@ -1635,13 +1668,27 @@ function LoginPage({ go, onLogin }) {
             </button>
           </div>
           <form onSubmit={submit}>
+            {tab === "register" && (
+              <label>
+                <UserCircle />
+                <input
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                  placeholder="Your full name"
+                />
+              </label>
+            )}
             <label>
               <EnvelopeSimple />
               <input
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Email or Username"
+                type="email"
+                autoComplete="email"
+                placeholder="Email address"
               />
             </label>
             <label>
@@ -1654,12 +1701,6 @@ function LoginPage({ go, onLogin }) {
                 placeholder="Password"
               />
             </label>
-            {tab === "register" && (
-              <label>
-                <Storefront />
-                <input required placeholder="Business name" />
-              </label>
-            )}
             {error && (
               <p className="auth-error">
                 <WarningCircle />
@@ -1670,28 +1711,15 @@ function LoginPage({ go, onLogin }) {
               <label>
                 <input type="checkbox" defaultChecked /> Remember me
               </label>
-              <a href="#forgot">Forgot password?</a>
+              <span>Password reset will be available after email delivery is connected.</span>
             </div>
-            <GreenButton type="submit" icon={<ArrowRight />}>
-              {tab === "login" ? "Login" : "Create Account"}
+            <GreenButton disabled={submitting} type="submit" icon={<ArrowRight />}>
+              {submitting
+                ? "Please wait..."
+                : tab === "login"
+                  ? "Login"
+                  : "Create Account"}
             </GreenButton>
-            <div className="demo-accounts">
-              <p>Demo access</p>
-              <button
-                type="button"
-                onClick={() => useAccount(demoAccounts.admin)}
-              >
-                <strong>Admin account</strong>
-                <span>{demoAccounts.admin.username}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => useAccount(demoAccounts.user)}
-              >
-                <strong>Business owner</strong>
-                <span>{demoAccounts.user.username}</span>
-              </button>
-            </div>
           </form>
         </div>
       </main>
@@ -5070,11 +5098,17 @@ function GuestAccountGate({ draft, go, createAccount, onReady }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const submit = (event) => {
+  const [submitting, setSubmitting] = useState(false);
+  const submit = async (event) => {
     event.preventDefault();
-    const result = createAccount({ mode, name, email, password });
-    setError(result.error || "");
-    if (result.account) onReady(result.account);
+    setSubmitting(true);
+    try {
+      const result = await createAccount({ mode, name, email, password });
+      setError(result.error || "");
+      if (result.account) onReady(result.account);
+    } finally {
+      setSubmitting(false);
+    }
   };
   return (
     <div className="guest-gate-page">
@@ -5163,14 +5197,14 @@ function GuestAccountGate({ draft, go, createAccount, onReady }) {
               Password
               <input
                 required
-                minLength="6"
+                minLength="10"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete={
                   mode === "login" ? "current-password" : "new-password"
                 }
-                placeholder="At least 6 characters"
+                placeholder="At least 10 characters"
               />
             </label>
             {error && (
@@ -5179,10 +5213,12 @@ function GuestAccountGate({ draft, go, createAccount, onReady }) {
                 {error}
               </p>
             )}
-            <GreenButton type="submit" icon={<ArrowRight />}>
-              {mode === "register"
-                ? "Create account & continue"
-                : "Sign in & continue"}
+            <GreenButton disabled={submitting} type="submit" icon={<ArrowRight />}>
+              {submitting
+                ? "Please wait..."
+                : mode === "register"
+                  ? "Create account & continue"
+                  : "Sign in & continue"}
             </GreenButton>
             <small className="guest-privacy">
               Your listing stays saved while you continue to secure checkout.
@@ -5284,7 +5320,7 @@ function PayMongoCheckout({ draft, account, back, complete }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          accountEmail: draft.email || account?.username,
+          accountEmail: draft.email || account?.email || account?.username,
           accountName: account?.name,
           listingName: draft.name,
           method,
@@ -5504,16 +5540,26 @@ export function App() {
   const [path, go] = usePath();
   const [listings, setListings] = useState(readListings);
   const [notice, setNotice] = useState(null);
-  const [session, setSession] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("findra-demo-session"));
-    } catch {
-      return null;
-    }
-  });
+  const [session, setSession] = useState(null);
   useEffect(() => {
     document.documentElement.dataset.theme =
       localStorage.getItem("findra-theme") || "light";
+  }, []);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { credentials: "same-origin" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const payload = await response.json();
+        return sessionFromUser(payload.user);
+      })
+      .then((nextSession) => {
+        if (active && nextSession) setSession(nextSession);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
   }, []);
   useEffect(() => {
     try {
@@ -5528,17 +5574,14 @@ export function App() {
     }
   }, [listings]);
   const login = (account) => {
-    const next = {
-      role: account.role,
-      name: account.name,
-      username: account.username,
-    };
-    localStorage.setItem("findra-demo-session", JSON.stringify(next));
-    setSession(next);
+    setSession(account);
     go(account.role === "admin" ? "/admin" : "/user");
   };
-  const logout = () => {
-    localStorage.removeItem("findra-demo-session");
+  const logout = async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+    }).catch(() => {});
     setSession(null);
     go("/");
   };
@@ -5585,7 +5628,30 @@ export function App() {
       return false;
     }
   };
-  const resolveGuestAccount = (credentials) => {
+  const resolveGuestAccount = async (credentials) => {
+    try {
+      const result = await authRequest(
+        credentials.mode === "register"
+          ? "/api/auth/register"
+          : "/api/auth/login",
+        credentials.mode === "register"
+          ? {
+              name: credentials.name,
+              email: credentials.email,
+              password: credentials.password,
+            }
+          : { email: credentials.email, password: credentials.password },
+      );
+      const account = sessionFromUser(result.user);
+      setSession(account);
+      return { account, error: "" };
+    } catch (requestError) {
+      return {
+        error: requestError.message || "We couldn't prepare your account. Please try again.",
+      };
+    }
+    /* Legacy browser-only account code remains below temporarily for reference.
+       It is unreachable and will be removed with listing data migration. */
     try {
       let account = credentials.account || null;
       const accountKey = "findra-custom-accounts";

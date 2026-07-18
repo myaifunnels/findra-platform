@@ -4,6 +4,7 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { handlePayMongoRequest } from "./server/paymongo.mjs";
 import { handleBrevoRequest } from "./server/brevo.mjs";
+import { handleAuthRequest } from "./server/auth.mjs";
 
 const root = fileURLToPath(new URL("./dist/", import.meta.url));
 try {
@@ -34,6 +35,7 @@ const types = {
 };
 
 createServer(async (request, response) => {
+  if (await handleAuthRequest(request, response)) return;
   if (await handleBrevoRequest(request, response)) return;
   if (await handlePayMongoRequest(request, response)) return;
   const pathname = decodeURIComponent(
