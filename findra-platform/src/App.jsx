@@ -1889,12 +1889,26 @@ function LoginPage({ go, onLogin }) {
     setError("");
   };
   return (
-    <PublicLayout go={go}>
-      <main className="login-page">
-        <div className="auth-card">
-          <div className="auth-top">
+      <main className="auth-page">
+        <button className="auth-back" onClick={() => go("/")}><ArrowLeft /> Back to Findra</button>
+        <ThemeToggle />
+        <section className="auth-shell">
+          <aside className="auth-brand-panel">
             <BrandLogo />
-            <ThemeToggle />
+            <div className="auth-brand-copy">
+              <span className="section-eyebrow">FIND THE RIGHT PARTNER, FAST.</span>
+              <h1>Get discovered with Findra.</h1>
+              <p>Create your account to manage your business, receive inquiries, and keep your listing current.</p>
+            </div>
+            <div className="auth-steps">
+              <article className="active"><b>1</b><span><strong>Create your account</strong><small>Join the Findra community</small></span></article>
+              <article><b>2</b><span><strong>Add your business</strong><small>Build a complete public profile</small></span></article>
+              <article><b>3</b><span><strong>Get discovered</strong><small>Connect with new customers</small></span></article>
+            </div>
+          </aside>
+          <div className="auth-card">
+          <div className="auth-top">
+            <div><span className="section-eyebrow">{tab === "login" ? "WELCOME BACK" : "CREATE YOUR ACCOUNT"}</span><h2>{tab === "login" ? "Sign in to Findra" : "Start your Findra journey"}</h2><p>{tab === "login" ? "Manage your business and account in one place." : "It only takes a moment to get started."}</p></div>
           </div>
           <div className="auth-tabs">
             <button
@@ -1914,6 +1928,7 @@ function LoginPage({ go, onLogin }) {
             {tab === "register" && (
               <label>
                 <UserCircle />
+                <span>Full name</span>
                 <input
                   required
                   value={name}
@@ -1925,6 +1940,7 @@ function LoginPage({ go, onLogin }) {
             )}
             <label>
               <EnvelopeSimple />
+              <span>Email address</span>
               <input
                 required
                 value={username}
@@ -1936,6 +1952,7 @@ function LoginPage({ go, onLogin }) {
             </label>
             <label>
               <WarningCircle />
+              <span>Password</span>
               <input
                 required
                 value={password}
@@ -1954,7 +1971,7 @@ function LoginPage({ go, onLogin }) {
               <label>
                 <input type="checkbox" defaultChecked /> Remember me
               </label>
-              <span>Password reset will be available after email delivery is connected.</span>
+              <span>Secure access to your account and listing.</span>
             </div>
             <GreenButton disabled={submitting} type="submit" icon={<ArrowRight />}>
               {submitting
@@ -1964,9 +1981,10 @@ function LoginPage({ go, onLogin }) {
                   : "Create Account"}
             </GreenButton>
           </form>
-        </div>
+          <p className="auth-switch">{tab === "login" ? "New to Findra?" : "Already have an account?"} <button type="button" onClick={() => setTab(tab === "login" ? "register" : "login")}>{tab === "login" ? "Create an account" : "Sign in"}</button></p>
+          </div>
+        </section>
       </main>
-    </PublicLayout>
   );
 }
 
