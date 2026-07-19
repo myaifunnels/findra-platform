@@ -3518,6 +3518,101 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
   }
 }
 
+/* Public business profile — theme-aware contact surface and clearer, lighter detail tokens. */
+.detail-service-tags {
+  gap: 8px;
+}
+.detail-service-tags span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 11px;
+  border: 1px solid #a9d9bb;
+  border-radius: 999px;
+  background: #effcf3;
+  color: #075f32;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.2;
+  box-shadow: 0 4px 12px rgba(4, 87, 42, 0.08);
+}
+.listing-inquiry-card {
+  border-color: rgba(32, 135, 77, 0.42);
+  background: linear-gradient(145deg, rgba(238, 255, 244, 0.96), rgba(217, 248, 228, 0.92));
+  box-shadow: 0 18px 38px rgba(3, 45, 24, 0.13), inset 0 1px rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+}
+.listing-inquiry-card h2,
+.listing-inquiry-card form label {
+  color: #123b29;
+}
+.listing-inquiry-card input,
+.listing-inquiry-card textarea {
+  border-color: rgba(37, 115, 71, 0.26);
+  background: rgba(255, 255, 255, 0.86);
+  color: #173d2c;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.listing-inquiry-card input::placeholder,
+.listing-inquiry-card textarea::placeholder {
+  color: #627d70;
+}
+.listing-inquiry-card .contact-actions {
+  border-top-color: rgba(32, 123, 70, 0.18);
+}
+.listing-inquiry-card .contact-actions a,
+.listing-inquiry-card .contact-actions > span {
+  color: #245642;
+}
+.listing-location-map .map-frame {
+  height: clamp(320px, 34vw, 420px);
+  border-color: rgba(83, 177, 119, 0.38);
+  box-shadow: 0 18px 42px rgba(3, 31, 20, 0.22);
+}
+[data-theme="dark"] .detail-service-tags span {
+  border-color: rgba(105, 225, 149, 0.48);
+  background: rgba(24, 85, 54, 0.92);
+  color: #e1ffea;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+[data-theme="dark"] .listing-inquiry-card {
+  border-color: rgba(124, 219, 160, 0.35);
+  background: linear-gradient(145deg, rgba(27, 61, 43, 0.94), rgba(10, 31, 21, 0.96));
+  color: #e6f5ec;
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.42), inset 0 1px rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .listing-inquiry-card h2,
+[data-theme="dark"] .listing-inquiry-card form label {
+  color: #f0fff5;
+}
+[data-theme="dark"] .listing-inquiry-card input,
+[data-theme="dark"] .listing-inquiry-card textarea {
+  border-color: rgba(151, 220, 177, 0.28) !important;
+  background: rgba(5, 22, 14, 0.64) !important;
+  color: #edf9f1 !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark"] .listing-inquiry-card input::placeholder,
+[data-theme="dark"] .listing-inquiry-card textarea::placeholder {
+  color: #9bb6a7;
+}
+[data-theme="dark"] .listing-inquiry-card .contact-actions {
+  border-top-color: rgba(177, 236, 199, 0.17);
+}
+[data-theme="dark"] .listing-inquiry-card .contact-actions a,
+[data-theme="dark"] .listing-inquiry-card .contact-actions > span {
+  color: #cfe9da;
+}
+@media (max-width: 760px) {
+  .listing-inquiry-card {
+    padding: 22px;
+  }
+  .listing-location-map .map-frame {
+    height: 310px;
+  }
+}
+
 /* Findra experience system: clear hierarchy, tactile motion, and mobile-first rhythm. */
 :root {
   --font-display: "Manrope", "Inter", sans-serif;

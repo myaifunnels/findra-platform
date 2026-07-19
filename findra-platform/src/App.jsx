@@ -1120,7 +1120,7 @@ function ListingDetail({ go, item }) {
             <h3>ABOUT US</h3>
             <p>{about}</p>
             <h3>OUR SERVICES</h3>
-            <div className="service-tags">
+            <div className="service-tags detail-service-tags">
               {item.services.map((s) => (
                 <span key={s}>{s}</span>
               ))}
@@ -1247,7 +1247,7 @@ function ListingDetail({ go, item }) {
               </div>
             )}
           </article>
-          <aside className="inquiry-card">
+          <aside className="inquiry-card listing-inquiry-card">
             <h2>Inquiry Form</h2>
             {sent ? (
               <div className="success">
