@@ -53,6 +53,7 @@ import {
   ListNumbers,
   LinkSimple,
   ArrowsOutSimple,
+  ArrowsClockwise,
   ImageSquare,
 } from "@phosphor-icons/react";
 import {
@@ -1911,7 +1912,7 @@ const sideItems = [
   ["Subscriptions", CreditCard],
   ["Categories", Tag],
   ["Custom Fields", ListBullets],
-  ["Automation", Bell],
+  ["Automation", ArrowsClockwise],
   ["Pages & Content", FileText],
   ["Settings", Gear],
 ];
@@ -2054,7 +2055,7 @@ function AutomationManagement({ onNotify }) {
   return <div className="admin-content automation-module">
     <section className="welcome-row automation-hero"><div><span className="section-eyebrow">Email automation</span><h2>Automation & email templates</h2><p>Configure the sender, subject, reply-to address, and branded content used by Findra emails.</p></div><button type="button" className="secondary-button" onClick={load} disabled={loading}>{loading ? "Loading…" : "Refresh templates"}</button></section>
     {loading && <section className="panel automation-empty"><Clock /><h3>Loading email templates…</h3></section>}
-    <nav className="automation-channel-tabs" aria-label="Automation channels"><button type="button" className={channel === "email" ? "active" : ""} onClick={() => setChannel("email")}><EnvelopeSimple /> Email</button><button type="button" className={channel === "sms" ? "active" : ""} onClick={() => setChannel("sms")}><Phone /> SMS via Textbee</button></nav>
+    <nav className="automation-channel-tabs" aria-label="Automation channels"><button type="button" className={channel === "email" ? "active" : ""} onClick={() => setChannel("email")}><EnvelopeSimple /> Email</button><button type="button" className={channel === "sms" ? "active" : ""} onClick={() => setChannel("sms")}><Phone /> SMS</button></nav>
     {!loading && !form && <section className="panel automation-empty"><EnvelopeSimple /><h3>No email templates available</h3><p>Run the database migration, then refresh this page.</p></section>}
     {!loading && form && channel === "email" && <><div className="automation-layout">
       <aside className="panel automation-template-list"><span className="section-eyebrow">Automations</span><h3>Email triggers</h3><p>Each template sends when its matching Findra activity occurs.</p><div>{templates.map((item) => <button type="button" className={item.event === selectedEvent ? "active" : ""} onClick={() => choose(item.event)} key={item.event}><EnvelopeSimple /><span><strong>{item.name}</strong><small>{item.active ? "Enabled" : "Paused"}</small></span></button>)}</div></aside>
@@ -2071,7 +2072,7 @@ function AutomationManagement({ onNotify }) {
         <footer><small>Recommendation: keep transactional emails concise, use the verified <strong>hello@findra.ph</strong> sender, and include one clear action.</small><button className="admin-primary" disabled={saving} type="submit"><CheckCircle />{saving ? "Saving…" : "Save template"}</button></footer>
       </form>
     </div><AutomationActionCreator channel="email" templates={templates} actions={actions} onCreate={createAction} onRemove={removeAction} onNotify={onNotify} /></>}
-    {!loading && channel === "sms" && <><section className="panel sms-integration-card"><span className="section-eyebrow">Textbee integration</span><h3>{textbee?.ready ? "Textbee SMS is ready" : "Connect your Textbee device"}</h3><p>Send transactional SMS through a registered Android device. Credentials stay in Render environment variables and are never exposed to the browser.</p><div className="sms-status-grid"><div><small>Connection</small><strong>{textbee?.ready ? "Connected" : textbee?.configured ? "Configured but disabled" : "Not configured"}</strong></div><div><small>Device</small><strong>{textbee?.deviceHint || "—"}</strong></div></div><label><span>Send a test SMS</span><div className="sms-test-row"><input value={testPhone} onChange={(event) => setTestPhone(event.target.value)} placeholder="+639171234567" /><button type="button" className="admin-primary" disabled={!textbee?.ready} onClick={testSms}>Send test</button></div></label><small>Use E.164 format. Event-based SMS actions send to the listing phone, WhatsApp, or Viber number whenever it is available.</small></section><AutomationActionCreator channel="sms" templates={templates} actions={actions} onCreate={createAction} onRemove={removeAction} onNotify={onNotify} /></>}
+    {!loading && channel === "sms" && <><section className="panel sms-integration-card"><span className="section-eyebrow">SMS automation</span><h3>{textbee?.ready ? "Findra SMS is ready" : "Connect your SMS service"}</h3><p>Send short, branded updates after important Findra activity. Full details stay in the matching email.</p><div className="sms-status-grid"><div><small>Connection</small><strong>{textbee?.ready ? "Connected" : textbee?.configured ? "Configured but disabled" : "Not configured"}</strong></div><div><small>Delivery</small><strong>Branded Findra SMS</strong></div></div><label><span>Send a test SMS</span><div className="sms-test-row"><input value={testPhone} onChange={(event) => setTestPhone(event.target.value)} placeholder="+639171234567" /><button type="button" className="admin-primary" disabled={!textbee?.ready} onClick={testSms}>Send test</button></div></label><small>Use E.164 format. The default SMS messages use Findra fields and direct recipients to their email for complete information.</small></section><AutomationActionCreator channel="sms" templates={templates} actions={actions} onCreate={createAction} onRemove={removeAction} onNotify={onNotify} /></>}
   </div>;
 }
 

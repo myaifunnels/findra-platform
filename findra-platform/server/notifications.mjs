@@ -19,6 +19,15 @@ const templateNames = {
   "inquiry-received": "New inquiry received",
   "listing-pending-admin": "New listing pending admin review",
 };
+const smsCopy = {
+  "new-user": "Hi {{contactFirstName}}, welcome to Findra PH. Your account is ready. Check your email for full details.",
+  "listing-submitted": "Hi {{contactFirstName}}, we received {{businessName}} for review. Check your email for full details.",
+  "listing-approved": "Great news, {{contactFirstName}}! {{businessName}} is now live on Findra PH. Check your email for full details.",
+  "listing-declined": "Hi {{contactFirstName}}, {{businessName}} needs a few updates before it can go live. Check your email for full details.",
+  "subscription-started": "Hi {{contactFirstName}}, your Findra PH subscription is active. Check your email for full details.",
+  "inquiry-received": "Hi {{contactFirstName}}, {{businessName}} received a new Findra inquiry. Check your email for full details.",
+  "listing-pending-admin": "Findra admin: {{businessName}} is ready for review. Check your email for full details.",
+};
 function json(res, status, body) { res.statusCode=status; res.setHeader("Content-Type","application/json"); res.end(JSON.stringify(body)); }
 async function readJson(request) {
   let body = "";
@@ -102,6 +111,10 @@ async function send(email, template, context) {
 async function runAdditionalActions(event, email, context) {
   let actions = [];
   try { actions = (await query("SELECT * FROM automation_actions WHERE event=$1 AND active=TRUE ORDER BY id", [event])).rows; } catch { return; }
+  const defaultSms = smsCopy[event];
+  if (defaultSms && context.contactPhone) {
+    try { await sendSms({ recipient: context.contactPhone, message: renderPlainText(defaultSms, context) }); } catch { /* SMS is supplementary to the email record. */ }
+  }
   await Promise.all(actions.map(async (action) => {
     try {
       if (action.channel === "email" && email) {

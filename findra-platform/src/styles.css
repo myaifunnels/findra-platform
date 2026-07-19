@@ -2479,6 +2479,9 @@ td {
 .automation-action-form footer small { color:#a5bcae; font-size:12px; }
 .automation-action-form code { color:#75e7a1; }
 @media (max-width:620px) { .automation-channel-tabs { width:100%; } .automation-channel-tabs button { flex:1; justify-content:center; padding:10px 8px; font-size:13px; } .sms-status-grid { grid-template-columns:1fr; } .sms-test-row { flex-direction:column; } }
+
+/* Accessibility floor: operational copy, labels, controls, tables, badges, and helper text never render below 14px. */
+body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, dd, code, em, strong) { font-size: max(14px, 1em) !important; }
 .automation-layout {
   display: grid;
   grid-template-columns: minmax(230px, .7fr) minmax(0, 1.6fr);
