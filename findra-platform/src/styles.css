@@ -760,22 +760,60 @@ footer {
   object-fit: contain;
   background: white;
 }
+.detail-sections {
+  display: grid;
+  gap: 20px;
+}
+.detail-section {
+  padding: 26px;
+}
+.detail-section-title {
+  margin: 0 0 16px !important;
+  color: var(--green);
+  font-size: 13px !important;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+[data-theme="dark"] .detail-section-title {
+  color: #7fe6a6;
+}
 .detail-social {
   display: flex;
-  justify-content: center;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
-.detail-social a {
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
+.detail-social a,
+.detail-social-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #d4e2dc;
+  border-radius: 10px;
+  background: #f8fbf9;
+  color: #244138;
+  font-size: 13px;
+  font-weight: 700;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+.detail-social a:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(6, 64, 34, 0.13);
+}
+.detail-social-empty {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .detail-social svg {
-  width: 45px;
-  height: 45px;
-  padding: 11px;
-  border: 1px solid #456057;
-  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+}
+[data-theme="dark"] .detail-social a,
+[data-theme="dark"] .detail-social-empty {
+  border-color: rgba(166, 229, 188, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e6f5ec;
 }
 .detail-columns {
   display: grid;
@@ -793,11 +831,7 @@ footer {
   font:
     600 italic 22px "Lexend Deca",
     sans-serif;
-  margin: 0 0 65px;
-}
-.detail-columns article > h3 {
-  margin: 36px 0 18px;
-  font-size: 17px;
+  margin: 0 0 28px;
 }
 .detail-columns article > p {
   font-size: 16px;
@@ -816,21 +850,12 @@ footer {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin-top: 40px;
 }
 .project-grid img {
   width: 100%;
   height: 160px;
   object-fit: cover;
   border-radius: 9px;
-}
-.listing-video,
-.listing-attachments {
-  margin-top: 36px;
-}
-.listing-video > h3,
-.listing-attachments > h3 {
-  margin: 0 0 14px !important;
 }
 .listing-video > a {
   width: max-content;
@@ -853,15 +878,12 @@ footer {
   background: #07110e;
   box-shadow: 0 14px 32px rgba(5, 32, 23, 0.16);
 }
-.listing-attachments {
+.listing-attachments-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
-.listing-attachments > h3 {
-  grid-column: 1/-1;
-}
-.listing-attachments > a {
+.listing-attachments-grid > a {
   min-width: 0;
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr);
@@ -873,22 +895,22 @@ footer {
   color: #2b463b;
   background: #f8fbf9;
 }
-.listing-attachments > a > svg {
+.listing-attachments-grid > a > svg {
   font-size: 25px;
   color: #0a9349;
 }
-.listing-attachments > a > span {
+.listing-attachments-grid > a > span {
   min-width: 0;
   display: grid;
   gap: 3px;
 }
-.listing-attachments strong,
-.listing-attachments small {
+.listing-attachments-grid strong,
+.listing-attachments-grid small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.listing-attachments small {
+.listing-attachments-grid small {
   color: #71847b;
   font-size: 11px;
 }
@@ -2428,9 +2450,6 @@ td {
 .pac-icon {
   filter: brightness(1.8) saturate(0.7);
 }
-.listing-location-map {
-  margin-top: 28px;
-}
 .listing-location-map-heading {
   display: flex;
   align-items: center;
@@ -2439,7 +2458,7 @@ td {
   margin-bottom: 12px;
 }
 .listing-location-map-heading > h3 {
-  margin: 0;
+  margin: 0 !important;
 }
 .listing-location-map-heading a {
   display: inline-flex;
@@ -3004,7 +3023,7 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
   color: #dce8e3;
 }
 [data-theme="dark"] .listing-video > a,
-[data-theme="dark"] .listing-attachments > a {
+[data-theme="dark"] .listing-attachments-grid > a {
   background: #13211c;
   border-color: #3c584d;
   color: #dce9e3;
@@ -4033,7 +4052,6 @@ button.management-status { border: 0; cursor: pointer; }
 .custom-listing-fields .custom-field-wide { grid-column: 1 / -1; }
 .custom-checkbox-control { display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 0 13px; border: 1px solid var(--field-border); border-radius: 7px; background: var(--field-bg); color: var(--surface-text); font-weight: 700; }
 .custom-checkbox-control input { width: 17px; height: 17px; min-height: 0 !important; accent-color: var(--green); }
-.listing-custom-details { margin-top: 30px; }
 .listing-custom-details > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .listing-custom-details article { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--glass-line); border-radius: 11px; background: var(--glass); }
 .listing-custom-details small { color: var(--muted); font-size: 10px; text-transform: uppercase; font-weight: 800; }
@@ -4831,22 +4849,25 @@ body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .dire
   margin: 14px 20px 0;
 }
 .listing-inquiry-card .contact-actions {
-  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
   margin: 18px 20px 20px;
   padding-top: 16px;
 }
 .listing-inquiry-card .contact-actions a,
 .listing-inquiry-card .contact-actions > span {
-  min-height: 52px;
-  padding: 7px 4px;
-  border: 1px solid rgba(31, 102, 65, 0.17);
+  min-height: 60px;
+  padding: 8px 4px;
+  border: 1px solid rgba(31, 102, 65, 0.24);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.46);
+  background: rgba(255, 255, 255, 0.6);
   color: #285b44;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
   transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
 .listing-inquiry-card .contact-actions a:hover {
@@ -4890,9 +4911,9 @@ body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .dire
 }
 [data-theme="dark"] .listing-inquiry-card .contact-actions a,
 [data-theme="dark"] .listing-inquiry-card .contact-actions > span {
-  border-color: rgba(166, 229, 188, 0.16);
-  background: rgba(1, 17, 10, 0.35);
-  color: #d7eee0;
+  border-color: rgba(166, 229, 188, 0.28);
+  background: rgba(255, 255, 255, 0.07);
+  color: #e6f5ec;
 }
 [data-theme="dark"] .listing-inquiry-card .contact-action-whatsapp {
   border-color: rgba(61, 214, 121, 0.55);
@@ -8559,7 +8580,7 @@ th {
   .map-frame {
     height: 230px;
   }
-  .listing-attachments {
+  .listing-attachments-grid {
     grid-template-columns: 1fr;
   }
   .listing-contact-details > div {

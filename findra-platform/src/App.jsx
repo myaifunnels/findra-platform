@@ -22,6 +22,7 @@ import {
   Heart,
   House,
   InstagramLogo,
+  LinkedinLogo,
   List,
   MagnifyingGlass,
   MapPin,
@@ -1008,112 +1009,136 @@ function ListingDetail({ go, item }) {
               initials
             )}
           </div>
-          <div className="detail-social">
-            {item.website ? (
-              <a
-                href={item.website}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={`${item.name} website`}
-              >
-                <Globe />
-              </a>
-            ) : (
-              <Globe />
-            )}
-            {item.facebook && <a href={item.facebook} target="_blank" rel="noreferrer" aria-label={`${item.name} Facebook`}><FacebookLogo /></a>}
-            {item.instagram && <a href={item.instagram} target="_blank" rel="noreferrer" aria-label={`${item.name} Instagram`}><InstagramLogo /></a>}
-          </div>
         </div>
         <div className="detail-columns">
           <article>
             <h1>{item.name}</h1>
             <h2>{item.tagline}</h2>
-            <h3>ABOUT US</h3>
-            <p>{about}</p>
-            <h3>OUR SERVICES</h3>
-            <div className="service-tags detail-service-tags">
-              {item.services.map((s) => (
-                <span key={s}>{s}</span>
-              ))}
-            </div>
-            {item.location && (
-              <section className="listing-location-map">
-                <div className="listing-location-map-heading">
-                  <h3>BUSINESS LOCATION</h3>
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.latitude !== "" && item.latitude !== undefined && item.longitude !== "" && item.longitude !== undefined ? `${item.latitude},${item.longitude}` : item.location)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open in Google Maps <ArrowRight />
-                  </a>
-                </div>
-                <BusinessMapFrame
-                  location={item.location}
-                  latitude={item.latitude}
-                  longitude={item.longitude}
-                />
-              </section>
-            )}
-            {publicCustomFields.some((field) => item.customValues?.[field.slug] !== undefined && item.customValues?.[field.slug] !== "") && (
-              <section className="listing-custom-details">
-                <h3>MORE BUSINESS DETAILS</h3>
-                <div>
-                  {publicCustomFields.map((field) => {
-                    const value = item.customValues?.[field.slug];
-                    if (value === undefined || value === "" || value === false) return null;
-                    return <article key={field.id}><small>{field.name}</small><strong>{value === true ? "Yes" : String(value)}</strong></article>;
-                  })}
-                </div>
-              </section>
-            )}
-            {gallery.length > 0 && (
-              <div className="project-grid">
-                {gallery.map((source, index) => (
-                  <img
-                    src={source}
-                    alt={`${item.name} gallery ${index + 1}`}
-                    key={`${source.slice(0, 45)}-${index}`}
-                  />
-                ))}
-              </div>
-            )}
-            {item.video && (
-              <div className="listing-video">
-                <h3>FEATURED VIDEO</h3>
-                {detailVideoEmbed ? (
-                  <iframe
-                    title={`${item.name} featured video`}
-                    src={detailVideoEmbed}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
-                ) : (
-                  <a href={item.video} target="_blank" rel="noreferrer">
-                    <Globe /> Watch the featured video
-                  </a>
-                )}
-              </div>
-            )}
-            {item.attachments?.length > 0 && (
-              <div className="listing-attachments">
-                <h3>ATTACHMENTS</h3>
-                {item.attachments.map((file, index) => (
-                  <a
-                    href={file.data || file.url || "#"}
-                    download={file.name}
-                    key={`${file.name}-${index}`}
-                  >
-                    <FileText />
-                    <span>
-                      <strong>{file.name}</strong>
-                      <small>{file.type || "Business attachment"}</small>
+            <div className="detail-sections">
+              <section className="panel detail-section detail-social-card">
+                <h3 className="detail-section-title">Social &amp; online presence</h3>
+                <div className="detail-social">
+                  {item.website ? (
+                    <a href={item.website} target="_blank" rel="noreferrer" aria-label={`${item.name} website`}>
+                      <Globe /> <span>Website</span>
+                    </a>
+                  ) : (
+                    <span className="detail-social-empty">
+                      <Globe /> <span>Website</span>
                     </span>
-                  </a>
-                ))}
-              </div>
-            )}
+                  )}
+                  {item.facebook && (
+                    <a href={item.facebook} target="_blank" rel="noreferrer" aria-label={`${item.name} Facebook`}>
+                      <FacebookLogo weight="fill" /> <span>Facebook</span>
+                    </a>
+                  )}
+                  {item.instagram && (
+                    <a href={item.instagram} target="_blank" rel="noreferrer" aria-label={`${item.name} Instagram`}>
+                      <InstagramLogo weight="bold" /> <span>Instagram</span>
+                    </a>
+                  )}
+                  {item.linkedin && (
+                    <a href={item.linkedin} target="_blank" rel="noreferrer" aria-label={`${item.name} LinkedIn`}>
+                      <LinkedinLogo weight="fill" /> <span>LinkedIn</span>
+                    </a>
+                  )}
+                </div>
+              </section>
+              <section className="panel detail-section">
+                <h3 className="detail-section-title">About us</h3>
+                <p>{about}</p>
+              </section>
+              <section className="panel detail-section">
+                <h3 className="detail-section-title">Our services</h3>
+                <div className="service-tags detail-service-tags">
+                  {item.services.map((s) => (
+                    <span key={s}>{s}</span>
+                  ))}
+                </div>
+              </section>
+              {item.location && (
+                <section className="panel detail-section listing-location-map">
+                  <div className="listing-location-map-heading">
+                    <h3 className="detail-section-title">Business location</h3>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.latitude !== "" && item.latitude !== undefined && item.longitude !== "" && item.longitude !== undefined ? `${item.latitude},${item.longitude}` : item.location)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open in Google Maps <ArrowRight />
+                    </a>
+                  </div>
+                  <BusinessMapFrame
+                    location={item.location}
+                    latitude={item.latitude}
+                    longitude={item.longitude}
+                  />
+                </section>
+              )}
+              {publicCustomFields.some((field) => item.customValues?.[field.slug] !== undefined && item.customValues?.[field.slug] !== "") && (
+                <section className="panel detail-section listing-custom-details">
+                  <h3 className="detail-section-title">More business details</h3>
+                  <div>
+                    {publicCustomFields.map((field) => {
+                      const value = item.customValues?.[field.slug];
+                      if (value === undefined || value === "" || value === false) return null;
+                      return <article key={field.id}><small>{field.name}</small><strong>{value === true ? "Yes" : String(value)}</strong></article>;
+                    })}
+                  </div>
+                </section>
+              )}
+              {gallery.length > 0 && (
+                <section className="panel detail-section">
+                  <h3 className="detail-section-title">Gallery</h3>
+                  <div className="project-grid">
+                    {gallery.map((source, index) => (
+                      <img
+                        src={source}
+                        alt={`${item.name} gallery ${index + 1}`}
+                        key={`${source.slice(0, 45)}-${index}`}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+              {item.video && (
+                <section className="panel detail-section listing-video">
+                  <h3 className="detail-section-title">Featured video</h3>
+                  {detailVideoEmbed ? (
+                    <iframe
+                      title={`${item.name} featured video`}
+                      src={detailVideoEmbed}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <a href={item.video} target="_blank" rel="noreferrer">
+                      <Globe /> Watch the featured video
+                    </a>
+                  )}
+                </section>
+              )}
+              {item.attachments?.length > 0 && (
+                <section className="panel detail-section listing-attachments">
+                  <h3 className="detail-section-title">Attachments</h3>
+                  <div className="listing-attachments-grid">
+                    {item.attachments.map((file, index) => (
+                      <a
+                        href={file.data || file.url || "#"}
+                        download={file.name}
+                        key={`${file.name}-${index}`}
+                      >
+                        <FileText />
+                        <span>
+                          <strong>{file.name}</strong>
+                          <small>{file.type || "Business attachment"}</small>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
           </article>
           <aside className="inquiry-card listing-inquiry-card">
             <header className="inquiry-card-header">
