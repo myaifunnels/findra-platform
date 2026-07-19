@@ -6705,6 +6705,40 @@ th {
 [data-theme="dark"] .listing-modal .service-tags span { background: #113d29; border-color: #3d9d61; color: #d3ffe2; }
 [data-theme="dark"] .listing-modal > footer { background: rgba(16, 31, 25, 0.94); }
 
+/* Frosted alert surfaces: blur the page behind while keeping alert content solid and readable. */
+.modal-backdrop {
+  background: rgba(1, 13, 9, 0.66);
+  backdrop-filter: blur(13px) saturate(115%);
+  -webkit-backdrop-filter: blur(13px) saturate(115%);
+}
+.listing-action-confirm {
+  border-color: rgba(156, 221, 182, 0.36);
+  background: linear-gradient(145deg, rgba(25, 55, 42, 0.96), rgba(9, 28, 19, 0.94));
+  box-shadow: 0 30px 95px rgba(0, 0, 0, 0.56), inset 0 1px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(28px) saturate(145%);
+  -webkit-backdrop-filter: blur(28px) saturate(145%);
+}
+.listing-action-confirm h2 { color: #f7fffa; }
+.listing-action-confirm > p { color: #d0e1d8; }
+.listing-action-confirm > span { color: #6ee5a0; }
+.listing-action-confirm .secondary-button { border-color: rgba(182, 224, 201, 0.35); background: rgba(255,255,255,0.08); color: #effbf3; }
+.listing-action-confirm .danger-button { border: 1px solid #ffb5b5; background: #fff0f0; color: #b52e35; box-shadow: 0 8px 20px rgba(151, 25, 31, 0.16); }
+.notification-popover {
+  border-color: rgba(148, 218, 178, 0.3);
+  background: linear-gradient(145deg, rgba(21, 49, 37, 0.97), rgba(8, 27, 18, 0.95));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255,255,255,0.09);
+  backdrop-filter: blur(24px) saturate(145%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+}
+.notification-popover > header { background: rgba(255,255,255,0.035); }
+.notification-popover h3 { color: #f2fff6; }
+.notification-popover-list > button { background: transparent; }
+.notification-popover-list > button.unread { background: linear-gradient(90deg, rgba(46, 186, 101, 0.2), rgba(46, 186, 101, 0.06)); }
+.notification-popover-list > button:hover { background: rgba(255,255,255,0.08); }
+.notification-popover-list strong { color: #f1fff5; }
+.notification-popover-list small { color: #c4d8cd; }
+.notification-popover-list em { color: #91b3a1; }
+
 @keyframes dashboard-enter {
   from {
     opacity: 0;
