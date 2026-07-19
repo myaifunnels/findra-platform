@@ -2126,14 +2126,18 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
       });
     }
   };
-  const saveListing = (record) => {
+  const saveListing = async (record) => {
     try {
       if (record.id) {
-        setListings((items) =>
-          items.map((item) =>
-            item.id === record.id ? { ...item, ...record } : item,
-          ),
-        );
+        const response = await fetch(`/api/listings/${record.id}`, {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(record),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "The listing could not be saved.");
+        setListings((items) => items.map((item) => (item.id === record.id ? payload.listing : item)));
         notify("Listing updated");
         onNotify?.({
           type: "success",
@@ -2141,11 +2145,15 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
           message: `${record.name} now reflects the latest business details and media. You can reopen the listing anytime to make more changes.`,
         });
       } else {
-        const id = Math.max(0, ...listings.map((item) => Number(item.id))) + 1;
-        setListings((items) => [
-          { ...record, id, date: formatDate(), views: 0 },
-          ...items,
-        ]);
+        const response = await fetch("/api/listings", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(record),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "The listing could not be saved.");
+        setListings((items) => [payload.listing, ...items.filter((item) => item.name !== record.name)]);
         notify("Listing created");
         recordNotificationEvent("listing-pending-admin", { recipient: "Findra admin" });
         recordNotificationEvent("listing-submitted", { recipient: record.email || record.owner });
@@ -2157,13 +2165,15 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
       }
       setEditing(null);
       setSection("Listings");
-    } catch {
+      return true;
+    } catch (error) {
       onNotify?.({
         type: "error",
         title: "The listing could not be saved",
         message:
-          "Please review the form and try again. Your current entries are still available.",
+          error.message || "Please review the form and try again. Your current entries are still available.",
       });
+      return false;
     }
   };
   const removeListing = async (item) => {
@@ -5055,7 +5065,7 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
       featuredName: "",
     }));
   };
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     if (step < 2) {
       if (!event.currentTarget.reportValidity()) {
@@ -5083,7 +5093,7 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
       .map((value) => value.trim())
       .filter((value, index, list) => value && list.indexOf(value) === index);
     const { service, additionalCategory, additionalService, ...record } = form;
-    const result = save({
+    const result = await save({
       ...record,
       category: categoryValues[0],
       categories: categoryValues,
@@ -5873,7 +5883,7 @@ function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan })
           throw new Error(
             "PayMongo has not confirmed this payment yet. Please wait a moment and refresh this page.",
           );
-        const completionError = complete(pending.draft, {
+        const completionError = await complete(pending.draft, {
           account: pending.account,
           payment: {
             amount: (result.amount || Number(plan.amount || plan.price) * 100) / 100,
@@ -6196,58 +6206,33 @@ export function App() {
     setSession(null);
     go("/");
   };
-  const saveUserListing = (record, owner = "Ina de la Cruz") => {
+  const saveUserListing = async (record, owner = "Ina de la Cruz") => {
     try {
       if (record.id) {
-        fetch(`/api/listings/${record.id}`, {
+        const response = await fetch(`/api/listings/${record.id}`, {
           method: "PATCH",
           credentials: "same-origin",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(record),
-        })
-          .then(async (response) => {
-            const payload = await response.json();
-            if (!response.ok) throw new Error(payload.error);
-            setListings((items) =>
-              items.map((item) => item.id === record.id ? payload.listing : item),
-            );
-          })
-          .catch((error) => setNotice({ type: "error", title: "Database update failed", message: error.message || "Your listing could not be saved to the server." }));
-        setListings((items) =>
-          items.map((item) =>
-            item.id === record.id ? { ...item, ...record, owner } : item,
-          ),
-        );
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Your listing could not be saved to the server.");
+        setListings((items) => items.map((item) => (item.id === record.id ? payload.listing : item)));
         setNotice({
           type: "success",
           title: "Update confirmed",
           message: `${record.name} now shows the latest details, contact information, and media. You can reopen the listing anytime to make more changes.`,
         });
       } else {
-        fetch("/api/listings", {
+        const response = await fetch("/api/listings", {
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(record),
-        })
-          .then(async (response) => {
-            const payload = await response.json();
-            if (!response.ok) throw new Error(payload.error);
-            setListings((items) => [payload.listing, ...items.filter((item) => item.name !== record.name)]);
-          })
-          .catch((error) => setNotice({ type: "error", title: "Database save failed", message: error.message || "Your listing could not be saved to the server." }));
-        const id = Math.max(0, ...listings.map((item) => Number(item.id))) + 1;
-        setListings((items) => [
-          {
-            ...record,
-            id,
-            owner,
-            status: "Pending",
-            date: formatDate(),
-            views: 0,
-          },
-          ...items,
-        ]);
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Your listing could not be saved to the server.");
+        setListings((items) => [payload.listing, ...items.filter((item) => item.name !== record.name)]);
         setNotice({
           type: "success",
           title: "Business listing submitted",
@@ -6255,12 +6240,12 @@ export function App() {
         });
       }
       return true;
-    } catch {
+    } catch (error) {
       setNotice({
         type: "error",
         title: "The listing could not be saved",
         message:
-          "Please check the form and try again. Your entries remain available in the editor.",
+          error.message || "Please check the form and try again. Your entries remain available in the editor.",
       });
       return false;
     }
@@ -6353,7 +6338,7 @@ export function App() {
       return { error: "We couldn't prepare your account. Please try again." };
     }
   };
-  const completeGuestListing = (record, credentials) => {
+  const completeGuestListing = async (record, credentials) => {
     const account = credentials.account;
     if (!account) return "Please sign in or create an account before checkout.";
     const payment = credentials.payment || {};
@@ -6369,7 +6354,7 @@ export function App() {
         paymentSessionId: payment.sessionId || "",
       },
     };
-    if (!saveUserListing(paidRecord, account.name))
+    if (!(await saveUserListing(paidRecord, account.name)))
       return "Your account is ready, but the listing could not be saved. Please try again.";
     sessionStorage.removeItem("findra-listing-draft-new");
     setNotice({
