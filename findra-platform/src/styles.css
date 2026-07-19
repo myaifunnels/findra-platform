@@ -4408,6 +4408,191 @@ button.management-status { border: 0; cursor: pointer; }
   }
 }
 
+/* Final cascade position: applies the shared iOS-style control to every form
+   after legacy per-screen declarations have run. */
+:root {
+  --findra-field-radius: 24px;
+  --findra-field-height: 58px;
+  --findra-field-border-width: 1.5px;
+}
+
+body :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea
+) {
+  min-height: var(--findra-field-height) !important;
+  padding: 15px 20px !important;
+  border: var(--findra-field-border-width) solid var(--findra-control-border) !important;
+  border-radius: var(--findra-field-radius) !important;
+  background: var(--findra-control-background) !important;
+  box-shadow: inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+  color: var(--findra-control-text) !important;
+  font-size: 16px !important;
+  font-weight: 500;
+  letter-spacing: -.01em;
+}
+
+body textarea { min-height: 180px !important; padding-top: 18px !important; }
+body select { padding-right: 48px !important; }
+
+body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label {
+  min-height: var(--findra-field-height) !important;
+  padding: 0 20px !important;
+  border: var(--findra-field-border-width) solid var(--findra-control-border) !important;
+  border-radius: var(--findra-field-radius) !important;
+  background: var(--findra-control-background) !important;
+  box-shadow: inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+}
+
+body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label > :is(input, select, textarea),
+body .auth-shell .auth-card form > label > input {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label:focus-within,
+body .auth-shell .auth-card form > label:focus-within {
+  border-color: var(--findra-control-border) !important;
+  box-shadow: 0 0 0 3px var(--findra-control-highlight), inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+}
+
+body .auth-shell .auth-card form > label {
+  min-height: var(--findra-field-height) !important;
+  padding: 12px 18px !important;
+  border: var(--findra-field-border-width) solid var(--findra-control-border) !important;
+  border-radius: var(--findra-field-radius) !important;
+  background: var(--findra-control-background) !important;
+  box-shadow: inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+}
+
+body input[type="file"] {
+  min-height: var(--findra-field-height) !important;
+  padding: 9px !important;
+  border: var(--findra-field-border-width) solid var(--findra-control-border) !important;
+  border-radius: var(--findra-field-radius) !important;
+  background: var(--findra-control-background) !important;
+}
+
+@media (max-width: 760px) {
+  :root { --findra-field-height: 54px; --findra-field-radius: 20px; }
+  body textarea { min-height: 160px !important; }
+}
+
+/* Final, system-wide form specification. Keeps all actual fields consistent
+   while preserving compound controls (search fields, icon fields) as one unit. */
+:root {
+  --findra-field-radius: 24px;
+  --findra-field-height: 58px;
+  --findra-field-border-width: 1.5px;
+}
+
+body :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea
+) {
+  min-height: var(--findra-field-height) !important;
+  padding: 15px 20px !important;
+  border-width: var(--findra-field-border-width) !important;
+  border-radius: var(--findra-field-radius) !important;
+  background: var(--findra-control-background) !important;
+  font-weight: 500;
+  letter-spacing: -.01em;
+}
+
+body textarea {
+  min-height: 180px !important;
+  padding-top: 18px !important;
+}
+
+/* Form labels follow the example's clear, generous rhythm. */
+body :is(
+  .inquiry-card form,
+  .listing-inquiry-card form,
+  .long-listing-form,
+  .editor-form,
+  .management-form-grid,
+  .auth-card form,
+  .contact-form,
+  .newsletter-form
+) label {
+  gap: 9px;
+  font-size: 16px !important;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+body :is(
+  .inquiry-card form,
+  .listing-inquiry-card form,
+  .long-listing-form,
+  .editor-form,
+  .management-form-grid,
+  .auth-card form,
+  .contact-form,
+  .newsletter-form
+) :is(label + label, .form-grid, .form-block + .form-block) {
+  margin-top: 14px;
+}
+
+body select {
+  padding-right: 48px !important;
+}
+
+body input[type="file"] {
+  min-height: var(--findra-field-height) !important;
+  padding: 9px !important;
+  border-width: var(--findra-field-border-width) !important;
+  border-radius: var(--findra-field-radius) !important;
+}
+
+/* Compound search and icon fields: the wrapper owns the border/surface. */
+body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label {
+  min-height: var(--findra-field-height) !important;
+  padding: 0 20px !important;
+  border-width: var(--findra-field-border-width) !important;
+  border-radius: var(--findra-field-radius) !important;
+}
+
+body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label > :is(input, select, textarea),
+body .auth-shell .auth-card form > label > input {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body .auth-shell .auth-card form > label {
+  min-height: var(--findra-field-height) !important;
+  padding: 12px 18px !important;
+  border-width: var(--findra-field-border-width) !important;
+  border-radius: var(--findra-field-radius) !important;
+  background: var(--findra-control-background) !important;
+  box-shadow: inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+}
+
+body .auth-shell .auth-card form > label:focus-within {
+  border-color: var(--findra-control-border) !important;
+  background: var(--findra-control-background) !important;
+  box-shadow: 0 0 0 3px var(--findra-control-highlight), inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --findra-field-height: 54px;
+    --findra-field-radius: 20px;
+  }
+
+  body textarea { min-height: 160px !important; }
+}
+
 /* --------------------------------------------------------------------------
    Findra control system
    One accessible, iOS-inspired treatment for every native form control.
