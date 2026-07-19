@@ -20,13 +20,41 @@ const templateNames = {
   "listing-pending-admin": "New listing pending admin review",
 };
 const smsCopy = {
-  "new-user": "Hi {{contactFirstName}}, welcome to Findra PH. Your account is ready. Check your email for full details.",
-  "listing-submitted": "Hi {{contactFirstName}}, we received {{businessName}} for review. Check your email for full details.",
-  "listing-approved": "Great news, {{contactFirstName}}! {{businessName}} is now live on Findra PH. Check your email for full details.",
-  "listing-declined": "Hi {{contactFirstName}}, {{businessName}} needs a few updates before it can go live. Check your email for full details.",
-  "subscription-started": "Hi {{contactFirstName}}, your Findra PH subscription is active. Check your email for full details.",
-  "inquiry-received": "Hi {{contactFirstName}}, {{businessName}} received a new Findra inquiry. Check your email for full details.",
-  "listing-pending-admin": "Findra admin: {{businessName}} is ready for review. Check your email for full details.",
+  "new-user": `Hi {{contactFirstName}},
+
+Welcome to Findra PH! Your account is ready.
+
+Check your email for full details.`,
+  "listing-submitted": `Hi {{contactFirstName}},
+
+We received {{businessName}} for review.
+
+Check your email for full details.`,
+  "listing-approved": `Great news, {{contactFirstName}}!
+
+{{businessName}} is now live on Findra PH.
+
+Check your email for full details.`,
+  "listing-declined": `Hi {{contactFirstName}},
+
+{{businessName}} needs a few updates before it can go live.
+
+Check your email for full details.`,
+  "subscription-started": `Hi {{contactFirstName}},
+
+Your Findra PH subscription is active.
+
+Check your email for full details.`,
+  "inquiry-received": `Hi {{contactFirstName}},
+
+{{businessName}} received a new Findra inquiry.
+
+Check your email for full details.`,
+  "listing-pending-admin": `Findra admin,
+
+{{businessName}} is ready for review.
+
+Check your email for full details.`,
 };
 function json(res, status, body) { res.statusCode=status; res.setHeader("Content-Type","application/json"); res.end(JSON.stringify(body)); }
 async function readJson(request) {
@@ -93,7 +121,7 @@ function renderTemplate(value, context = {}) {
   return String(value || "").replace(/{{([a-zA-Z]+)}}/g, (match, key) => key in fields ? escapeHtml(fields[key]) : match);
 }
 function renderPlainText(value, context) {
-  return renderTemplate(value, context).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+  return renderTemplate(value, context).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\r\n/g, "\n").replace(/[^\S\r\n]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
 async function templateFor(event) {
   const fallback = defaultsFor(event);
