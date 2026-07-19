@@ -453,7 +453,7 @@ function loadGoogleMaps(key) {
   return googleMapsLoader;
 }
 
-function GoogleAddressInput({ value, onChange, onSelect }) {
+function GoogleAddressInput({ value, onChange, onSelect, required = true, showStatus = true, placeholder = "Start typing an address in the Philippines" }) {
   const inputRef = useRef(null);
   const [state, setState] = useState("loading");
 
@@ -503,15 +503,15 @@ function GoogleAddressInput({ value, onChange, onSelect }) {
   return <>
     <input
       ref={inputRef}
-      required
+      required={required}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      placeholder="Start typing an address in the Philippines"
+      placeholder={placeholder}
       autoComplete="street-address"
     />
-    <small className={`address-autocomplete-status ${state}`}>
+    {showStatus && <small className={`address-autocomplete-status ${state}`}>
       {state === "ready" ? "Type to search, then use ↓ and Enter or click a suggestion to pin the exact location." : "Enter the full address manually while Google address suggestions are unavailable."}
-    </small>
+    </small>}
   </>;
 }
 
@@ -587,6 +587,11 @@ function Header({ go }) {
     return () => window.removeEventListener("findra-session-change", syncSession);
   }, []);
   const dashboardPath = session?.role === "admin" ? "/admin" : "/user";
+  const openDashboardSection = (section) => {
+    if (session?.role === "user") localStorage.setItem("findra-user-section", section);
+    setAccountMenu(false);
+    go(dashboardPath);
+  };
   const signOut = async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
     setSession(null);
@@ -634,7 +639,10 @@ function Header({ go }) {
                 </button>
                 {accountMenu && <div className="header-account-dropdown">
                   <div className="account-dropdown-profile"><img className="account-avatar" src={accountAvatarUrl(session, businessLogo)} alt="" /><div><strong>{session.name}</strong><small>{session.email}</small></div></div>
-                  <Link to={dashboardPath} go={go} onClick={() => setAccountMenu(false)}><SquaresFour /> Dashboard</Link>
+                  <button type="button" onClick={() => openDashboardSection("Overview")}><SquaresFour /> Dashboard</button>
+                  {session.role !== "admin" && <button type="button" onClick={() => openDashboardSection("Profile")}><UserCircle /> Account & profile</button>}
+                  {session.role !== "admin" && <button type="button" onClick={() => openDashboardSection("Inbox")}><Bell /> Inbox</button>}
+                  {session.role !== "admin" && <button type="button" onClick={() => openDashboardSection("Plan & Billing")}><CreditCard /> Plan & billing</button>}
                   <Link to="/add-listing" go={go} onClick={() => setAccountMenu(false)}><Plus /> Add business</Link>
                   <button type="button" onClick={signOut}><SignOut /> Sign out</button>
                 </div>}
@@ -903,6 +911,7 @@ function ListingCard({ item, go }) {
         <span>{item.tagline}</span>
       </div>
       <div className="listing-content">
+        <div className="listing-card-category">{item.category}</div>
         <div className="chips">
           {item.services.map((s) => (
             <span key={s}>{s}</span>
@@ -913,21 +922,19 @@ function ListingCard({ item, go }) {
           <MapPin weight="fill" />
           {item.location}, Philippines
         </p>
-        <p>
-          {item.tagline}. Discover services, connect directly, and make your
-          next project easier.
-        </p>
+        <p className="listing-card-summary">{item.description || `${item.tagline}. Discover services, connect directly, and make your next project easier.`}</p>
         <div className="card-actions">
-          <button aria-label="View">
+          <button aria-label={`View ${item.name}`} onClick={(event) => { event.stopPropagation(); go(`/listing/${item.id}`); }}>
             <Eye />
           </button>
-          <button aria-label="Share">
+          <button aria-label={`Share ${item.name}`} onClick={(event) => { event.stopPropagation(); navigator.share?.({ title: item.name, text: item.tagline, url: `${window.location.origin}/listing/${item.id}` }); }}>
             <ShareNetwork />
           </button>
-          <button aria-label="Save">
+          <button aria-label={`Save ${item.name}`} onClick={(event) => event.stopPropagation()}>
             <Heart />
           </button>
         </div>
+        <button className="listing-card-detail" onClick={(event) => { event.stopPropagation(); go(`/listing/${item.id}`); }}>View business <ArrowRight /></button>
       </div>
     </article>
   );
@@ -935,6 +942,8 @@ function ListingCard({ item, go }) {
 
 function ListingsPage({ go, listings }) {
   const [search, setSearch] = useState("");
+  const [location, setLocation] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState(null);
   const [cat, setCat] = useState("All");
   const [type, setType] = useState("All");
   const filtered = listings.filter(
@@ -942,7 +951,8 @@ function ListingsPage({ go, listings }) {
       l.status === "Published" &&
       (cat === "All" || l.category === cat) &&
       (type === "All" || l.type === type) &&
-      `${l.name} ${l.location}`.toLowerCase().includes(search.toLowerCase()),
+      `${l.name} ${l.category} ${l.type} ${l.services?.join(" ")} ${l.description || ""} ${l.location}`.toLowerCase().includes(search.toLowerCase()) &&
+      (!location || String(l.location || "").toLowerCase().split(/[ ,]+/).some((term) => term.length > 3 && location.toLowerCase().includes(term))),
   );
   return (
     <PublicLayout go={go}>
@@ -952,6 +962,8 @@ function ListingsPage({ go, listings }) {
         </Link>
         <ArrowRight /> Search Results
       </div>
+      <section className="directory-search-shell">
+        <div className="directory-search-heading"><div><span className="eyebrow">DISCOVER LOCAL BUSINESSES</span><h1>Find the right partner for your next project.</h1></div><span>{filtered.length} matching {filtered.length === 1 ? "business" : "businesses"}</span></div>
       <div className="listings-search">
         <label>
           <MagnifyingGlass />
@@ -961,11 +973,13 @@ function ListingsPage({ go, listings }) {
             placeholder="Keyword"
           />
         </label>
-        <label>
+        <label className="directory-location-input">
           <MapPin weight="fill" />
-          <input placeholder="Search Near Businesses" />
+          <GoogleAddressInput value={location} onChange={(value) => { setLocation(value); setSelectedPlace(null); }} onSelect={(place) => { setLocation(place.address); setSelectedPlace(place); }} required={false} showStatus={false} placeholder="Search by city, address, or area" />
         </label>
       </div>
+      {location && <div className="directory-search-active"><MapPin weight="fill" /> Searching near <strong>{location}</strong><button onClick={() => { setLocation(""); setSelectedPlace(null); }}>Clear</button></div>}
+      </section>
       <main className="listings-layout">
         <aside className="filters">
           <h3>Business Type</h3>
@@ -1976,6 +1990,14 @@ function NotificationInbox() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const inboxRef = useRef(null);
+  useEffect(() => {
+    const closeOnOutsidePress = (event) => {
+      if (inboxRef.current && !inboxRef.current.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
+  }, []);
   const refresh = async () => {
     setLoading(true);
     try {
@@ -1993,7 +2015,7 @@ function NotificationInbox() {
     await fetch(`/api/notifications/${item.id}/read`, { method: "PATCH", credentials: "same-origin" }).catch(() => {});
     setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read_at: new Date().toISOString() } : entry));
   };
-  return <div className="notification-inbox">
+  return <div className="notification-inbox" ref={inboxRef}>
     <button className="icon-button" aria-label="Open notifications" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
       <Bell />
       {unread > 0 && <i />}
