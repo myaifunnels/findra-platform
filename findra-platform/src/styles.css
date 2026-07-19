@@ -2385,11 +2385,65 @@ td {
 .address-autocomplete-status.ready {
   color: #20a45b;
 }
+/* Google appends the suggestion menu to document.body. Keep it above the
+   editor's glass panels and give every keyboard-selectable option readable
+   contrast in both application themes. */
+.pac-container {
+  z-index: 10050 !important;
+  margin-top: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(77, 179, 121, 0.48);
+  border-radius: 12px;
+  background: rgba(13, 31, 23, 0.97);
+  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.38);
+  font-family: inherit;
+}
+.pac-item,
+.pac-item-query {
+  color: #eaf8ef;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.pac-item {
+  padding: 10px 14px;
+  border-top-color: rgba(135, 187, 155, 0.2);
+  cursor: pointer;
+}
+.pac-item:hover,
+.pac-item-selected {
+  background: rgba(31, 149, 84, 0.28);
+}
+.pac-matched {
+  color: #73e79f;
+  font-weight: 800;
+}
+.pac-icon {
+  filter: brightness(1.8) saturate(0.7);
+}
 .listing-location-map {
   margin-top: 28px;
 }
-.listing-location-map > h3 {
+.listing-location-map-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 12px;
+}
+.listing-location-map-heading > h3 {
+  margin: 0;
+}
+.listing-location-map-heading a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #45d57c;
+  font-size: 13px;
+  font-weight: 750;
+}
+.listing-location-map-heading a svg {
+  width: 16px;
+  height: 16px;
 }
 .listing-location-map .map-frame {
   height: 255px;

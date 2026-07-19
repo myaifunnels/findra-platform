@@ -448,7 +448,10 @@ function GoogleAddressInput({ value, onChange, onSelect }) {
         const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
           componentRestrictions: { country: "ph" },
           fields: ["formatted_address", "geometry", "place_id", "name"],
-          types: ["address"],
+          // Geocode predictions include streets, buildings, barangays, cities,
+          // and provinces, so users can refine a broad search into an exact
+          // business location with the keyboard.
+          types: ["geocode"],
         });
         listener = autocomplete.addListener("place_changed", () => {
           const place = autocomplete.getPlace();
@@ -483,7 +486,7 @@ function GoogleAddressInput({ value, onChange, onSelect }) {
       autoComplete="street-address"
     />
     <small className={`address-autocomplete-status ${state}`}>
-      {state === "ready" ? "Google address suggestions are enabled. Select one to pin the exact map location." : "Enter the full address manually while Google address suggestions are unavailable."}
+      {state === "ready" ? "Type to search, then use ↓ and Enter or click a suggestion to pin the exact location." : "Enter the full address manually while Google address suggestions are unavailable."}
     </small>
   </>;
 }
@@ -1105,7 +1108,16 @@ function ListingDetail({ go, item }) {
             )}
             {item.location && (
               <section className="listing-location-map">
-                <h3>BUSINESS LOCATION</h3>
+                <div className="listing-location-map-heading">
+                  <h3>BUSINESS LOCATION</h3>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.latitude !== "" && item.latitude !== undefined && item.longitude !== "" && item.longitude !== undefined ? `${item.latitude},${item.longitude}` : item.location)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open in Google Maps <ArrowRight />
+                  </a>
+                </div>
                 <BusinessMapFrame
                   location={item.location}
                   latitude={item.latitude}
