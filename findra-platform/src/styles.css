@@ -2476,6 +2476,13 @@ td {
 .automation-editor header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:22px; }
 .automation-toggle { display:flex; align-items:center; gap:8px; white-space:nowrap; font-weight:750; font-size:13px; color:#dff7e7; }
 .automation-toggle input { accent-color:#18ad5b; width:18px; height:18px; }
+.merge-field-library { margin:0 0 20px; padding:14px; border:1px solid rgba(99, 169, 126, .27); border-radius:12px; background:rgba(21, 72, 47, .15); }
+.merge-field-library > span { display:block; margin-bottom:10px; color:#9bb5a9; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.merge-field-library > div { display:flex; flex-wrap:wrap; gap:7px; }
+.merge-field-library button { display:inline-flex; align-items:center; gap:7px; padding:7px 9px; color:#e9f8ed; border:1px solid rgba(105, 190, 137, .3); border-radius:8px; background:rgba(255,255,255,.035); font-size:12px; }
+.merge-field-library button:hover { border-color:#59d68a; background:rgba(41, 178, 96, .18); }
+.merge-field-library code { color:#75e7a1; font-size:11px; }
+.merge-field-library small { color:#b9cbc1; font-size:11px; }
 .rich-email-field > span { display:block; margin-bottom:8px; font-size:13px; font-weight:750; }
 .rich-email-toolbar { display:flex; gap:5px; padding:8px; border:1px solid rgba(112, 166, 135, .35); border-bottom:0; border-radius:10px 10px 0 0; background:rgba(6, 26, 17, .45); }
 .rich-email-toolbar button { width:34px; height:30px; display:grid; place-items:center; color:#e8f8ee; border:1px solid rgba(112, 166, 135, .28); border-radius:7px; background:rgba(255,255,255,.04); }

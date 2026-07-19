@@ -1956,6 +1956,17 @@ function NotificationInbox() {
 }
 
 function AutomationManagement({ onNotify }) {
+  const mergeFields = [
+    ["{{contactFirstName}}", "Contact first name"],
+    ["{{contactFullName}}", "Contact full name"],
+    ["{{contactEmail}}", "Contact email"],
+    ["{{businessName}}", "Business name"],
+    ["{{businessUrl}}", "Public listing link"],
+    ["{{dashboardUrl}}", "User dashboard link"],
+    ["{{adminUrl}}", "Admin review link"],
+    ["{{supportEmail}}", "Support email"],
+    ["{{currentYear}}", "Current year"],
+  ];
   const [templates, setTemplates] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState("");
   const [form, setForm] = useState(null);
@@ -1988,6 +1999,11 @@ function AutomationManagement({ onNotify }) {
     document.execCommand(command, false, null);
     update("body_html", editorRef.current?.innerHTML || "");
   };
+  const insertField = (token) => {
+    editorRef.current?.focus();
+    document.execCommand("insertText", false, token);
+    update("body_html", editorRef.current?.innerHTML || "");
+  };
   const save = async (event) => {
     event.preventDefault();
     if (!form) return;
@@ -2013,7 +2029,8 @@ function AutomationManagement({ onNotify }) {
     {!loading && form && <div className="automation-layout">
       <aside className="panel automation-template-list"><span className="section-eyebrow">Automations</span><h3>Email triggers</h3><p>Each template sends when its matching Findra activity occurs.</p><div>{templates.map((item) => <button type="button" className={item.event === selectedEvent ? "active" : ""} onClick={() => choose(item.event)} key={item.event}><EnvelopeSimple /><span><strong>{item.name}</strong><small>{item.active ? "Enabled" : "Paused"}</small></span></button>)}</div></aside>
       <form className="panel automation-editor" onSubmit={save}>
-        <header><div><span className="section-eyebrow">Transactional email</span><h3>{form.name}</h3><p>Use <code>{"{{dashboardUrl}}"}</code> to link recipients to their account.</p></div><label className="automation-toggle"><input type="checkbox" checked={form.active !== false} onChange={(event) => update("active", event.target.checked)} /><span>{form.active !== false ? "Enabled" : "Paused"}</span></label></header>
+        <header><div><span className="section-eyebrow">Transactional email</span><h3>{form.name}</h3><p>Use the system fields below to personalise the content for each recipient.</p></div><label className="automation-toggle"><input type="checkbox" checked={form.active !== false} onChange={(event) => update("active", event.target.checked)} /><span>{form.active !== false ? "Enabled" : "Paused"}</span></label></header>
+        <section className="merge-field-library"><span>System fields</span><div>{mergeFields.map(([token, label]) => <button type="button" key={token} onClick={() => insertField(token)} title={`Insert ${label}`}><code>{token}</code><small>{label}</small></button>)}</div></section>
         <div className="management-form-grid">
           <label><span>From name *</span><input required value={form.from_name || ""} onChange={(event) => update("from_name", event.target.value)} placeholder="Findra PH" /></label>
           <label><span>From email *</span><input required type="email" value={form.from_email || ""} onChange={(event) => update("from_email", event.target.value)} placeholder="hello@findra.ph" /></label>

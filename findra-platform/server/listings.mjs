@@ -65,11 +65,12 @@ async function create(request, response) {
     [user.id, status, name, String(record.category || ""), String(record.location || ""), JSON.stringify(record)],
   );
   const created = result.rows[0];
-  if (user.role === "admin" && status === "Published") notify({ userId: created.owner_id, email: record.email, event: "listing-approved" }).catch(() => {});
-  if (user.role === "admin" && status === "Declined") notify({ userId: created.owner_id, email: record.email, event: "listing-declined" }).catch(() => {});
+  const notificationContext = { businessName: name, businessUrl: `${process.env.PAYMONGO_APP_URL || "https://staging.findra.ph"}/listing/${created.id}` };
+  if (user.role === "admin" && status === "Published") notify({ userId: created.owner_id, email: record.email, event: "listing-approved", context: notificationContext }).catch(() => {});
+  if (user.role === "admin" && status === "Declined") notify({ userId: created.owner_id, email: record.email, event: "listing-declined", context: notificationContext }).catch(() => {});
   if (user.role !== "admin") {
-    notify({ userId: user.id, email: user.email, event: "listing-submitted" }).catch(() => {});
-    notifyAdmins("listing-pending-admin").catch(() => {});
+    notify({ userId: user.id, email: user.email, event: "listing-submitted", context: notificationContext }).catch(() => {});
+    notifyAdmins("listing-pending-admin", notificationContext).catch(() => {});
   }
   return json(response, 201, { listing: publicRecord({ ...created, owner_name: user.display_name }) });
 }
@@ -93,7 +94,7 @@ async function update(request, response, id) {
   );
   if (user.role === "admin" && listing.status !== nextStatus) {
     const event = nextStatus === "Published" ? "listing-approved" : nextStatus === "Declined" ? "listing-declined" : null;
-    if (event) notify({ userId: listing.owner_id, email: listing.data?.email, event }).catch(() => {});
+    if (event) notify({ userId: listing.owner_id, email: listing.data?.email, event, context: { businessName: name, businessUrl: `${process.env.PAYMONGO_APP_URL || "https://staging.findra.ph"}/listing/${id}` } }).catch(() => {});
   }
   return json(response, 200, { listing: publicRecord({ ...result.rows[0], owner_name: user.display_name }) });
 }

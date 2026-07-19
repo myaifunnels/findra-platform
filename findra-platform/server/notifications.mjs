@@ -29,19 +29,54 @@ async function readJson(request) {
 }
 function defaultsFor(event) {
   const [subject, body] = copy[event] || ["Findra update", "There is a new update in your Findra account."];
+  const clientSubjects = {
+    "new-user": "Welcome to Findra PH!",
+    "listing-submitted": "We’re Reviewing Your Business Details",
+    "listing-approved": "Your Business Details are now live",
+    "listing-declined": "Action needed: Update your Business Details",
+    "subscription-started": "Your Findra PH subscription is now active",
+    "inquiry-received": "You have a new inquiry on Findra PH",
+    "listing-pending-admin": "New Business Details pending review",
+  };
+  const clientBodies = {
+    "new-user": `<p>Hi {{contactFirstName}},</p><p>Welcome to Findra PH!</p><p>We’re excited to have you on board. You’re officially registered, and your account is now active.</p><p>Here’s what you can do next:</p><ul><li>Complete your Business Details so customers can easily find and contact you.</li><li>Submit your Business Details for review and approval.</li><li>Manage your account and Business Details from your dashboard anytime.</li></ul><p><a href="{{dashboardUrl}}">Access your dashboard</a></p><p>Once your Business Details are submitted, our team will review them within 3–4 business days before they go live.</p><p>Welcome aboard,<br>The Findra PH Team</p>`,
+    "listing-submitted": `<p>Hi {{contactFirstName}},</p><p>Thanks for submitting <strong>{{businessName}}</strong> on Findra PH.</p><p>We’ve received your submission, and it’s now under review by our team.</p><p>Here’s what happens next:</p><ul><li>We’ll review your Business Details for accuracy and completeness.</li><li>Once approved, it will go live on the platform.</li><li>You’ll receive another email as soon as the review is completed.</li></ul><p><a href="{{dashboardUrl}}">Manage or update your Business Details</a></p><p>Thanks for choosing Findra PH,<br>The Findra PH Team</p>`,
+    "listing-approved": `<p>Hi {{contactFirstName}},</p><p>Great news — <strong>{{businessName}}</strong> has been approved and is now live on Findra PH!</p><p>Customers can now discover your business and send inquiries directly through the platform.</p><p>Here’s what you can do next:</p><ul><li>Review your Business Details to make sure everything looks accurate.</li><li>Keep your information updated to attract more customers.</li><li>Watch out for inquiries and respond promptly.</li></ul><p><a href="{{businessUrl}}">View your public business listing</a></p><p>We’re excited to support your growth!<br>The Findra PH Team</p>`,
+    "listing-declined": `<p>Hi {{contactFirstName}},</p><p>Thank you for submitting <strong>{{businessName}}</strong> to Findra PH.</p><p>After review, we’re unable to approve it just yet. A few updates are needed before your business can go live on the platform.</p><p>No worries — this is usually quick and easy to resolve.</p><p>What to do next:</p><ul><li>Log in to your dashboard.</li><li>Review and update your Business Details.</li><li>Resubmit once you’re done.</li></ul><p><a href="{{dashboardUrl}}">Update your Business Details</a></p><p>Regards,<br>The Findra PH Team</p>`,
+    "subscription-started": `<p>Hi {{contactFirstName}},</p><p>Your payment was successful — thank you.</p><p>Your Findra PH subscription is now active, and your Business Details will continue to stay visible on the platform.</p><p><a href="{{dashboardUrl}}">Manage your subscription and Business Details</a></p><p>Thank you for growing your business with Findra PH.<br>The Findra PH Team</p>`,
+    "inquiry-received": `<p>Hi {{contactFirstName}},</p><p>Good news! You’ve received a new inquiry from a potential customer on Findra PH.</p><p>Responding quickly can help turn inquiries into real business opportunities.</p><p><a href="{{dashboardUrl}}">View and reply to the message</a></p><p>Best regards,<br>The Findra PH Team</p>`,
+    "listing-pending-admin": `<p>Hi {{contactFirstName}},</p><p>A new business, <strong>{{businessName}}</strong>, has been submitted on Findra PH and is awaiting your review.</p><p>Please log in to the admin panel to review and approve or request changes.</p><p><a href="{{adminUrl}}">Review the business listing</a></p><p>Prompt review helps ensure a smooth onboarding experience for suppliers and keeps new businesses visible to customers quickly.</p><p>Regards,<br>Findra PH System</p>`,
+  };
   return {
     event,
     name: templateNames[event] || "Findra account update",
-    subject,
-    body_html: `<p>Hi,</p><p>${body}</p><p><a href="{{dashboardUrl}}">Access your dashboard</a></p><p>The Findra PH Team</p>`,
+    subject: clientSubjects[event] || subject,
+    body_html: clientBodies[event] || `<p>Hi {{contactFirstName}},</p><p>${body}</p><p><a href="{{dashboardUrl}}">Access your dashboard</a></p><p>The Findra PH Team</p>`,
     from_name: process.env.BREVO_FROM_NAME || "Findra PH",
     from_email: process.env.BREVO_FROM_EMAIL || "",
     reply_to: process.env.BREVO_FROM_EMAIL || "",
     active: true,
   };
 }
-function renderTemplate(value) {
-  return String(value || "").replaceAll("{{dashboardUrl}}", `${process.env.PAYMONGO_APP_URL || "https://staging.findra.ph"}/user`);
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
+}
+function renderTemplate(value, context = {}) {
+  const appUrl = process.env.PAYMONGO_APP_URL || "https://staging.findra.ph";
+  const fullName = context.contactFullName || context.userDisplayName || "Findra member";
+  const fields = {
+    contactFirstName: context.contactFirstName || String(fullName).trim().split(/\s+/)[0] || "there",
+    contactFullName: fullName,
+    contactEmail: context.contactEmail || "",
+    userDisplayName: context.userDisplayName || fullName,
+    businessName: context.businessName || "your business",
+    dashboardUrl: context.dashboardUrl || `${appUrl}/user`,
+    adminUrl: context.adminUrl || `${appUrl}/admin`,
+    businessUrl: context.businessUrl || context.dashboardUrl || `${appUrl}/user`,
+    supportEmail: process.env.BREVO_FROM_EMAIL || "hello@findra.ph",
+    currentYear: new Date().getFullYear(),
+  };
+  return String(value || "").replace(/{{([a-zA-Z]+)}}/g, (match, key) => key in fields ? escapeHtml(fields[key]) : match);
 }
 async function templateFor(event) {
   const fallback = defaultsFor(event);
@@ -52,22 +87,27 @@ async function templateFor(event) {
     return fallback;
   }
 }
-async function send(email, template) {
+async function send(email, template, context) {
   const key=process.env.BREVO_API_KEY, from=template.from_email || process.env.BREVO_FROM_EMAIL;
   if (process.env.BREVO_ENABLED === "false" || !key || !from) return "not_configured";
-  const htmlContent = renderTemplate(template.body_html);
+  const htmlContent = renderTemplate(template.body_html, context);
   const response=await fetch("https://api.brevo.com/v3/smtp/email", {method:"POST",headers:{"api-key":key,"Content-Type":"application/json"},body:JSON.stringify({sender:{email:from,name:template.from_name||process.env.BREVO_FROM_NAME||"Findra PH"},replyTo:template.reply_to ? {email:template.reply_to} : undefined,to:[{email}],subject:template.subject,htmlContent,textContent:htmlContent.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim()})});
   return response.ok ? "sent" : "failed";
 }
-export async function notify({userId,email,event}) {
+export async function notify({userId,email,event,context = {}}) {
   const template = await templateFor(event);
   const [title, body]=copy[event]||["Findra update", "There is a new update in your Findra account."];
-  const status=template.active ? await send(email,template).catch(()=>"failed") : "paused";
+  let profile = {};
+  if (userId) {
+    try { profile = (await query("SELECT display_name, email FROM users WHERE id=$1", [userId])).rows[0] || {}; } catch {}
+  }
+  const dynamicContext = { ...context, userDisplayName: context.userDisplayName || profile.display_name, contactFullName: context.contactFullName || profile.display_name, contactEmail: context.contactEmail || email || profile.email };
+  const status=template.active ? await send(email,template,dynamicContext).catch(()=>"failed") : "paused";
   await query("INSERT INTO notifications (user_id,recipient_email,event,title,body,email_status) VALUES ($1,$2,$3,$4,$5,$6)",[userId||null,email||null,event,title,body,status]);
 }
-export async function notifyAdmins(event) {
+export async function notifyAdmins(event, context = {}) {
   const admins = await query("SELECT id, email FROM users WHERE role = 'admin'");
-  await Promise.all(admins.rows.map((admin) => notify({ userId: admin.id, email: admin.email, event })));
+  await Promise.all(admins.rows.map((admin) => notify({ userId: admin.id, email: admin.email, event, context })));
 }
 export async function handleNotificationsRequest(req,res) {
   const url=new URL(req.url,`http://${req.headers.host||"localhost"}`); if(!url.pathname.startsWith("/api/notifications") && !url.pathname.startsWith("/api/automations")) return false;
