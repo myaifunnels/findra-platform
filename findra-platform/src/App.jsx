@@ -186,94 +186,6 @@ const categories = [
   },
 ];
 
-const seedListings = [
-  {
-    id: 1,
-    name: "Events by Ina",
-    type: "Business / Company",
-    category: "Services & Rentals",
-    location: "Muntinlupa, Metro Manila",
-    status: "Published",
-    owner: "Ina de la Cruz",
-    date: "Jul 16, 2026",
-    image: "/assets/services-rentals.jpg",
-    tagline: "We make dream events happen",
-    services: ["Full Coordination", "On-the-day Coordination"],
-    views: 1248,
-  },
-  {
-    id: 2,
-    name: "The Premium Funnels",
-    type: "Freelancer / Creative",
-    category: "Freelancers & Creatives",
-    location: "Antipolo, Rizal",
-    status: "Published",
-    owner: "Rand Macion",
-    date: "Jul 15, 2026",
-    image: "/assets/freelancers-creatives.jpg",
-    tagline: "All hands off for you. Start to finish.",
-    services: ["Web & App Development", "Graphic Design"],
-    views: 986,
-  },
-  {
-    id: 3,
-    name: "MNL Craft Supply Co.",
-    type: "Business / Company",
-    category: "Products & Suppliers",
-    location: "Quezon City, Metro Manila",
-    status: "Pending",
-    owner: "Mara Santos",
-    date: "Jul 18, 2026",
-    image: "/assets/products-suppliers.jpg",
-    tagline: "Materials for makers who mean business",
-    services: ["Wholesale", "Local Delivery"],
-    views: 0,
-  },
-  {
-    id: 4,
-    name: "North & South Studios",
-    type: "Freelancer / Creative",
-    category: "Professionals",
-    location: "Makati, Metro Manila",
-    status: "Pending",
-    owner: "Luis Reyes",
-    date: "Jul 18, 2026",
-    image: "/assets/professionals.jpg",
-    tagline: "Stories built for modern brands",
-    services: ["Brand Strategy", "Photography"],
-    views: 0,
-  },
-  {
-    id: 5,
-    name: "Bayanihan Learning Hub",
-    type: "Business / Company",
-    category: "Community & Institutions",
-    location: "Pasig, Metro Manila",
-    status: "Draft",
-    owner: "Carla Dizon",
-    date: "Jul 14, 2026",
-    image: "/assets/community-institutions.jpg",
-    tagline: "Practical learning for growing teams",
-    services: ["Training", "Workshops"],
-    views: 82,
-  },
-  {
-    id: 6,
-    name: "Luna Equipment Rental",
-    type: "Business / Company",
-    category: "Services & Rentals",
-    location: "Taguig, Metro Manila",
-    status: "Declined",
-    owner: "Paolo Lim",
-    date: "Jul 12, 2026",
-    image: "/assets/services-rentals.jpg",
-    tagline: "Ready gear, right when you need it",
-    services: ["Equipment Rental"],
-    views: 0,
-  },
-];
-
-const listingStorageKey = "findra-listings-v1";
 const blankListing = {
   name: "",
   cardTitle: "",
@@ -305,15 +217,6 @@ const blankListing = {
   attachments: [],
   customValues: {},
 };
-
-function readListings() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(listingStorageKey));
-    return Array.isArray(saved) ? saved : seedListings;
-  } catch {
-    return seedListings;
-  }
-}
 
 function formatDate() {
   return new Intl.DateTimeFormat("en-US", {
@@ -6232,7 +6135,7 @@ function GuestListingPage({ go, session, complete, createAccount }) {
 
 export function App() {
   const [path, go] = usePath();
-  const [listings, setListings] = useState(readListings);
+  const [listings, setListings] = useState([]);
   const [notice, setNotice] = useState(null);
   const [session, setSession] = useState(null);
   useEffect(() => {
@@ -6242,7 +6145,7 @@ export function App() {
         return response.json();
       })
       .then((payload) => {
-        if (payload?.listings?.length) setListings(payload.listings);
+        if (payload?.listings) setListings(payload.listings);
       })
       .catch(() => {});
   }, []);
