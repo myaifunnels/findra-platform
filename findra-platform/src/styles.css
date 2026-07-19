@@ -4318,6 +4318,12 @@ button.management-status { border: 0; cursor: pointer; }
 .management-module {
   gap: clamp(24px, 2.25vw, 32px);
 }
+.management-module {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  row-gap: clamp(24px, 2.25vw, 32px);
+}
 .admin-content > .welcome-row,
 .admin-content > .panel,
 .management-module > .welcome-row,
