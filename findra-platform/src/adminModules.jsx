@@ -881,13 +881,19 @@ export function SubscriptionsManagement({ onNotify }) {
               <span>/ {item.interval.toLowerCase()}</span>
             </div>
             <p>{item.subscribers} current subscribers</p>
-            <ul>
-              {item.features.map((feature) => (
-                <li key={feature}>
-                  <CheckCircle weight="fill" /> {feature}
-                </li>
-              ))}
-            </ul>
+            {item.features.length ? (
+              <ul>
+                {item.features.map((feature) => (
+                  <li key={feature}>
+                    <CheckCircle weight="fill" /> {feature}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="package-empty-features">
+                Add package benefits to help customers compare this plan.
+              </p>
+            )}
             <footer>
               <button
                 className="secondary-button"

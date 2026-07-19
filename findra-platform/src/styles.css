@@ -4312,6 +4312,135 @@ button.management-status { border: 0; cursor: pointer; }
     font-size: 16px;
   }
 }
+
+/* Dashboard rhythm: generous, consistent card whitespace across admin and business workspaces. */
+.admin-content,
+.management-module {
+  gap: clamp(24px, 2.25vw, 32px);
+}
+.admin-content > .welcome-row,
+.admin-content > .panel,
+.management-module > .welcome-row,
+.management-module > .panel {
+  margin: 0;
+}
+.welcome-row {
+  min-height: 144px;
+  padding: clamp(24px, 2.4vw, 32px);
+}
+.metric-grid,
+.management-metrics {
+  gap: clamp(16px, 1.5vw, 24px);
+}
+.metric-grid article,
+.management-metrics article {
+  min-height: 112px;
+  padding: clamp(20px, 2vw, 26px);
+  gap: 16px;
+}
+.dashboard-grid,
+.package-management-grid {
+  gap: clamp(20px, 2vw, 28px);
+}
+.panel-head {
+  gap: 18px;
+  padding: clamp(22px, 2vw, 28px);
+}
+.review-panel .review-item,
+.recent .business-cell,
+.management-table td {
+  min-height: 76px;
+}
+.review-item {
+  padding: 18px clamp(20px, 2vw, 26px);
+}
+.user-listing-card {
+  gap: clamp(22px, 2.5vw, 32px);
+  padding: clamp(22px, 2.4vw, 30px);
+}
+.user-listing-card > div {
+  gap: 16px;
+}
+.package-management-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+}
+.package-management-card {
+  display: flex;
+  min-height: 392px;
+  flex-direction: column;
+  gap: 0;
+  padding: clamp(24px, 2.25vw, 30px);
+  border-radius: 20px;
+}
+.package-management-card > header {
+  min-height: 72px;
+  padding-right: 34px;
+}
+.package-management-card .package-price {
+  margin: 24px 0 8px;
+}
+.package-management-card > p {
+  margin: 0;
+}
+.package-management-card ul,
+.package-empty-features {
+  margin: 24px 0;
+  padding: 20px 0;
+  border-block: 1px solid var(--glass-line);
+}
+.package-management-card ul {
+  min-height: 0;
+  gap: 12px;
+}
+.package-empty-features {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  color: var(--surface-muted);
+  font-size: 14px !important;
+  line-height: 1.55;
+}
+.package-management-card > footer {
+  margin-top: auto;
+  gap: 12px;
+}
+.package-management-card > footer button {
+  min-height: 46px;
+}
+.management-table-tools {
+  min-height: 92px;
+  padding: 22px clamp(20px, 2vw, 28px);
+}
+.management-table th {
+  padding: 16px clamp(18px, 1.75vw, 24px);
+}
+.management-table td {
+  padding: 18px clamp(18px, 1.75vw, 24px);
+}
+.management-primary-cell {
+  gap: 14px;
+}
+.management-row-actions {
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .welcome-row { min-height: 0; padding: 22px 20px; }
+  .metric-grid article,
+  .management-metrics article { min-height: 96px; padding: 18px; }
+  .panel-head,
+  .management-table-tools { padding: 20px; }
+  .dashboard-grid,
+  .package-management-grid { gap: 18px; }
+  .review-item { padding: 16px 18px; }
+  .user-listing-card { padding: 20px; }
+  .package-management-card { min-height: 0; padding: 22px 20px; }
+  .package-management-card > header { min-height: 0; }
+  .package-management-card ul,
+  .package-empty-features { margin: 20px 0; padding: 18px 0; }
+  .management-table th,
+  .management-table td { padding: 15px 16px; }
+}
 @media (max-width: 440px) {
   .hero-inner {
     padding-top: 40px;
