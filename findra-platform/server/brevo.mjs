@@ -1,4 +1,5 @@
 import { readSession } from "./auth.mjs";
+import { query } from "./db.mjs";
 const BREVO_API = "https://api.brevo.com/v3";
 let runtimeApiKey = "";
 let runtimeEnabled = null;
@@ -142,13 +143,28 @@ async function sendTestEmail(request, response) {
   return json(response, 200, { ok: true, messageId: payload.messageId || "queued" });
 }
 
+async function subscribeNewsletter(request, response) {
+  const body = await readJson(request);
+  const email = String(body.email || "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(response, 400, { error: "Enter a valid email address." });
+  const apiKey = activeApiKey();
+  if (!integrationEnabled() || !apiKey) return json(response, 503, { error: "Newsletter signup is temporarily unavailable. Please try again shortly." });
+  const listId = Number(process.env.BREVO_NEWSLETTER_LIST_ID || 0);
+  const result = await fetch(`${BREVO_API}/contacts`, { method: "POST", headers: { "api-key": apiKey, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ email, updateEnabled: true, ...(listId > 0 ? { listIds: [listId] } : {}) }) });
+  const payload = await result.json().catch(() => ({}));
+  if (!result.ok) return json(response, result.status, { error: payload.message || "We could not add that email right now." });
+  await query(`INSERT INTO newsletter_subscribers (email, source, brevo_status) VALUES ($1,$2,'subscribed') ON CONFLICT (email) DO UPDATE SET brevo_status='subscribed', updated_at=NOW()`, [email, String(body.source || "about-page").slice(0, 80)]);
+  return json(response, 201, { ok: true, message: "You’re subscribed. Watch your inbox for Findra updates." });
+}
+
 export async function handleBrevoRequest(request, response) {
   const url = new URL(
     request.url,
     `http://${request.headers.host || "localhost"}`,
   );
-  if (!url.pathname.startsWith("/api/brevo/")) return false;
+  if (!url.pathname.startsWith("/api/brevo/") && url.pathname !== "/api/newsletter/subscribe") return false;
   try {
+    if (request.method === "POST" && url.pathname === "/api/newsletter/subscribe") { await subscribeNewsletter(request, response); return true; }
     if (request.method === "GET" && url.pathname === "/api/brevo/integration") {
       json(response, 200, integrationStatus());
       return true;

@@ -7375,6 +7375,10 @@ th {
   color: white;
   font-size: 24px;
 }
+.updates-signup button:disabled { cursor: wait; opacity: .7; }
+.newsletter-status { width:min(560px, 100%); margin:15px auto 0; padding:12px 15px; border:1px solid; border-radius:12px; font-size:14px; font-weight:700; line-height:1.45; }
+.newsletter-status.success { color:#dffff0; border-color:rgba(101,225,150,.46); background:rgba(17,135,74,.28); }
+.newsletter-status.error { color:#ffe2e2; border-color:rgba(255,120,120,.48); background:rgba(142,35,35,.32); }
 
 .contact-page {
   width: min(1160px, calc(100% - 40px));

@@ -112,6 +112,15 @@ CREATE TABLE IF NOT EXISTS sms_templates (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id BIGSERIAL PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  source TEXT NOT NULL DEFAULT 'about-page',
+  brevo_status TEXT NOT NULL DEFAULT 'pending',
+  subscribed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 `;
 
 try {

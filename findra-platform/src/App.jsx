@@ -1358,6 +1358,22 @@ function InfoCards({ kicker, title, intro, items, numbered = false }) {
 }
 
 function AboutPage({ go }) {
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState(null);
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
+  const subscribeNewsletter = async (event) => {
+    event.preventDefault();
+    setNewsletterLoading(true);
+    setNewsletterStatus(null);
+    try {
+      const response = await fetch("/api/newsletter/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: newsletterEmail, source: "about-page" }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Newsletter signup could not be completed.");
+      setNewsletterStatus({ type: "success", message: payload.message });
+      setNewsletterEmail("");
+    } catch (error) { setNewsletterStatus({ type: "error", message: error.message }); }
+    finally { setNewsletterLoading(false); }
+  };
   const values = [
     [ChatCircleText, "No Noise", "Clarity over clutter."],
     [MagnifyingGlass, "Structured Discovery", "Organized information."],
@@ -1453,19 +1469,23 @@ function AboutPage({ go }) {
             <br />
             updates and news
           </h2>
-          <form onSubmit={(event) => event.preventDefault()}>
+          <form onSubmit={subscribeNewsletter}>
             <label>
               <EnvelopeSimple />
               <input
                 aria-label="Email for Findra updates"
                 type="email"
                 placeholder="Email"
+                value={newsletterEmail}
+                onChange={(event) => setNewsletterEmail(event.target.value)}
+                required
               />
             </label>
-            <button aria-label="Subscribe">
+            <button aria-label="Subscribe" disabled={newsletterLoading}>
               <ArrowRight />
             </button>
           </form>
+          {newsletterStatus && <p className={`newsletter-status ${newsletterStatus.type}`} role="status">{newsletterStatus.message}</p>}
         </section>
       </main>
     </PublicLayout>
