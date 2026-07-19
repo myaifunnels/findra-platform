@@ -57,6 +57,47 @@ CREATE TABLE IF NOT EXISTS listings (
 CREATE INDEX IF NOT EXISTS listings_owner_id_idx ON listings(owner_id);
 CREATE INDEX IF NOT EXISTS listings_status_idx ON listings(status);
 
+-- Contact details identify a business listing. Keep legacy records intact, but
+-- reject any future create/update that reuses a business email or phone number.
+CREATE OR REPLACE FUNCTION prevent_duplicate_listing_contacts()
+RETURNS TRIGGER AS $$
+DECLARE
+  candidate_email TEXT := lower(trim(COALESCE(NEW.data->>'email', '')));
+  candidate_phone TEXT := regexp_replace(COALESCE(NEW.data->>'phone', ''), '\\D', '', 'g');
+BEGIN
+  IF candidate_phone ~ '^0[0-9]{10}$' THEN
+    candidate_phone := '63' || substr(candidate_phone, 2);
+  END IF;
+
+  IF candidate_email <> '' AND EXISTS (
+    SELECT 1 FROM listings current_listing
+    WHERE current_listing.id IS DISTINCT FROM NEW.id
+      AND lower(trim(COALESCE(current_listing.data->>'email', ''))) = candidate_email
+  ) THEN
+    RAISE EXCEPTION 'This business email address is already used by another listing.' USING ERRCODE = '23505';
+  END IF;
+
+  IF candidate_phone <> '' AND EXISTS (
+    SELECT 1 FROM listings current_listing
+    WHERE current_listing.id IS DISTINCT FROM NEW.id
+      AND CASE
+        WHEN regexp_replace(COALESCE(current_listing.data->>'phone', ''), '\\D', '', 'g') ~ '^0[0-9]{10}$'
+          THEN '63' || substr(regexp_replace(COALESCE(current_listing.data->>'phone', ''), '\\D', '', 'g'), 2)
+        ELSE regexp_replace(COALESCE(current_listing.data->>'phone', ''), '\\D', '', 'g')
+      END = candidate_phone
+  ) THEN
+    RAISE EXCEPTION 'This business phone number is already used by another listing.' USING ERRCODE = '23505';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS listings_unique_contact_trigger ON listings;
+CREATE TRIGGER listings_unique_contact_trigger
+BEFORE INSERT OR UPDATE OF data ON listings
+FOR EACH ROW EXECUTE FUNCTION prevent_duplicate_listing_contacts();
+
 CREATE TABLE IF NOT EXISTS packages (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL,

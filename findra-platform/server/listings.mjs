@@ -37,6 +37,41 @@ function publicRecord(row) {
   };
 }
 
+function normaliseBusinessEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function normaliseBusinessPhone(value) {
+  let digits = String(value || "").replace(/\D/g, "");
+  // Treat common Philippine local and international formats as the same number.
+  if (/^0\d{10}$/.test(digits)) digits = `63${digits.slice(1)}`;
+  return digits;
+}
+
+async function assertUniqueBusinessContact(record, excludeId = null) {
+  const email = normaliseBusinessEmail(record.email);
+  const phone = normaliseBusinessPhone(record.phone);
+  if (!email && !phone) return;
+
+  const result = await query(
+    "SELECT id, name, data FROM listings WHERE ($1::bigint IS NULL OR id <> $1)",
+    [excludeId],
+  );
+  const duplicate = result.rows.find((row) => {
+    const savedEmail = normaliseBusinessEmail(row.data?.email);
+    const savedPhone = normaliseBusinessPhone(row.data?.phone);
+    return (email && savedEmail === email) || (phone && savedPhone === phone);
+  });
+  if (!duplicate) return;
+
+  const sameEmail = email && normaliseBusinessEmail(duplicate.data?.email) === email;
+  const samePhone = phone && normaliseBusinessPhone(duplicate.data?.phone) === phone;
+  const fields = [sameEmail && "email address", samePhone && "phone number"].filter(Boolean).join(" and ");
+  const error = new Error(`This ${fields} is already used by the “${duplicate.name}” listing. Use a unique business contact.`);
+  error.status = 409;
+  throw error;
+}
+
 async function list(request, response) {
   const user = await readSession(request);
   const onlyMine = new URL(request.url, "http://localhost").searchParams.get("mine") === "true";
@@ -57,6 +92,7 @@ async function create(request, response) {
   const record = await readJson(request);
   const name = String(record.name || "").trim();
   if (!name) return json(response, 400, { error: "Business name is required." });
+  await assertUniqueBusinessContact(record);
   const status = user.role === "admin" && record.status ? String(record.status) : "Pending";
   const result = await query(
     `INSERT INTO listings (owner_id, status, name, category, location, data)
@@ -86,6 +122,7 @@ async function update(request, response, id) {
     return json(response, 403, { error: "You do not own this listing." });
   const nextData = { ...(listing.data || {}), ...record };
   const name = String(nextData.name || listing.name).trim();
+  await assertUniqueBusinessContact(nextData, Number(id));
   const nextStatus = user.role === "admin" && record.status ? String(record.status) : listing.status;
   const result = await query(
     `UPDATE listings SET name = $1, category = $2, location = $3, status = $4, data = $5::jsonb,
@@ -118,6 +155,9 @@ export async function handleListingsRequest(request, response) {
     if (request.method === "DELETE" && match) return await remove(request, response, match[1]), true;
     return json(response, 404, { error: "Listing endpoint not found." }), true;
   } catch (error) {
+    if (error?.code === "23505" && /business (email|phone)/i.test(error.message || "")) {
+      return json(response, 409, { error: error.message });
+    }
     return json(response, error.status || 500, { error: error.message || "Listing request failed." }), true;
   }
 }
