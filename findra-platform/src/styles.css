@@ -481,6 +481,14 @@ a {
   display: grid;
   place-items: center;
 }
+.card-actions .save-listing-action {
+  color: #c1384c;
+  border-color: rgba(193, 56, 76, .35);
+}
+.card-actions .save-listing-action:hover {
+  background: #fff1f3;
+  color: #a1243a;
+}
 .discover-cta {
   min-height: 310px;
   border-radius: 20px;
@@ -622,9 +630,9 @@ footer {
   padding-top: 9px;
 }
 .filters h3:not(:first-child) {
-  border-top: 1px solid #edf0ef;
-  padding-top: 25px;
-  margin-top: 9px;
+  border-top: 0;
+  padding-top: 18px;
+  margin-top: 8px;
 }
 .filters label {
   display: flex;

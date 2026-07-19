@@ -924,14 +924,11 @@ function ListingCard({ item, go }) {
         </p>
         <p className="listing-card-summary">{item.description || `${item.tagline}. Discover services, connect directly, and make your next project easier.`}</p>
         <div className="card-actions">
-          <button aria-label={`View ${item.name}`} onClick={(event) => { event.stopPropagation(); go(`/listing/${item.id}`); }}>
-            <Eye />
+          <button className="save-listing-action" aria-label={`Save ${item.name}`} title="Save business" onClick={(event) => event.stopPropagation()}>
+            <Heart />
           </button>
           <button aria-label={`Share ${item.name}`} onClick={(event) => { event.stopPropagation(); navigator.share?.({ title: item.name, text: item.tagline, url: `${window.location.origin}/listing/${item.id}` }); }}>
             <ShareNetwork />
-          </button>
-          <button aria-label={`Save ${item.name}`} onClick={(event) => event.stopPropagation()}>
-            <Heart />
           </button>
         </div>
         <button className="listing-card-detail" onClick={(event) => { event.stopPropagation(); go(`/listing/${item.id}`); }}>View business <ArrowRight /></button>
