@@ -557,7 +557,7 @@ function Header({ go }) {
                   {session.role !== "admin" && <button type="button" onClick={() => openDashboardSection("Inbox")}><Bell /> Inbox</button>}
                   {session.role !== "admin" && <button type="button" onClick={() => openDashboardSection("Plan & Billing")}><CreditCard /> Plan & billing</button>}
                   <Link to="/add-listing" go={go} onClick={() => setAccountMenu(false)}><Plus /> Add business</Link>
-                  <button type="button" onClick={signOut}><SignOut /> Sign out</button>
+                  <button type="button" className="header-account-signout" onClick={signOut}><SignOut /> Sign out</button>
                 </div>}
               </div>
           ) : (
