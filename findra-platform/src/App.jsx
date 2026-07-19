@@ -276,6 +276,7 @@ const seedListings = [
 const listingStorageKey = "findra-listings-v1";
 const blankListing = {
   name: "",
+  cardTitle: "",
   type: "Business / Company",
   category: categories[0].name,
   location: "",
@@ -901,6 +902,7 @@ function HomePage({ go, listings }) {
 }
 
 function ListingCard({ item, go }) {
+  const cardTitle = item.cardTitle?.trim() || item.name;
   return (
     <article className="listing-card" onClick={() => go(`/listing/${item.id}`)}>
       <div className="listing-image">
@@ -914,17 +916,17 @@ function ListingCard({ item, go }) {
             <span key={s}>{s}</span>
           ))}
         </div>
-        <h3>{item.name}</h3>
+        <h3>{cardTitle}</h3>
         <p className="location">
           <MapPin weight="fill" />
           {item.location}, Philippines
         </p>
         <p className="listing-card-summary">{item.description || `${item.tagline}. Discover services, connect directly, and make your next project easier.`}</p>
         <div className="card-actions">
-          <button className="save-listing-action" aria-label={`Save ${item.name}`} title="Save business" onClick={(event) => event.stopPropagation()}>
+          <button className="save-listing-action" aria-label={`Save ${cardTitle}`} title="Save business" onClick={(event) => event.stopPropagation()}>
             <Heart />
           </button>
-          <button aria-label={`Share ${item.name}`} onClick={(event) => { event.stopPropagation(); navigator.share?.({ title: item.name, text: item.tagline, url: `${window.location.origin}/listing/${item.id}` }); }}>
+          <button aria-label={`Share ${cardTitle}`} onClick={(event) => { event.stopPropagation(); navigator.share?.({ title: cardTitle, text: item.tagline, url: `${window.location.origin}/listing/${item.id}` }); }}>
             <ShareNetwork />
           </button>
         </div>
@@ -945,7 +947,7 @@ function ListingsPage({ go, listings }) {
       l.status === "Published" &&
       (cat === "All" || l.category === cat) &&
       (type === "All" || l.type === type) &&
-      `${l.name} ${l.category} ${l.type} ${l.services?.join(" ")} ${l.description || ""} ${l.location}`.toLowerCase().includes(search.toLowerCase()) &&
+      `${l.name} ${l.cardTitle || ""} ${l.category} ${l.type} ${l.services?.join(" ")} ${l.description || ""} ${l.location}`.toLowerCase().includes(search.toLowerCase()) &&
       (!location || String(l.location || "").toLowerCase().split(/[ ,]+/).some((term) => term.length > 3 && location.toLowerCase().includes(term))),
   );
   return (
@@ -5359,6 +5361,16 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
                   </label>
                   <div className="form-grid two profile-copy-fields">
                     <label>
+                      <FieldLabel>Listing Card Title (Optional)</FieldLabel>
+                      <input
+                        value={form.cardTitle || ""}
+                        onChange={change("cardTitle")}
+                        maxLength="70"
+                        placeholder="The title customers see in directory cards"
+                      />
+                      <small>{(form.cardTitle || "").length}/70 characters</small>
+                    </label>
+                    <label>
                       <FieldLabel>Business Tagline (Optional)</FieldLabel>
                       <input
                         value={form.tagline}
@@ -5675,7 +5687,7 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
                 )}
                 <div className="listing-preview-overlay">
                   <span>{form.category || "Business category"}</span>
-                  <h3>{form.name || "Your business"}</h3>
+                  <h3>{form.cardTitle?.trim() || form.name || "Your business"}</h3>
                   <p>{form.tagline || "Your business tagline"}</p>
                 </div>
               </div>
@@ -5689,7 +5701,7 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
                 </div>
                 <div>
                   <span>LIVE LISTING PREVIEW</span>
-                  <h3>{form.name || "Your business"}</h3>
+                  <h3>{form.cardTitle?.trim() || form.name || "Your business"}</h3>
                   <p>
                     <MapPin weight="fill" /> {form.location || "Your location"}
                   </p>

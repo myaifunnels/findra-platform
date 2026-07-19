@@ -4313,6 +4313,33 @@ button.management-status { border: 0; cursor: pointer; }
   }
 }
 
+/* Final app-level overrides. Kept at the end to win over legacy input styles. */
+.listing-manager .manager-toolbar > label {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid rgba(132, 207, 159, .28);
+  border-radius: 14px;
+  background: rgba(14, 42, 29, .58);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
+}
+.listing-manager .manager-toolbar > label > input,
+.listing-manager .manager-toolbar > label > input:hover,
+.listing-manager .manager-toolbar > label > input:focus {
+  min-width: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.listing-manager .manager-toolbar > label:focus-within { border-color: rgba(177, 229, 195, .52) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 20px rgba(0,0,0,.13) !important; }
+[data-theme="light"] .listing-manager .manager-toolbar > label { border-color: rgba(42, 88, 66, .22); background: rgba(255,255,255,.82); box-shadow: inset 0 1px 0 rgba(255,255,255,.94), 0 5px 14px rgba(27, 67, 45, .05); }
+[data-theme="dark"] .listing-editor-screen { color: #effbf3; background: radial-gradient(circle at 82% 8%, rgba(16, 132, 73, .16), transparent 28%), #08150f; }
+[data-theme="dark"] .long-listing-form .form-block { background: linear-gradient(135deg, rgba(20, 74, 48, .28), rgba(12, 42, 29, .18)); border-color: rgba(132, 207, 159, .22); }
+[data-theme="light"] .listing-editor-screen { color: #173126; background: radial-gradient(circle at 82% 8%, rgba(36, 168, 89, .12), transparent 28%), #f4faf6; }
+[data-theme="light"] .long-listing-form .form-block { background: linear-gradient(135deg, rgba(255,255,255,.94), rgba(236, 248, 240, .82)); border-color: rgba(42, 88, 66, .16); box-shadow: inset 0 1px 0 rgba(255,255,255,.86), 0 12px 26px rgba(27, 67, 45, .07); }
+
 /* Dashboard rhythm: generous, consistent card whitespace across admin and business workspaces. */
 .admin-content,
 .management-module {
