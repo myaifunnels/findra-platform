@@ -68,6 +68,9 @@ function defaultsFor(event) {
     active: true,
   };
 }
+function smsDefaultsFor(event) {
+  return { event, name: templateNames[event] || "Findra SMS update", body: smsCopy[event] || "Hi {{contactFirstName}}, there is an update on your Findra account. Check your email for full details.", active: true };
+}
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
 }
@@ -101,6 +104,13 @@ async function templateFor(event) {
     return fallback;
   }
 }
+async function smsTemplateFor(event) {
+  const fallback = smsDefaultsFor(event);
+  try {
+    const result = await query("SELECT * FROM sms_templates WHERE event=$1", [event]);
+    return result.rows[0] ? { ...fallback, ...result.rows[0] } : fallback;
+  } catch { return fallback; }
+}
 async function send(email, template, context) {
   const key=process.env.BREVO_API_KEY, from=template.from_email || process.env.BREVO_FROM_EMAIL;
   if (process.env.BREVO_ENABLED === "false" || !key || !from) return "not_configured";
@@ -111,9 +121,9 @@ async function send(email, template, context) {
 async function runAdditionalActions(event, email, context) {
   let actions = [];
   try { actions = (await query("SELECT * FROM automation_actions WHERE event=$1 AND active=TRUE ORDER BY id", [event])).rows; } catch { return; }
-  const defaultSms = smsCopy[event];
-  if (defaultSms && context.contactPhone) {
-    try { await sendSms({ recipient: context.contactPhone, message: renderPlainText(defaultSms, context) }); } catch { /* SMS is supplementary to the email record. */ }
+  const defaultSms = await smsTemplateFor(event);
+  if (defaultSms.active && context.contactPhone) {
+    try { await sendSms({ recipient: context.contactPhone, message: renderPlainText(defaultSms.body, context) }); } catch { /* SMS is supplementary to the email record. */ }
   }
   await Promise.all(actions.map(async (action) => {
     try {
@@ -149,6 +159,11 @@ export async function handleNotificationsRequest(req,res) {
       const saved = await query("SELECT * FROM email_templates ORDER BY event");
       const byEvent = new Map(saved.rows.map((row) => [row.event, row]));
       return json(res, 200, { templates: Object.keys(copy).map((event) => ({ ...defaultsFor(event), ...(byEvent.get(event) || {}) })) }), true;
+    }
+    if(user.role === "admin" && req.method === "GET" && url.pathname === "/api/automations/sms-templates") {
+      const saved = await query("SELECT * FROM sms_templates ORDER BY event");
+      const byEvent = new Map(saved.rows.map((row) => [row.event, row]));
+      return json(res, 200, { templates: Object.keys(copy).map((event) => ({ ...smsDefaultsFor(event), ...(byEvent.get(event) || {}) })) }), true;
     }
     if (user.role === "admin" && req.method === "GET" && url.pathname === "/api/automations/actions") {
       const result = await query("SELECT * FROM automation_actions ORDER BY channel, event, id");
@@ -188,6 +203,17 @@ export async function handleNotificationsRequest(req,res) {
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
         ON CONFLICT (event) DO UPDATE SET name=EXCLUDED.name,subject=EXCLUDED.subject,body_html=EXCLUDED.body_html,from_name=EXCLUDED.from_name,from_email=EXCLUDED.from_email,reply_to=EXCLUDED.reply_to,active=EXCLUDED.active,updated_at=NOW()
         RETURNING *`, [template.event,template.name,template.subject,template.body_html,template.from_name,template.from_email,template.reply_to,template.active]);
+      return json(res, 200, { template: result.rows[0] }), true;
+    }
+    const smsTemplateMatch = url.pathname.match(/^\/api\/automations\/sms-templates\/([a-z-]+)$/);
+    if(user.role === "admin" && req.method === "PUT" && smsTemplateMatch) {
+      const event = smsTemplateMatch[1];
+      if (!copy[event]) return json(res, 404, { error: "Unknown SMS template." }), true;
+      const body = await readJson(req); const fallback = smsDefaultsFor(event);
+      const template = { event, name: String(body.name || fallback.name).trim().slice(0, 120), body: String(body.body || fallback.body).trim().slice(0, 500), active: body.active !== false };
+      if (!template.body) return json(res, 400, { error: "Add an SMS message." }), true;
+      const result = await query(`INSERT INTO sms_templates (event,name,body,active) VALUES ($1,$2,$3,$4)
+        ON CONFLICT (event) DO UPDATE SET name=EXCLUDED.name,body=EXCLUDED.body,active=EXCLUDED.active,updated_at=NOW() RETURNING *`, [template.event,template.name,template.body,template.active]);
       return json(res, 200, { template: result.rows[0] }), true;
     }
     const match=url.pathname.match(/^\/api\/notifications\/(\d+)\/read$/); if(req.method==="PATCH"&&match){await query("UPDATE notifications SET read_at=NOW() WHERE id=$1 AND (user_id=$2 OR $3='admin')",[match[1],user.id,user.role]);return json(res,200,{ok:true}),true;}

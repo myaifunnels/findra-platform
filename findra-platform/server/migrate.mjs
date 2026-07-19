@@ -104,6 +104,14 @@ CREATE TABLE IF NOT EXISTS automation_actions (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS automation_actions_event_idx ON automation_actions(event, channel);
+
+CREATE TABLE IF NOT EXISTS sms_templates (
+  event TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  body TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 `;
 
 try {
