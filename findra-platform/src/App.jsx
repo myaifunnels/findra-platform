@@ -57,7 +57,6 @@ import {
 } from "@phosphor-icons/react";
 import {
   CustomFieldsManagement,
-  NotificationsManagement,
   readCustomFields,
   readManagedTaxonomy,
   recordNotificationEvent,
@@ -332,6 +331,24 @@ function usePath() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   return [path, go];
+}
+
+function usePersistedDashboardSection(storageKey, fallback) {
+  const [section, setSection] = useState(() => {
+    try {
+      return localStorage.getItem(storageKey) || fallback;
+    } catch {
+      return fallback;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, section);
+    } catch {
+      // The active dashboard section is a convenience enhancement only.
+    }
+  }, [section, storageKey]);
+  return [section, setSection];
 }
 
 function Link({ to, go, className = "", children, onClick }) {
@@ -1894,7 +1911,7 @@ const sideItems = [
   ["Subscriptions", CreditCard],
   ["Categories", Tag],
   ["Custom Fields", ListBullets],
-  ["Notifications", Bell],
+  ["Automation", Bell],
   ["Pages & Content", FileText],
   ["Settings", Gear],
 ];
@@ -1938,8 +1955,80 @@ function NotificationInbox() {
   </div>;
 }
 
+function AutomationManagement({ onNotify }) {
+  const [templates, setTemplates] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState("");
+  const [form, setForm] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const editorRef = useRef(null);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/automations/templates", { credentials: "same-origin" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Email templates could not be loaded.");
+      setTemplates(payload.templates || []);
+      const next = payload.templates?.find((item) => item.event === selectedEvent) || payload.templates?.[0] || null;
+      setSelectedEvent(next?.event || "");
+      setForm(next);
+    } catch (error) {
+      onNotify?.({ type: "error", title: "Automation could not be loaded", message: error.message });
+    } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+  const choose = (event) => {
+    const next = templates.find((item) => item.event === event);
+    setSelectedEvent(event);
+    setForm(next ? { ...next } : null);
+  };
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const format = (command) => {
+    editorRef.current?.focus();
+    document.execCommand(command, false, null);
+    update("body_html", editorRef.current?.innerHTML || "");
+  };
+  const save = async (event) => {
+    event.preventDefault();
+    if (!form) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/automations/templates/${form.event}`, {
+        method: "PUT", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, body_html: editorRef.current?.innerHTML || form.body_html }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "The email template could not be saved.");
+      setTemplates((current) => current.map((item) => item.event === payload.template.event ? payload.template : item));
+      setForm(payload.template);
+      onNotify?.({ type: "success", title: "Email template saved", message: `${payload.template.name} will be used for the next matching automation.` });
+    } catch (error) {
+      onNotify?.({ type: "error", title: "Email template could not be saved", message: error.message });
+    } finally { setSaving(false); }
+  };
+  return <div className="admin-content automation-module">
+    <section className="welcome-row automation-hero"><div><span className="section-eyebrow">Email automation</span><h2>Automation & email templates</h2><p>Configure the sender, subject, reply-to address, and branded content used by Findra emails.</p></div><button type="button" className="secondary-button" onClick={load} disabled={loading}>{loading ? "Loading…" : "Refresh templates"}</button></section>
+    {loading && <section className="panel automation-empty"><Clock /><h3>Loading email templates…</h3></section>}
+    {!loading && !form && <section className="panel automation-empty"><EnvelopeSimple /><h3>No email templates available</h3><p>Run the database migration, then refresh this page.</p></section>}
+    {!loading && form && <div className="automation-layout">
+      <aside className="panel automation-template-list"><span className="section-eyebrow">Automations</span><h3>Email triggers</h3><p>Each template sends when its matching Findra activity occurs.</p><div>{templates.map((item) => <button type="button" className={item.event === selectedEvent ? "active" : ""} onClick={() => choose(item.event)} key={item.event}><EnvelopeSimple /><span><strong>{item.name}</strong><small>{item.active ? "Enabled" : "Paused"}</small></span></button>)}</div></aside>
+      <form className="panel automation-editor" onSubmit={save}>
+        <header><div><span className="section-eyebrow">Transactional email</span><h3>{form.name}</h3><p>Use <code>{"{{dashboardUrl}}"}</code> to link recipients to their account.</p></div><label className="automation-toggle"><input type="checkbox" checked={form.active !== false} onChange={(event) => update("active", event.target.checked)} /><span>{form.active !== false ? "Enabled" : "Paused"}</span></label></header>
+        <div className="management-form-grid">
+          <label><span>From name *</span><input required value={form.from_name || ""} onChange={(event) => update("from_name", event.target.value)} placeholder="Findra PH" /></label>
+          <label><span>From email *</span><input required type="email" value={form.from_email || ""} onChange={(event) => update("from_email", event.target.value)} placeholder="hello@findra.ph" /></label>
+          <label className="management-wide-field"><span>Reply-to email</span><input type="email" value={form.reply_to || ""} onChange={(event) => update("reply_to", event.target.value)} placeholder="hello@findra.ph" /></label>
+          <label className="management-wide-field"><span>Subject line *</span><input required value={form.subject || ""} onChange={(event) => update("subject", event.target.value)} /></label>
+          <div className="management-wide-field rich-email-field"><span>Email content *</span><div className="rich-email-toolbar" role="toolbar" aria-label="Email formatting"><button type="button" onClick={() => format("bold")}><TextBolder /></button><button type="button" onClick={() => format("italic")}><TextItalic /></button><button type="button" onClick={() => format("insertUnorderedList")}><ListBullets /></button></div><div ref={editorRef} className="rich-email-editor" contentEditable suppressContentEditableWarning onInput={(event) => update("body_html", event.currentTarget.innerHTML)} dangerouslySetInnerHTML={{ __html: form.body_html || "" }} /></div>
+        </div>
+        <footer><small>Recommendation: keep transactional emails concise, use the verified <strong>hello@findra.ph</strong> sender, and include one clear action.</small><button className="admin-primary" disabled={saving} type="submit"><CheckCircle />{saving ? "Saving…" : "Save template"}</button></footer>
+      </form>
+    </div>}
+  </div>;
+}
+
 function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
-  const [section, setSection] = useState("Overview");
+  const [section, setSection] = usePersistedDashboardSection("findra-admin-section", "Overview");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
   const [selected, setSelected] = useState(null);
@@ -2152,8 +2241,8 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
           <TaxonomyManagement query={query} onNotify={onNotify} />
         ) : section === "Custom Fields" ? (
           <CustomFieldsManagement query={query} onNotify={onNotify} />
-        ) : section === "Notifications" ? (
-          <NotificationsManagement query={query} onNotify={onNotify} />
+        ) : section === "Automation" ? (
+          <AutomationManagement onNotify={onNotify} />
         ) : (
           <AdminSection section={section} />
         )}
@@ -3043,7 +3132,7 @@ function UserDashboardLegacyTwo({ go, listing, onSave, onLogout }) {
 }
 
 function UserDashboard({ go, listing, onSave, onLogout, session }) {
-  const [section, setSection] = useState("Overview");
+  const [section, setSection] = usePersistedDashboardSection("findra-user-section", "Overview");
   const [mobileSide, setMobileSide] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);

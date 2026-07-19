@@ -79,6 +79,18 @@ CREATE TABLE IF NOT EXISTS notifications (
   email_status TEXT NOT NULL DEFAULT 'queued', read_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS notifications_user_id_idx ON notifications(user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS email_templates (
+  event TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  body_html TEXT NOT NULL,
+  from_name TEXT,
+  from_email TEXT,
+  reply_to TEXT,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 `;
 
 try {

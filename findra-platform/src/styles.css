@@ -2445,6 +2445,51 @@ td {
   width: 16px;
   height: 16px;
 }
+
+.automation-hero { margin-bottom: 24px; }
+.automation-layout {
+  display: grid;
+  grid-template-columns: minmax(230px, .7fr) minmax(0, 1.6fr);
+  gap: 22px;
+  align-items: start;
+}
+.automation-template-list,
+.automation-editor {
+  padding: 25px;
+}
+.automation-template-list h3,
+.automation-editor h3 { margin: 5px 0 8px; }
+.automation-template-list > p,
+.automation-editor header p { color: var(--muted, #9cafaa); font-size: 14px; line-height: 1.55; }
+.automation-template-list > div { display: grid; gap: 8px; margin-top: 20px; }
+.automation-template-list button {
+  display: flex; width: 100%; align-items: center; gap: 11px; padding: 12px;
+  text-align: left; color: var(--text, #edf8f1); border: 1px solid transparent;
+  border-radius: 12px; background: transparent;
+}
+.automation-template-list button:hover,
+.automation-template-list button.active { background: rgba(36, 156, 87, .18); border-color: rgba(98, 220, 143, .35); }
+.automation-template-list button > svg { flex: 0 0 auto; color: #62dc8f; }
+.automation-template-list button span { display: grid; gap: 2px; }
+.automation-template-list button strong { font-size: 13px; }
+.automation-template-list button small { color: #9db5aa; font-size: 12px; }
+.automation-editor header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:22px; }
+.automation-toggle { display:flex; align-items:center; gap:8px; white-space:nowrap; font-weight:750; font-size:13px; color:#dff7e7; }
+.automation-toggle input { accent-color:#18ad5b; width:18px; height:18px; }
+.rich-email-field > span { display:block; margin-bottom:8px; font-size:13px; font-weight:750; }
+.rich-email-toolbar { display:flex; gap:5px; padding:8px; border:1px solid rgba(112, 166, 135, .35); border-bottom:0; border-radius:10px 10px 0 0; background:rgba(6, 26, 17, .45); }
+.rich-email-toolbar button { width:34px; height:30px; display:grid; place-items:center; color:#e8f8ee; border:1px solid rgba(112, 166, 135, .28); border-radius:7px; background:rgba(255,255,255,.04); }
+.rich-email-toolbar button:hover { background:rgba(41, 178, 96, .26); }
+.rich-email-toolbar svg { width:17px; height:17px; }
+.rich-email-editor { min-height:205px; padding:16px; outline:0; color:#edf8f1; border:1px solid rgba(112, 166, 135, .35); border-radius:0 0 10px 10px; background:rgba(4, 20, 13, .65); font-size:15px; line-height:1.6; }
+.rich-email-editor:focus { border-color:#51d98a; box-shadow:0 0 0 3px rgba(58, 208, 116, .14); }
+.automation-editor footer { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-top:22px; }
+.automation-editor footer small { max-width:530px; color:#a9bfb4; font-size:12px; line-height:1.5; }
+.automation-empty { min-height:170px; display:grid; place-items:center; align-content:center; gap:10px; text-align:center; }
+@media (max-width: 850px) {
+  .automation-layout { grid-template-columns: 1fr; }
+  .automation-editor footer { align-items:flex-start; flex-direction:column; }
+}
 .listing-location-map .map-frame {
   height: 255px;
   border: 1px solid rgba(96, 174, 136, 0.28);
