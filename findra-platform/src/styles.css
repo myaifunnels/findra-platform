@@ -4807,6 +4807,77 @@ button.management-status { border: 0; cursor: pointer; }
     flex: 0 0 auto;
   }
 }
+
+/* Keep compound controls as one field: no inner fill, border, or focus ring. */
+:is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label :is(input, select, textarea),
+.auth-shell .auth-card form > label > input {
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+:is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label :is(input, select, textarea):focus,
+.auth-shell .auth-card form > label > input:focus {
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* The stepper reserves space for its secondary completion text. */
+.listing-stepper {
+  margin-bottom: 18px;
+  padding: 18px 28px 22px;
+}
+.listing-stepper > button {
+  min-height: 54px;
+  align-items: flex-start;
+}
+.listing-stepper > button > span {
+  margin-top: 1px;
+}
+.listing-stepper > button > strong {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+.listing-stepper small {
+  top: 38px;
+  left: 40px;
+  line-height: 1.3;
+}
+.listing-stepper i {
+  margin-top: 16px;
+}
+
+/* A compact 8pt rhythm keeps the editor breathable without large dead space. */
+.long-listing-form .form-block {
+  margin-bottom: 16px;
+  padding: 20px;
+}
+.long-listing-form .form-grid {
+  gap: 16px;
+}
+.long-listing-form .form-grid.two,
+.long-listing-form .form-grid.three {
+  column-gap: 16px;
+  row-gap: 16px;
+}
+.long-listing-form .form-block label {
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .listing-stepper {
+    padding: 16px 18px 20px;
+    margin-bottom: 16px;
+  }
+  .listing-stepper > button { min-height: 52px; }
+  .long-listing-form .form-block { margin-bottom: 14px; padding: 18px; }
+  .long-listing-form .form-grid,
+  .long-listing-form .form-grid.two,
+  .long-listing-form .form-grid.three { gap: 14px; }
+}
 @media (max-width: 440px) {
   .hero-inner {
     padding-top: 40px;
