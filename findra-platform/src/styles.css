@@ -5576,6 +5576,7 @@ body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .dire
 .header-dashboard-link:hover { background: rgba(20, 157, 80, 0.35); transform: translateY(-1px); }
 .header-dashboard-link { min-width: 46px; padding: 4px 8px; justify-content: center; }
 .account-avatar { width: 32px; height: 32px; flex: 0 0 auto; border: 0; border-radius: 50%; background: #d4f9e0; box-shadow: none; object-fit: cover; }
+.account-avatar-fallback { display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #bff5d3, #78dc9e); color: #0a4a28; font-family: var(--font-display, inherit); font-size: 13px; font-weight: 800; letter-spacing: .01em; }
 .header-account-menu { position: relative; }
 .header-account-trigger { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; padding: 4px 10px 4px 5px; border: 1px solid rgba(218, 244, 229, 0.24); border-radius: 13px; background: rgba(255, 255, 255, 0.08); color: #f5fff8; }
 .header-account-trigger > span { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 10px; background: linear-gradient(135deg, #bff5d3, #78dc9e); color: #084a28; font-size: 11px; font-weight: 850; }
@@ -5584,6 +5585,7 @@ body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .dire
 .header-account-dropdown .account-dropdown-profile { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; column-gap: 10px; min-width: 0; }
 .header-account-dropdown .account-dropdown-profile > div { min-width: 0; padding: 0; border: 0; }
 .header-account-dropdown .account-dropdown-profile .account-avatar { width: 38px; height: 38px; grid-row: span 2; }
+.header-account-dropdown .account-dropdown-profile .account-avatar-fallback { font-size: 15px; }
 .header-account-dropdown strong { display: block; max-width: 184px; overflow: hidden; color: #f5fff8; font-size: 15px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .header-account-dropdown small { display: block; max-width: 184px; overflow: hidden; color: #b8cec2; font-size: 14px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .header-account-dropdown a, .header-account-dropdown button { display: flex; width: 100%; align-items: center; gap: 10px; min-height: 42px; padding: 0 11px; border: 0; border-radius: 10px; background: transparent; color: #e6f5ec; font: inherit; font-size: 14px; font-weight: 650; text-align: left; }
@@ -5614,6 +5616,7 @@ body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .dire
 .account-profile-form { display: grid; gap: 18px; }
 .profile-hero-card { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 24px; background: linear-gradient(135deg, rgba(16, 96, 57, .3), rgba(20, 40, 31, .82)); box-shadow: 0 18px 42px rgba(0, 0, 0, .16), inset 0 1px rgba(255,255,255,.08); }
 .profile-avatar-large { width: 82px; height: 82px; border: 3px solid rgba(196, 255, 217, .62); border-radius: 50%; background: #d8f8e3; box-shadow: 0 10px 24px rgba(0,0,0,.24); object-fit: cover; }
+.profile-avatar-large.account-avatar-fallback { font-size: 28px; }
 .profile-hero-card h3, .profile-settings-card h3 { margin: 4px 0 6px; font-size: 21px; color: #f4fff7; }
 .profile-hero-card p, .profile-settings-card > p { margin: 0; color: #b9cec2; line-height: 1.55; }
 .upload-avatar-button { cursor: pointer; white-space: nowrap; }

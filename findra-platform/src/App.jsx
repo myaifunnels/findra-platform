@@ -107,13 +107,25 @@ function sessionFromUser(user) {
         username: user.email,
         emailVerified: user.emailVerified,
         profileImage: user.profileImage || "",
-        gravatarUrl: user.gravatarUrl || "",
       }
     : null;
 }
 
-function accountAvatarUrl(session, businessLogo = "") {
-  return session?.profileImage || businessLogo || session?.gravatarUrl || "/favicon.svg";
+function accountInitials(session) {
+  const source = (session?.name || session?.email || "F").trim();
+  const parts = source.split(/\s+/).filter(Boolean);
+  const letters = parts.length > 1 ? parts[0][0] + parts[1][0] : source.slice(0, 2);
+  return letters.toUpperCase();
+}
+
+function AccountAvatar({ session, businessLogo = "", className = "" }) {
+  const src = session?.profileImage || businessLogo || "";
+  if (src) return <img className={`account-avatar ${className}`} src={src} alt="" />;
+  return (
+    <span className={`account-avatar account-avatar-fallback ${className}`}>
+      {accountInitials(session)}
+    </span>
+  );
 }
 
 function ThemeToggle() {
@@ -535,11 +547,11 @@ function Header({ go }) {
           {session ? (
             <div className="header-account-menu" ref={accountMenuRef}>
                 <button type="button" className="header-dashboard-link" aria-label="Open account menu" aria-expanded={accountMenu} onClick={() => setAccountMenu((value) => !value)}>
-                  <img className="account-avatar" src={accountAvatarUrl(session, businessLogo)} alt="" />
+                  <AccountAvatar session={session} businessLogo={businessLogo} />
                   <CaretDown size={13} />
                 </button>
                 {accountMenu && <div className="header-account-dropdown">
-                  <div className="account-dropdown-profile"><img className="account-avatar" src={accountAvatarUrl(session, businessLogo)} alt="" /><div><strong>{session.name}</strong><small>{session.email}</small></div></div>
+                  <div className="account-dropdown-profile"><AccountAvatar session={session} businessLogo={businessLogo} /><div><strong>{session.name}</strong><small>{session.email}</small></div></div>
                   <button type="button" onClick={() => openDashboardSection("Overview")}><SquaresFour /> Dashboard</button>
                   {session.role !== "admin" && <button type="button" onClick={() => openDashboardSection("Profile")}><UserCircle /> Account & profile</button>}
                   {session.role !== "admin" && <button type="button" onClick={() => openDashboardSection("Inbox")}><Bell /> Inbox</button>}
@@ -3599,7 +3611,7 @@ function UserAccountProfile({ session, listing, onEdit, onSaveListing }) {
   return <div className="admin-content account-profile-page">
     <section className="welcome-row"><div><span className="section-eyebrow">Personal settings</span><h2>Account & profile</h2><p>Choose how you appear on Findra and keep the contact links on your public listing up to date.</p></div><button className="secondary-button" onClick={onEdit}><PencilSimple /> Edit business details</button></section>
     <form className="account-profile-form" onSubmit={save}>
-      <section className="panel profile-hero-card"><img className="profile-avatar-large" src={form.profileImage || accountAvatarUrl(session, listing?.logo)} alt="Profile" /><div><span className="section-eyebrow">Account photo</span><h3>{form.name || "Business owner"}</h3><p>{form.profileImage ? "Custom profile photo" : listing?.logo ? "Using your business logo as your account photo" : "Using your Gravatar identicon until you add a photo"}</p></div><label className="secondary-button upload-avatar-button"><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => uploadAvatar(event.target.files?.[0])} />Upload photo</label></section>
+      <section className="panel profile-hero-card"><AccountAvatar session={{ ...session, profileImage: form.profileImage || session?.profileImage }} businessLogo={listing?.logo} className="profile-avatar-large" /><div><span className="section-eyebrow">Account photo</span><h3>{form.name || "Business owner"}</h3><p>{form.profileImage ? "Custom profile photo" : listing?.logo ? "Using your business logo as your account photo" : "Using your Findra initials until you add a photo"}</p></div><label className="secondary-button upload-avatar-button"><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => uploadAvatar(event.target.files?.[0])} />Upload photo</label></section>
       <section className="panel profile-settings-card"><h3>Account details</h3><p>Your name is used across your dashboard and account communications.</p><div className="profile-form-grid"><label><span>Display name *</span><input required value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Your name" /></label><label><span>Email address</span><input value={session?.email || ""} disabled /></label></div></section>
       <section className="panel profile-settings-card"><h3>Social & contact links</h3><p>These are synced with your business listing, so customers can reach you from the public profile.</p><div className="profile-form-grid social-links-grid">{socialFields.map(([field, label, placeholder]) => <label key={field}><span>{label}</span><input value={form[field]} onChange={(event) => setField(field, event.target.value)} placeholder={placeholder} /></label>)}</div></section>
       {status && <p className={`profile-save-status ${status.type}`}>{status.message}</p>}

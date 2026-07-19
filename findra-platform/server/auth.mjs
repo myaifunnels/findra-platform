@@ -90,7 +90,6 @@ function publicUser(row) {
     role: row.role,
     emailVerified: Boolean(row.email_verified_at),
     profileImage: row.profile_image || "",
-    gravatarUrl: `https://www.gravatar.com/avatar/${createHash("md5").update(String(row.email || "").trim().toLowerCase()).digest("hex")}?d=identicon&s=160`,
   };
 }
 
