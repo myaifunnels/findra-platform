@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -411,7 +411,84 @@ function StatusModal({ notice, onClose }) {
   );
 }
 
-function BusinessMapFrame({ location }) {
+let googleMapsLoader;
+
+function loadGoogleMaps(key) {
+  if (window.google?.maps?.places) return Promise.resolve(window.google);
+  if (!key) return Promise.resolve(null);
+  if (!googleMapsLoader) {
+    googleMapsLoader = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&v=weekly`;
+      script.async = true;
+      script.onload = () => resolve(window.google);
+      script.onerror = () => reject(new Error("Google Maps could not be loaded."));
+      document.head.appendChild(script);
+    });
+  }
+  return googleMapsLoader;
+}
+
+function GoogleAddressInput({ value, onChange, onSelect }) {
+  const inputRef = useRef(null);
+  const [state, setState] = useState("loading");
+
+  useEffect(() => {
+    let listener;
+    let active = true;
+    fetch("/api/maps/embed-key", { credentials: "same-origin" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => loadGoogleMaps(payload?.key || ""))
+      .then((google) => {
+        if (!active) return;
+        if (!google?.maps?.places || !inputRef.current) {
+          setState("unavailable");
+          return;
+        }
+        const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
+          componentRestrictions: { country: "ph" },
+          fields: ["formatted_address", "geometry", "place_id", "name"],
+          types: ["address"],
+        });
+        listener = autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+          const latitude = place.geometry?.location?.lat?.();
+          const longitude = place.geometry?.location?.lng?.();
+          onSelect({
+            address: place.formatted_address || inputRef.current?.value || "",
+            placeId: place.place_id || "",
+            latitude: Number.isFinite(latitude) ? latitude : "",
+            longitude: Number.isFinite(longitude) ? longitude : "",
+          });
+        });
+        setState("ready");
+      })
+      .catch(() => active && setState("unavailable"));
+    return () => {
+      active = false;
+      listener?.remove();
+    };
+  // The Maps widget is attached once to this input. The form setter remains
+  // stable across renders, so recreating the paid autocomplete session is not
+  // necessary while the user is filling out a listing.
+  }, []);
+
+  return <>
+    <input
+      ref={inputRef}
+      required
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder="Start typing an address in the Philippines"
+      autoComplete="street-address"
+    />
+    <small className={`address-autocomplete-status ${state}`}>
+      {state === "ready" ? "Google address suggestions are enabled. Select one to pin the exact map location." : "Enter the full address manually while Google address suggestions are unavailable."}
+    </small>
+  </>;
+}
+
+function BusinessMapFrame({ location, latitude, longitude }) {
   const [embedKey, setEmbedKey] = useState("");
   useEffect(() => {
     fetch("/api/maps/embed-key", { credentials: "same-origin" })
@@ -419,7 +496,10 @@ function BusinessMapFrame({ location }) {
       .then((payload) => setEmbedKey(payload?.key || ""))
       .catch(() => {});
   }, []);
-  const query = encodeURIComponent(location || "Metro Manila, Philippines");
+  const placeQuery = latitude !== "" && latitude !== undefined && longitude !== "" && longitude !== undefined
+    ? `${latitude},${longitude}`
+    : location || "Metro Manila, Philippines";
+  const query = encodeURIComponent(placeQuery);
   const source = embedKey
     ? `https://www.google.com/maps/embed/v1/place?key=${embedKey}&q=${query}`
     : "https://www.openstreetmap.org/export/embed.html?bbox=120.93%2C14.50%2C121.10%2C14.65&layer=mapnik";
@@ -941,7 +1021,7 @@ function ListingDetail({ go, item }) {
             <strong>Business Category:</strong>
             <span>{(item.categories || [item.category]).join(", ")}</span>
             <strong>Business Address:</strong>
-            <span>{item.location}, Philippines</span>
+            <span>{item.location || "Not provided"}</span>
           </div>
           <div className={`detail-logo ${item.logo ? "has-image" : ""}`}>
             {item.logo ? (
@@ -1021,6 +1101,16 @@ function ListingDetail({ go, item }) {
                     </a>
                   )}
                 </div>
+              </section>
+            )}
+            {item.location && (
+              <section className="listing-location-map">
+                <h3>BUSINESS LOCATION</h3>
+                <BusinessMapFrame
+                  location={item.location}
+                  latitude={item.latitude}
+                  longitude={item.longitude}
+                />
               </section>
             )}
             {publicCustomFields.some((field) => item.customValues?.[field.slug] !== undefined && item.customValues?.[field.slug] !== "") && (
@@ -3640,8 +3730,8 @@ function GoogleMapsIntegration() {
   useEffect(() => { refresh(); }, []);
   return <section className="panel maps-integration-card">
     <header><div className="integration-provider-icon"><MapPin weight="duotone" /></div><div><span>LOCATION SERVICES</span><h3>Google Maps</h3><p>Address maps for the business listing form and public profiles.</p></div><span className={`integration-status-pill ${status.configured ? "connected" : "inactive"}`}><i />{loading ? "Checking" : status.configured ? "Connected" : "Setup required"}</span></header>
-    <div className="integration-summary"><div><span>Provider</span><strong>{status.provider}</strong></div><div><span>API key</span><strong>{status.keyHint || "Not configured"}</strong></div><div><span>Use</span><strong>Embed maps</strong></div></div>
-    <div className="integration-methods"><span>Secure setup</span><div><small>Add <code>GOOGLE_MAPS_API_KEY</code> in Render, restrict it in Google Cloud to <code>staging.findra.ph</code> and your production domain, then enable only the Maps Embed API.</small></div></div>
+    <div className="integration-summary"><div><span>Provider</span><strong>{status.provider}</strong></div><div><span>API key</span><strong>{status.keyHint || "Not configured"}</strong></div><div><span>Use</span><strong>Address search & maps</strong></div></div>
+    <div className="integration-methods"><span>Secure setup</span><div><small>Add <code>GOOGLE_MAPS_API_KEY</code> in Render, restrict it in Google Cloud to <code>staging.findra.ph</code> and your production domain, then enable Maps JavaScript API, Places API, and Maps Embed API.</small></div></div>
     <footer><button type="button" className="secondary-button" onClick={refresh} disabled={loading}>{loading ? "Checking…" : "Refresh status"}</button><a className="admin-primary" href="https://console.cloud.google.com/google/maps-apis" target="_blank" rel="noreferrer">Open Google Cloud <ArrowRight /></a></footer>
   </section>;
 }
@@ -5105,18 +5195,29 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
                   <SectionLabel>Business Address</SectionLabel>
                   <label>
                     <FieldLabel required>Business Address</FieldLabel>
-                    <input
-                      required
+                    <GoogleAddressInput
                       value={form.location}
-                      onChange={change("location")}
-                      placeholder="Enter a complete business address"
+                      onChange={(location) => setForm((current) => ({
+                        ...current,
+                        location,
+                        googlePlaceId: "",
+                        latitude: "",
+                        longitude: "",
+                      }))}
+                      onSelect={({ address, placeId, latitude, longitude }) => setForm((current) => ({
+                        ...current,
+                        location: address,
+                        googlePlaceId: placeId,
+                        latitude,
+                        longitude,
+                      }))}
                     />
                   </label>
-                  <label className="map-check">
-                    <input type="checkbox" defaultChecked /> Autocomplete
-                    address when marker position is changed
-                  </label>
-                  <BusinessMapFrame location={form.location} />
+                  <BusinessMapFrame
+                    location={form.location}
+                    latitude={form.latitude}
+                    longitude={form.longitude}
+                  />
                 </section>
                 <CustomListingFields
                   fields={managedCustomFields.filter((field) => field.section === "Contact & location")}

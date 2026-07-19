@@ -2375,6 +2375,28 @@ td {
 .map-frame span svg {
   color: #16a653;
 }
+.address-autocomplete-status {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted, #758982);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.address-autocomplete-status.ready {
+  color: #20a45b;
+}
+.listing-location-map {
+  margin-top: 28px;
+}
+.listing-location-map > h3 {
+  margin-bottom: 12px;
+}
+.listing-location-map .map-frame {
+  height: 255px;
+  border: 1px solid rgba(96, 174, 136, 0.28);
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(3, 24, 16, 0.17);
+}
 .form-actions {
   display: flex;
   justify-content: flex-end;
