@@ -4408,6 +4408,179 @@ button.management-status { border: 0; cursor: pointer; }
   }
 }
 
+/* --------------------------------------------------------------------------
+   Findra control system
+   One accessible, iOS-inspired treatment for every native form control.
+   Compound search labels retain a single outer surface so inputs never look
+   nested inside another input.                                                      
+   -------------------------------------------------------------------------- */
+:root {
+  --findra-control-background: rgba(255, 255, 255, .78);
+  --findra-control-border: rgba(35, 83, 60, .30);
+  --findra-control-text: #173b29;
+  --findra-control-placeholder: #71877a;
+  --findra-control-highlight: rgba(29, 154, 79, .18);
+  --findra-control-inset: rgba(255, 255, 255, .78);
+  --findra-control-shadow: 0 5px 14px rgba(22, 67, 43, .055);
+}
+
+[data-theme="dark"] {
+  --findra-control-background: rgba(13, 47, 31, .76);
+  --findra-control-border: rgba(174, 232, 195, .30);
+  --findra-control-text: #effbf3;
+  --findra-control-placeholder: #a6b9ad;
+  --findra-control-highlight: rgba(125, 233, 164, .16);
+  --findra-control-inset: rgba(255, 255, 255, .065);
+  --findra-control-shadow: 0 6px 16px rgba(0, 0, 0, .14);
+}
+
+/* Text, select and long-form controls share the same quiet, premium surface. */
+body :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea
+) {
+  box-sizing: border-box;
+  min-height: 52px;
+  padding: 13px 15px;
+  border: 1px solid var(--findra-control-border) !important;
+  border-radius: 16px !important;
+  background: var(--findra-control-background) !important;
+  box-shadow: inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+  color: var(--findra-control-text) !important;
+  font-size: 16px !important;
+  line-height: 1.45;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+body textarea {
+  min-height: 132px;
+  resize: vertical;
+}
+
+body :is(input, textarea)::placeholder {
+  color: var(--findra-control-placeholder) !important;
+  opacity: 1;
+}
+
+body :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea
+):hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--findra-control-border) 68%, var(--findra-control-text)) !important;
+}
+
+/* Keep a visible keyboard focus without the old solid green focus border. */
+body :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea
+):focus,
+body :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea
+):focus-visible {
+  outline: 0;
+  border-color: var(--findra-control-border) !important;
+  background: var(--findra-control-background) !important;
+  box-shadow: 0 0 0 3px var(--findra-control-highlight), inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+}
+
+body select {
+  padding-right: 42px;
+  cursor: pointer;
+}
+
+body select option {
+  background: #f7fcf8;
+  color: #173b29;
+}
+
+[data-theme="dark"] body select option {
+  background: #123222;
+  color: #f1fff5;
+}
+
+body input[type="file"] {
+  width: 100%;
+  min-height: 52px;
+  padding: 7px;
+  border: 1px solid var(--findra-control-border) !important;
+  border-radius: 16px !important;
+  background: var(--findra-control-background) !important;
+  box-shadow: inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+  color: var(--findra-control-text) !important;
+  font-size: 15px !important;
+}
+
+body input[type="file"]::file-selector-button {
+  min-height: 36px;
+  margin-right: 11px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(14, 145, 70, .14);
+  color: #087a3d;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+[data-theme="dark"] body input[type="file"]::file-selector-button {
+  background: rgba(107, 229, 150, .16);
+  color: #a8f2c0;
+}
+
+body :is(input[type="checkbox"], input[type="radio"]) {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #0a9348;
+  cursor: pointer;
+}
+
+body :is(input[type="checkbox"], input[type="radio"]):focus-visible {
+  outline: 3px solid var(--findra-control-highlight);
+  outline-offset: 2px;
+}
+
+/* Search/filter controls are deliberately one field: wrapper surface + transparent input. */
+body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label {
+  min-height: 52px;
+  padding: 0 16px;
+  border: 1px solid var(--findra-control-border) !important;
+  border-radius: 16px !important;
+  background: var(--findra-control-background) !important;
+  box-shadow: inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label > :is(input, select, textarea) {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label:focus-within {
+  border-color: var(--findra-control-border) !important;
+  box-shadow: 0 0 0 3px var(--findra-control-highlight), inset 0 1px 0 var(--findra-control-inset), var(--findra-control-shadow) !important;
+}
+
+@media (max-width: 760px) {
+  body :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+    select,
+    textarea
+  ) {
+    font-size: 16px !important;
+  }
+}
+
 /* Public listing contact card: compact, branded, and useful without duplicating page content. */
 .detail-page {
   margin-top: 24px;
