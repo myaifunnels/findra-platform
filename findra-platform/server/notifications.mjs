@@ -1,5 +1,6 @@
 import { query } from "./db.mjs";
 import { readSession } from "./auth.mjs";
+import { sendSms } from "./textbee.mjs";
 const copy = {
   "new-user": ["Welcome to Findra PH! 👋", "Your account is active. Complete and submit your Business Details from your dashboard."],
   "listing-submitted": ["We’re Reviewing Your Business Details", "We received your submission and it is now under review. We’ll update you within 3–4 business days."],
@@ -68,6 +69,7 @@ function renderTemplate(value, context = {}) {
     contactFirstName: context.contactFirstName || String(fullName).trim().split(/\s+/)[0] || "there",
     contactFullName: fullName,
     contactEmail: context.contactEmail || "",
+    contactPhone: context.contactPhone || "",
     userDisplayName: context.userDisplayName || fullName,
     businessName: context.businessName || "your business",
     dashboardUrl: context.dashboardUrl || `${appUrl}/user`,
@@ -77,6 +79,9 @@ function renderTemplate(value, context = {}) {
     currentYear: new Date().getFullYear(),
   };
   return String(value || "").replace(/{{([a-zA-Z]+)}}/g, (match, key) => key in fields ? escapeHtml(fields[key]) : match);
+}
+function renderPlainText(value, context) {
+  return renderTemplate(value, context).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 }
 async function templateFor(event) {
   const fallback = defaultsFor(event);
@@ -94,6 +99,19 @@ async function send(email, template, context) {
   const response=await fetch("https://api.brevo.com/v3/smtp/email", {method:"POST",headers:{"api-key":key,"Content-Type":"application/json"},body:JSON.stringify({sender:{email:from,name:template.from_name||process.env.BREVO_FROM_NAME||"Findra PH"},replyTo:template.reply_to ? {email:template.reply_to} : undefined,to:[{email}],subject:template.subject,htmlContent,textContent:htmlContent.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim()})});
   return response.ok ? "sent" : "failed";
 }
+async function runAdditionalActions(event, email, context) {
+  let actions = [];
+  try { actions = (await query("SELECT * FROM automation_actions WHERE event=$1 AND active=TRUE ORDER BY id", [event])).rows; } catch { return; }
+  await Promise.all(actions.map(async (action) => {
+    try {
+      if (action.channel === "email" && email) {
+        const template = { ...defaultsFor(event), subject: action.subject || defaultsFor(event).subject, body_html: action.body };
+        await send(email, template, context);
+      }
+      if (action.channel === "sms" && context.contactPhone) await sendSms({ recipient: context.contactPhone, message: renderPlainText(action.body, context) });
+    } catch { /* Preserve the primary automation if an optional action fails. */ }
+  }));
+}
 export async function notify({userId,email,event,context = {}}) {
   const template = await templateFor(event);
   const [title, body]=copy[event]||["Findra update", "There is a new update in your Findra account."];
@@ -104,6 +122,7 @@ export async function notify({userId,email,event,context = {}}) {
   const dynamicContext = { ...context, userDisplayName: context.userDisplayName || profile.display_name, contactFullName: context.contactFullName || profile.display_name, contactEmail: context.contactEmail || email || profile.email };
   const status=template.active ? await send(email,template,dynamicContext).catch(()=>"failed") : "paused";
   await query("INSERT INTO notifications (user_id,recipient_email,event,title,body,email_status) VALUES ($1,$2,$3,$4,$5,$6)",[userId||null,email||null,event,title,body,status]);
+  await runAdditionalActions(event, email, dynamicContext);
 }
 export async function notifyAdmins(event, context = {}) {
   const admins = await query("SELECT id, email FROM users WHERE role = 'admin'");
@@ -117,6 +136,23 @@ export async function handleNotificationsRequest(req,res) {
       const saved = await query("SELECT * FROM email_templates ORDER BY event");
       const byEvent = new Map(saved.rows.map((row) => [row.event, row]));
       return json(res, 200, { templates: Object.keys(copy).map((event) => ({ ...defaultsFor(event), ...(byEvent.get(event) || {}) })) }), true;
+    }
+    if (user.role === "admin" && req.method === "GET" && url.pathname === "/api/automations/actions") {
+      const result = await query("SELECT * FROM automation_actions ORDER BY channel, event, id");
+      return json(res, 200, { actions: result.rows }), true;
+    }
+    if (user.role === "admin" && req.method === "POST" && url.pathname === "/api/automations/actions") {
+      const body = await readJson(req); const event = String(body.event || ""); const channel = String(body.channel || "");
+      if (!copy[event] || !["email", "sms"].includes(channel)) return json(res, 400, { error: "Choose a valid Findra event and automation channel." }), true;
+      const name = String(body.name || "").trim().slice(0, 120); const content = String(body.body || "").trim().slice(0, channel === "sms" ? 1500 : 100000);
+      if (!name || !content) return json(res, 400, { error: "Add an action name and message." }), true;
+      const result = await query("INSERT INTO automation_actions (event,channel,name,subject,body,active) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *", [event, channel, name, String(body.subject || "").trim().slice(0, 180) || null, content, body.active !== false]);
+      return json(res, 201, { action: result.rows[0] }), true;
+    }
+    const actionMatch = url.pathname.match(/^\/api\/automations\/actions\/(\d+)$/);
+    if (user.role === "admin" && actionMatch && req.method === "DELETE") {
+      await query("DELETE FROM automation_actions WHERE id=$1", [actionMatch[1]]);
+      return json(res, 200, { ok: true }), true;
     }
     const templateMatch = url.pathname.match(/^\/api\/automations\/templates\/([a-z-]+)$/);
     if(user.role === "admin" && req.method === "PUT" && templateMatch) {

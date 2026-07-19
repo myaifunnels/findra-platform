@@ -91,6 +91,19 @@ CREATE TABLE IF NOT EXISTS email_templates (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS automation_actions (
+  id BIGSERIAL PRIMARY KEY,
+  event TEXT NOT NULL,
+  channel TEXT NOT NULL CHECK (channel IN ('email', 'sms')),
+  name TEXT NOT NULL,
+  subject TEXT,
+  body TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS automation_actions_event_idx ON automation_actions(event, channel);
 `;
 
 try {

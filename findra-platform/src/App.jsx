@@ -1972,6 +1972,10 @@ function AutomationManagement({ onNotify }) {
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [channel, setChannel] = useState("email");
+  const [textbee, setTextbee] = useState(null);
+  const [testPhone, setTestPhone] = useState("");
+  const [actions, setActions] = useState([]);
   const editorRef = useRef(null);
   const load = async () => {
     setLoading(true);
@@ -1983,6 +1987,12 @@ function AutomationManagement({ onNotify }) {
       const next = payload.templates?.find((item) => item.event === selectedEvent) || payload.templates?.[0] || null;
       setSelectedEvent(next?.event || "");
       setForm(next);
+      const integrationResponse = await fetch("/api/textbee/integration", { credentials: "same-origin" });
+      const integrationPayload = await integrationResponse.json().catch(() => ({}));
+      if (integrationResponse.ok) setTextbee(integrationPayload);
+      const actionsResponse = await fetch("/api/automations/actions", { credentials: "same-origin" });
+      const actionsPayload = await actionsResponse.json().catch(() => ({}));
+      if (actionsResponse.ok) setActions(actionsPayload.actions || []);
     } catch (error) {
       onNotify?.({ type: "error", title: "Automation could not be loaded", message: error.message });
     } finally { setLoading(false); }
@@ -2022,11 +2032,31 @@ function AutomationManagement({ onNotify }) {
       onNotify?.({ type: "error", title: "Email template could not be saved", message: error.message });
     } finally { setSaving(false); }
   };
+  const testSms = async () => {
+    try {
+      const response = await fetch("/api/textbee/test", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipient: testPhone }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Textbee could not send the test SMS.");
+      onNotify?.({ type: "success", title: "Test SMS sent", message: "Textbee accepted the request. Check the recipient phone and connected Android device." });
+    } catch (error) { onNotify?.({ type: "error", title: "SMS test failed", message: error.message }); }
+  };
+  const createAction = async (action) => {
+    const response = await fetch("/api/automations/actions", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(action) });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "Automation action could not be saved.");
+    setActions((current) => [...current, payload.action]);
+  };
+  const removeAction = async (id) => {
+    const response = await fetch(`/api/automations/actions/${id}`, { method: "DELETE", credentials: "same-origin" });
+    if (!response.ok) throw new Error("Automation action could not be removed.");
+    setActions((current) => current.filter((item) => item.id !== id));
+  };
   return <div className="admin-content automation-module">
     <section className="welcome-row automation-hero"><div><span className="section-eyebrow">Email automation</span><h2>Automation & email templates</h2><p>Configure the sender, subject, reply-to address, and branded content used by Findra emails.</p></div><button type="button" className="secondary-button" onClick={load} disabled={loading}>{loading ? "Loading…" : "Refresh templates"}</button></section>
     {loading && <section className="panel automation-empty"><Clock /><h3>Loading email templates…</h3></section>}
+    <nav className="automation-channel-tabs" aria-label="Automation channels"><button type="button" className={channel === "email" ? "active" : ""} onClick={() => setChannel("email")}><EnvelopeSimple /> Email</button><button type="button" className={channel === "sms" ? "active" : ""} onClick={() => setChannel("sms")}><Phone /> SMS via Textbee</button></nav>
     {!loading && !form && <section className="panel automation-empty"><EnvelopeSimple /><h3>No email templates available</h3><p>Run the database migration, then refresh this page.</p></section>}
-    {!loading && form && <div className="automation-layout">
+    {!loading && form && channel === "email" && <><div className="automation-layout">
       <aside className="panel automation-template-list"><span className="section-eyebrow">Automations</span><h3>Email triggers</h3><p>Each template sends when its matching Findra activity occurs.</p><div>{templates.map((item) => <button type="button" className={item.event === selectedEvent ? "active" : ""} onClick={() => choose(item.event)} key={item.event}><EnvelopeSimple /><span><strong>{item.name}</strong><small>{item.active ? "Enabled" : "Paused"}</small></span></button>)}</div></aside>
       <form className="panel automation-editor" onSubmit={save}>
         <header><div><span className="section-eyebrow">Transactional email</span><h3>{form.name}</h3><p>Use the system fields below to personalise the content for each recipient.</p></div><label className="automation-toggle"><input type="checkbox" checked={form.active !== false} onChange={(event) => update("active", event.target.checked)} /><span>{form.active !== false ? "Enabled" : "Paused"}</span></label></header>
@@ -2040,8 +2070,16 @@ function AutomationManagement({ onNotify }) {
         </div>
         <footer><small>Recommendation: keep transactional emails concise, use the verified <strong>hello@findra.ph</strong> sender, and include one clear action.</small><button className="admin-primary" disabled={saving} type="submit"><CheckCircle />{saving ? "Saving…" : "Save template"}</button></footer>
       </form>
-    </div>}
+    </div><AutomationActionCreator channel="email" templates={templates} actions={actions} onCreate={createAction} onRemove={removeAction} onNotify={onNotify} /></>}
+    {!loading && channel === "sms" && <><section className="panel sms-integration-card"><span className="section-eyebrow">Textbee integration</span><h3>{textbee?.ready ? "Textbee SMS is ready" : "Connect your Textbee device"}</h3><p>Send transactional SMS through a registered Android device. Credentials stay in Render environment variables and are never exposed to the browser.</p><div className="sms-status-grid"><div><small>Connection</small><strong>{textbee?.ready ? "Connected" : textbee?.configured ? "Configured but disabled" : "Not configured"}</strong></div><div><small>Device</small><strong>{textbee?.deviceHint || "—"}</strong></div></div><label><span>Send a test SMS</span><div className="sms-test-row"><input value={testPhone} onChange={(event) => setTestPhone(event.target.value)} placeholder="+639171234567" /><button type="button" className="admin-primary" disabled={!textbee?.ready} onClick={testSms}>Send test</button></div></label><small>Use E.164 format. Event-based SMS actions send to the listing phone, WhatsApp, or Viber number whenever it is available.</small></section><AutomationActionCreator channel="sms" templates={templates} actions={actions} onCreate={createAction} onRemove={removeAction} onNotify={onNotify} /></>}
   </div>;
+}
+
+function AutomationActionCreator({ channel, templates, actions, onCreate, onRemove, onNotify }) {
+  const [draft, setDraft] = useState({ name: "", event: "listing-submitted", subject: "", body: "" });
+  const items = actions.filter((item) => item.channel === channel);
+  const save = async (event) => { event.preventDefault(); try { await onCreate({ ...draft, channel }); setDraft({ name: "", event: "listing-submitted", subject: "", body: "" }); onNotify?.({ type: "success", title: `${channel === "sms" ? "SMS" : "Email"} action added`, message: "It will run with the selected Findra event." }); } catch (error) { onNotify?.({ type: "error", title: "Action could not be saved", message: error.message }); } };
+  return <section className="panel automation-actions"><header><span className="section-eyebrow">Additional {channel} actions</span><h3>Add a follow-up action</h3><p>Create optional messages without replacing Findra’s core transactional {channel}.</p></header>{items.length > 0 && <div className="automation-action-list">{items.map((item) => <article key={item.id}><div><strong>{item.name}</strong><small>{templates.find((template) => template.event === item.event)?.name || item.event}</small></div><button type="button" onClick={() => onRemove(item.id)}><Trash /> Remove</button></article>)}</div>}<form onSubmit={save} className="automation-action-form"><label><span>Action name *</span><input required value={draft.name} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} placeholder={`Additional ${channel} action`} /></label><label><span>Run when *</span><select value={draft.event} onChange={(event) => setDraft((value) => ({ ...value, event: event.target.value }))}>{templates.map((template) => <option key={template.event} value={template.event}>{template.name}</option>)}</select></label>{channel === "email" && <label className="management-wide-field"><span>Subject</span><input value={draft.subject} onChange={(event) => setDraft((value) => ({ ...value, subject: event.target.value }))} placeholder="A quick Findra update" /></label>}<label className="management-wide-field"><span>{channel === "sms" ? "SMS message *" : "Email content *"}</span><textarea required value={draft.body} onChange={(event) => setDraft((value) => ({ ...value, body: event.target.value }))} placeholder="Hi {{contactFirstName}}, {{businessName}} has an update." /></label><footer><small>Use <code>{"{{contactFirstName}}"}</code>, <code>{"{{businessName}}"}</code>, and <code>{"{{dashboardUrl}}"}</code>.</small><button type="submit" className="admin-primary"><Plus /> Add action</button></footer></form></section>;
 }
 
 function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {

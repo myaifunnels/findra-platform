@@ -2447,6 +2447,38 @@ td {
 }
 
 .automation-hero { margin-bottom: 24px; }
+.automation-channel-tabs { display:flex; gap:8px; margin:0 0 20px; padding:7px; width:max-content; max-width:100%; border:1px solid rgba(111, 171, 137, .28); border-radius:13px; background:rgba(11, 35, 24, .6); box-shadow:0 14px 32px rgba(0,0,0,.16); }
+.automation-channel-tabs button { display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border:0; border-radius:9px; color:#b7c8bd; background:transparent; font-weight:780; font-size:14px; }
+.automation-channel-tabs button svg { width:18px; height:18px; }
+.automation-channel-tabs button.active { color:#f3fff7; background:linear-gradient(135deg, rgba(18, 161, 82, .92), rgba(11, 119, 62, .92)); box-shadow:0 7px 16px rgba(0,0,0,.22); }
+.sms-integration-card { max-width:800px; display:grid; gap:15px; padding:28px; background:linear-gradient(135deg, rgba(22,61,42,.8), rgba(8,32,22,.78)); }
+.sms-integration-card h3 { margin:0; font-size:24px; color:#f2fff6; }
+.sms-integration-card p, .sms-integration-card > small { margin:0; color:#b9cfc0; font-size:14px; line-height:1.55; }
+.sms-status-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.sms-status-grid div { padding:14px; border:1px solid rgba(113,182,143,.28); border-radius:12px; background:rgba(0,0,0,.16); }
+.sms-status-grid small { display:block; margin-bottom:5px; color:#9fb9a9; font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+.sms-status-grid strong { color:#effff4; font-size:15px; }
+.sms-integration-card label > span { display:block; margin-bottom:8px; color:#eaffef; font-weight:750; font-size:14px; }
+.sms-test-row { display:flex; gap:10px; }
+.sms-test-row input { min-width:0; flex:1; }
+.automation-actions { max-width:800px; margin-top:20px; padding:25px; }
+.automation-actions header h3 { margin:6px 0; color:#f3fff6; font-size:20px; }
+.automation-actions header p { margin:0; color:#adc2b4; font-size:14px; }
+.automation-action-list { display:grid; gap:8px; margin:18px 0; }
+.automation-action-list article { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 14px; border:1px solid rgba(106,171,134,.25); border-radius:10px; background:rgba(0,0,0,.13); }
+.automation-action-list article div { display:grid; gap:3px; }
+.automation-action-list strong { color:#eaffef; font-size:14px; }
+.automation-action-list small { color:#a9c0b0; font-size:12px; }
+.automation-action-list button { display:inline-flex; gap:5px; align-items:center; color:#ffb8b8; border:1px solid rgba(233,93,93,.36); border-radius:8px; background:rgba(130,25,25,.16); padding:7px 9px; font-weight:700; }
+.automation-action-list svg { width:15px; height:15px; }
+.automation-action-form { display:grid; grid-template-columns:1fr 1fr; gap:13px; margin-top:18px; }
+.automation-action-form label { display:grid; gap:7px; }
+.automation-action-form label > span { color:#dff2e5; font-size:13px; font-weight:750; }
+.automation-action-form textarea { min-height:110px; resize:vertical; }
+.automation-action-form footer { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.automation-action-form footer small { color:#a5bcae; font-size:12px; }
+.automation-action-form code { color:#75e7a1; }
+@media (max-width:620px) { .automation-channel-tabs { width:100%; } .automation-channel-tabs button { flex:1; justify-content:center; padding:10px 8px; font-size:13px; } .sms-status-grid { grid-template-columns:1fr; } .sms-test-row { flex-direction:column; } }
 .automation-layout {
   display: grid;
   grid-template-columns: minmax(230px, .7fr) minmax(0, 1.6fr);
