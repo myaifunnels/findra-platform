@@ -4726,6 +4726,87 @@ button.management-status { border: 0; cursor: pointer; }
   .package-management-grid { gap: 12px; }
   .welcome-row { padding: 18px; }
 }
+
+/* Listings use the same compact table-header filters as Users. */
+.listing-table-tools {
+  min-height: 76px;
+  padding: 14px clamp(18px, 1.75vw, 24px);
+}
+.listing-table-tools .status-tabs {
+  width: auto;
+  height: auto;
+  min-height: 44px;
+  align-items: center;
+  padding: 4px;
+  gap: 3px;
+  border: 1px solid rgba(178, 228, 198, .22);
+  border-radius: 12px;
+  background: rgba(5, 27, 17, .62);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .04);
+  overflow: visible;
+}
+.listing-table-tools .status-tabs button {
+  height: auto;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  color: #c5d9cd;
+  font-size: 13px;
+  font-weight: 700;
+}
+.listing-table-tools .status-tabs button:hover {
+  background: rgba(111, 213, 149, .12);
+  color: #f4fff7;
+}
+.listing-table-tools .status-tabs button.active {
+  background: linear-gradient(135deg, #0e9147, #08753a);
+  box-shadow: 0 6px 15px rgba(0, 91, 42, .24), inset 0 1px rgba(255, 255, 255, .16);
+  color: #fff;
+}
+.listing-table-tools .status-tabs span {
+  min-width: 20px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .9);
+  color: #365346;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.listing-table-tools .status-tabs button.active span {
+  background: rgba(255, 255, 255, .92);
+  color: #08753a;
+}
+
+[data-theme="light"] .listing-table-tools .status-tabs {
+  background: rgba(226, 241, 232, .76);
+  border-color: rgba(32, 105, 67, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .68);
+}
+[data-theme="light"] .listing-table-tools .status-tabs button {
+  color: #49675a;
+}
+[data-theme="light"] .listing-table-tools .status-tabs button:hover {
+  background: rgba(255, 255, 255, .7);
+  color: #136a3b;
+}
+
+@media (max-width: 720px) {
+  .listing-table-tools {
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 18px;
+  }
+  .listing-table-tools .status-tabs {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .listing-table-tools .status-tabs button {
+    flex: 0 0 auto;
+  }
+}
 @media (max-width: 440px) {
   .hero-inner {
     padding-top: 40px;

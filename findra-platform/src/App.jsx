@@ -2732,22 +2732,28 @@ function ListingsAdmin({
             <X /> Clear filters
           </button>
         </div>
-        <div className="status-tabs">
-          {["All", "Published", "Pending", "Draft", "Declined"].map((x) => (
-            <button
-              className={status === x ? "active" : ""}
-              onClick={() => setStatus(x)}
-              key={x}
-            >
-              {x}
-              <span>
-                {x === "All"
-                  ? allRows.length
-                  : allRows.filter((r) => r.status === x).length}
-              </span>
-            </button>
-          ))}
-        </div>
+        <header className="management-table-tools listing-table-tools">
+          <div>
+            <h3>All listings</h3>
+            <p>{rows.length} {rows.length === 1 ? "listing" : "listings"} shown</p>
+          </div>
+          <div className="status-tabs" aria-label="Filter listings by status">
+            {["All", "Published", "Pending", "Draft", "Declined"].map((x) => (
+              <button
+                className={status === x ? "active" : ""}
+                onClick={() => setStatus(x)}
+                key={x}
+              >
+                {x}
+                <span>
+                  {x === "All"
+                    ? allRows.length
+                    : allRows.filter((r) => r.status === x).length}
+                </span>
+              </button>
+            ))}
+          </div>
+        </header>
         <ListingTable
           rows={rows}
           setSelected={setSelected}
