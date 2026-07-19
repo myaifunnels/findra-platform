@@ -8061,6 +8061,27 @@ th {
 .auth-switch button:hover { text-decoration: underline; }
 @media (max-width: 760px) { .auth-page { place-items: start center; padding: 65px 16px 16px; } .auth-back { left: 16px; top: 18px; } .auth-page > .theme-toggle { right: 16px; top: 14px; } .auth-shell { grid-template-columns: 1fr; min-height: auto; } .auth-brand-panel { min-height: 270px; padding: 28px; } .auth-brand-copy { margin: auto 0 20px; } .auth-brand-copy h1 { font-size: 34px; } .auth-steps { display: none; } .auth-shell .auth-top, .auth-shell .auth-card form { padding-left: 25px; padding-right: 25px; } .auth-shell .auth-tabs, .auth-switch { margin-left: 25px; margin-right: 25px; } .auth-switch { margin-bottom: 28px; } }
 
+/* Desktop auth occupies the complete viewport instead of sitting as a centered card. */
+@media (min-width: 761px) {
+  .auth-page { display: block; padding: 0; background: #07130e; }
+  .auth-page::before { background: radial-gradient(circle at 13% 14%, rgba(47, 185, 101, .17), transparent 28%), linear-gradient(90deg, rgba(4, 25, 15, .06), rgba(0,0,0,.2)); }
+  .auth-page > .theme-toggle { top: 28px; right: 34px; }
+  .auth-back { top: 32px; left: 36px; }
+  .auth-shell { width: 100%; min-height: 100vh; grid-template-columns: minmax(420px, 1fr) minmax(500px, 1fr); border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+  .auth-brand-panel { padding: clamp(72px, 10vh, 130px) clamp(48px, 8vw, 150px) clamp(50px, 7vh, 90px); }
+  .auth-brand-copy { max-width: 470px; margin: auto 0 54px; }
+  .auth-brand-copy h1 { max-width: 450px; font-size: clamp(48px, 4.8vw, 72px); }
+  .auth-brand-copy p { max-width: 410px; font-size: 18px; }
+  .auth-steps { max-width: 500px; gap: 14px; }
+  .auth-steps article { min-height: 126px; padding: 17px; }
+  .auth-shell .auth-card { justify-content: center; min-height: 100vh; background: linear-gradient(150deg, rgba(5, 15, 10, .99), rgba(8, 29, 19, .97)); }
+  .auth-shell .auth-top, .auth-shell .auth-card form, .auth-shell .auth-tabs, .auth-switch { width: min(470px, calc(100% - 80px)); margin-left: auto; margin-right: auto; }
+  .auth-shell .auth-top { padding: 0 0 18px; }
+  .auth-shell .auth-card form { padding: 28px 0 12px; }
+  .auth-shell .auth-tabs { margin-top: 8px; }
+  .auth-switch { margin-top: 14px; margin-bottom: 0; }
+}
+
 /* Compact logo without a framed dashboard treatment */
 .admin-brand .brand-logo {
   width: 66px;
