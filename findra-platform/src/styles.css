@@ -7984,12 +7984,14 @@ th {
 }
 .long-listing-form .form-section-label { margin-bottom: 16px; color: #61df93; }
 :is(.public-app, .admin-main, .auth-page) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), select, textarea):focus {
-  border-color: rgba(137, 204, 161, .7) !important;
-  box-shadow: 0 0 0 3px rgba(184, 239, 203, .12), inset 0 1px 0 rgba(255,255,255,.94), 0 10px 22px rgba(14, 88, 48, .09) !important;
+  border-color: rgba(42, 88, 66, .26) !important;
+  background: linear-gradient(135deg, rgba(255,255,255,.99), rgba(246, 252, 248, .94)) !important;
+  box-shadow: 0 0 0 4px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.96), 0 12px 26px rgba(14, 50, 31, .14) !important;
 }
 [data-theme="dark"] :is(.public-app, .admin-main, .auth-page) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), select, textarea):focus {
-  border-color: rgba(157, 224, 180, .52) !important;
-  box-shadow: 0 0 0 3px rgba(171, 238, 195, .12), inset 0 1px 0 rgba(255,255,255,.09), 0 10px 22px rgba(0,0,0,.18) !important;
+  border-color: rgba(182, 233, 201, .28) !important;
+  background: linear-gradient(135deg, rgba(12, 37, 25, .92), rgba(27, 59, 43, .82)) !important;
+  box-shadow: 0 0 0 4px rgba(224, 255, 235, .06), inset 0 1px 0 rgba(255,255,255,.1), 0 12px 26px rgba(0,0,0,.24) !important;
 }
 [data-theme="dark"] select option { background: #102c20; color: #f2fff6; }
 
