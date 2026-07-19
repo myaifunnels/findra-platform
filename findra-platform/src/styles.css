@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend+Deca:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Lexend+Deca:wght@400;500;600;700&display=swap");
 
 :root {
   font-family: "Inter", sans-serif;
@@ -3516,6 +3516,155 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
     min-width: 100%;
     order: -1;
   }
+}
+
+/* Findra experience system: clear hierarchy, tactile motion, and mobile-first rhythm. */
+:root {
+  --font-display: "Manrope", "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --motion-fast: 160ms;
+  --motion-standard: 240ms;
+  --content-gutter: clamp(16px, 4vw, 48px);
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+:is(h1, h2, h3, .hero h1, .section h2, .welcome-row h2, .admin-topbar h1, .listing-step-heading h2, .auth-top h2) {
+  font-family: var(--font-display) !important;
+  font-weight: 700;
+  letter-spacing: -.035em;
+}
+
+/* Reserve the compact 12px treatment for pre-headlines only; controls remain legible. */
+:is(.public-app, .admin-main, .auth-page) :is(button, input, select, textarea, label, td, th, small, .status, .management-plan, .management-status, .metric-copy span, .panel-head p, .review-item small, .integration-status-pill, .integration-summary span, .integration-methods small, .listing-progress-meta, .step-action-status) {
+  font-size: max(14px, 1em) !important;
+}
+:is(.eyebrow, .section-eyebrow, .form-section-label, .listing-preview-heading > div > span, .listing-preview-body > div:last-child > span) {
+  font-size: 12px !important;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+:where(button, a, input, select, textarea) {
+  touch-action: manipulation;
+}
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid rgba(114, 235, 159, .86);
+  outline-offset: 3px;
+}
+:where(button, a) {
+  transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out), background-color var(--motion-standard) var(--ease-out), border-color var(--motion-standard) var(--ease-out), color var(--motion-standard) var(--ease-out);
+}
+:where(button, a):active {
+  transform: scale(.98);
+}
+
+@keyframes findra-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes findra-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-inner > *,
+  .directory-search-heading,
+  .listing-step-heading,
+  .auth-brand-copy,
+  .auth-card > * {
+    animation: findra-rise 420ms var(--ease-out) both;
+  }
+  .hero-inner > :nth-child(2),
+  .auth-card > :nth-child(2) { animation-delay: 55ms; }
+  .hero-inner > :nth-child(3),
+  .auth-card > :nth-child(3) { animation-delay: 105ms; }
+  .auth-steps article,
+  .category-card,
+  .listing-card,
+  .admin-content > .panel,
+  .admin-content > .welcome-row {
+    animation: findra-rise 360ms var(--ease-out) both;
+  }
+  .auth-steps article:nth-child(2),
+  .category-card:nth-child(2),
+  .listing-card:nth-child(2) { animation-delay: 45ms; }
+  .auth-steps article:nth-child(3),
+  .category-card:nth-child(3),
+  .listing-card:nth-child(3) { animation-delay: 90ms; }
+}
+
+@media (max-width: 760px) {
+  .admin-content,
+  .admin-main {
+    padding-left: var(--content-gutter);
+    padding-right: var(--content-gutter);
+    padding-bottom: max(32px, env(safe-area-inset-bottom));
+  }
+  .admin-topbar {
+    min-height: 72px;
+    padding: 12px var(--content-gutter);
+  }
+  .admin-topbar h1 { font-size: 24px; }
+  .welcome-row {
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+  }
+  .welcome-row > :is(button, .admin-primary, .secondary-button) {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+  }
+  .panel,
+  .welcome-row,
+  .listing-card,
+  .category-card { border-radius: 18px; }
+  .manager-toolbar,
+  .admin-actions {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .manager-toolbar > label,
+  .admin-actions > label {
+    width: 100% !important;
+    min-height: 48px;
+  }
+  .manager-toolbar > select,
+  .manager-toolbar > button,
+  .admin-actions > select,
+  .admin-actions > button {
+    min-height: 46px;
+    flex: 1 1 140px;
+  }
+  .row-actions button,
+  .icon-button,
+  .theme-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .admin-table,
+  .management-table { min-width: 700px; }
+  .admin-table-wrap,
+  .management-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 480px) {
+  .metric-grid { grid-template-columns: 1fr; }
+  .auth-brand-copy h1,
+  .hero h1 { letter-spacing: -.04em; }
+  .listing-stepper { overflow-x: auto; scrollbar-width: none; }
+  .listing-stepper::-webkit-scrollbar { display: none; }
+  .multi-step-actions { gap: 12px; }
+  .multi-step-actions :is(button, .green-button, .admin-primary) { min-height: 46px; }
 }
 
 /* Toolbar searches are compound controls: never render an input inside a second field. */
