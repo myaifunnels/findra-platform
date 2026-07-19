@@ -9,6 +9,7 @@ const copy = {
   "subscription-started": ["Your Findra PH subscription is now active", "Your payment was successful. Your Business Details have been submitted for review."],
   "inquiry-received": ["You have a new inquiry on Findra PH", "A potential customer sent you an inquiry. Respond promptly to turn it into an opportunity."],
   "listing-pending-admin": ["New business listing needs review", "A business owner submitted a listing. Review its details and publish or decline it from the Findra admin workspace."],
+  "inbox-message-admin": ["New Findra inbox message", "A business owner has sent a message to the Findra admin team."],
 };
 const templateNames = {
   "new-user": "New user welcome",
@@ -18,6 +19,7 @@ const templateNames = {
   "subscription-started": "Subscription payment successful",
   "inquiry-received": "New inquiry received",
   "listing-pending-admin": "New listing pending admin review",
+  "inbox-message-admin": "New inbox message for admin",
 };
 const smsCopy = {
   "new-user": `Hi {{contactFirstName}},
@@ -55,6 +57,11 @@ Check your email for full details.`,
 {{businessName}} is ready for review.
 
 Check your email for full details.`,
+  "inbox-message-admin": `Findra admin,
+
+You have a new message from {{contactFirstName}}.
+
+Check your email for full details.`,
 };
 function json(res, status, body) { res.statusCode=status; res.setHeader("Content-Type","application/json"); res.end(JSON.stringify(body)); }
 async function readJson(request) {
@@ -75,6 +82,7 @@ function defaultsFor(event) {
     "subscription-started": "Your Findra PH subscription is now active",
     "inquiry-received": "You have a new inquiry on Findra PH",
     "listing-pending-admin": "New Business Details pending review",
+    "inbox-message-admin": "New Findra inbox message",
   };
   const clientBodies = {
     "new-user": `<p>Hi {{contactFirstName}},</p><p>Welcome to Findra PH!</p><p>We’re excited to have you on board. You’re officially registered, and your account is now active.</p><p>Here’s what you can do next:</p><ul><li>Complete your Business Details so customers can easily find and contact you.</li><li>Submit your Business Details for review and approval.</li><li>Manage your account and Business Details from your dashboard anytime.</li></ul><p><a href="{{dashboardUrl}}">Access your dashboard</a></p><p>Once your Business Details are submitted, our team will review them within 3–4 business days before they go live.</p><p>Welcome aboard,<br>The Findra PH Team</p>`,
@@ -84,6 +92,7 @@ function defaultsFor(event) {
     "subscription-started": `<p>Hi {{contactFirstName}},</p><p>Your payment was successful — thank you.</p><p>Your Findra PH subscription is now active, and your Business Details will continue to stay visible on the platform.</p><p><a href="{{dashboardUrl}}">Manage your subscription and Business Details</a></p><p>Thank you for growing your business with Findra PH.<br>The Findra PH Team</p>`,
     "inquiry-received": `<p>Hi {{contactFirstName}},</p><p>Good news! You’ve received a new inquiry from a potential customer on Findra PH.</p><p>Responding quickly can help turn inquiries into real business opportunities.</p><p><a href="{{dashboardUrl}}">View and reply to the message</a></p><p>Best regards,<br>The Findra PH Team</p>`,
     "listing-pending-admin": `<p>Hi {{contactFirstName}},</p><p>A new business, <strong>{{businessName}}</strong>, has been submitted on Findra PH and is awaiting your review.</p><p>Please log in to the admin panel to review and approve or request changes.</p><p><a href="{{adminUrl}}">Review the business listing</a></p><p>Prompt review helps ensure a smooth onboarding experience for suppliers and keeps new businesses visible to customers quickly.</p><p>Regards,<br>Findra PH System</p>`,
+    "inbox-message-admin": `<p>Hi {{contactFirstName}},</p><p>You have received a new Findra inbox message: <strong>{{businessName}}</strong>.</p><p>Please review the message in the Findra admin workspace.</p><p>Regards,<br>Findra PH System</p>`,
   };
   return {
     event,
@@ -183,6 +192,14 @@ export async function handleNotificationsRequest(req,res) {
   const url=new URL(req.url,`http://${req.headers.host||"localhost"}`); if(!url.pathname.startsWith("/api/notifications") && !url.pathname.startsWith("/api/automations")) return false;
   try { const user=await readSession(req); if(!user) return json(res,401,{error:"Please sign in."}),true;
     if(req.method==="GET"&&url.pathname==="/api/notifications") { const result=await query(user.role==="admin"?"SELECT * FROM notifications ORDER BY created_at DESC LIMIT 100":"SELECT * FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100",user.role==="admin"?[]:[user.id]); return json(res,200,{notifications:result.rows}),true; }
+    if(req.method === "GET" && url.pathname === "/api/inbox/messages") { const result = await query("SELECT * FROM support_messages WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50", [user.id]); return json(res, 200, { messages: result.rows }), true; }
+    if(req.method === "POST" && url.pathname === "/api/inbox/messages") {
+      const body = await readJson(req); const subject = String(body.subject || "").trim().slice(0, 160); const message = String(body.message || "").trim().slice(0, 5000);
+      if (!subject || !message) return json(res, 400, { error: "Add a subject and message for the Findra team." }), true;
+      const created = await query("INSERT INTO support_messages (user_id,sender_email,subject,message) VALUES ($1,$2,$3,$4) RETURNING *", [user.id, user.email, subject, message]);
+      notifyAdmins("inbox-message-admin", { contactFirstName: user.display_name, contactFullName: user.display_name, contactEmail: user.email, businessName: subject }).catch(() => {});
+      return json(res, 201, { message: created.rows[0] }), true;
+    }
     if(user.role === "admin" && req.method === "GET" && url.pathname === "/api/automations/templates") {
       const saved = await query("SELECT * FROM email_templates ORDER BY event");
       const byEvent = new Map(saved.rows.map((row) => [row.event, row]));

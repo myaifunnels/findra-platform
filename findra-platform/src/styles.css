@@ -7380,6 +7380,28 @@ th {
 .newsletter-status.success { color:#dffff0; border-color:rgba(101,225,150,.46); background:rgba(17,135,74,.28); }
 .newsletter-status.error { color:#ffe2e2; border-color:rgba(255,120,120,.48); background:rgba(142,35,35,.32); }
 
+.inbox-layout { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(340px,.92fr); gap:20px; align-items:start; }
+.inbox-notifications, .inbox-compose { padding:25px; }
+.inbox-notifications > header { display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; border-bottom:1px solid var(--glass-line); }
+.inbox-notifications > header h3, .inbox-compose h3 { margin:0; color:var(--surface-text); font-size:21px; }
+.inbox-notifications > header span { display:grid; min-width:28px; height:28px; place-items:center; border-radius:999px; color:#eafff0; background:rgba(19,158,80,.28); font-weight:800; }
+.inbox-notifications article { display:flex; gap:12px; padding:17px 0; border-bottom:1px solid var(--glass-line); }
+.inbox-notifications article > svg { flex:0 0 auto; color:#4ee58a; width:20px; height:20px; }
+.inbox-notifications article strong, .sent-message-list article strong { color:var(--surface-text); }
+.inbox-notifications article p, .sent-message-list article p { margin:6px 0; color:var(--surface-muted); line-height:1.55; }
+.inbox-notifications article small, .sent-message-list article small { color:var(--surface-muted); }
+.inbox-compose > p { color:var(--surface-muted); line-height:1.55; }
+.inbox-compose form { display:grid; gap:14px; margin-top:18px; }
+.inbox-compose label { display:grid; gap:8px; color:var(--surface-text); font-weight:750; }
+.inbox-compose textarea { min-height:130px; resize:vertical; }
+.inbox-send-status { margin:15px 0 0; padding:12px; border:1px solid; border-radius:10px; line-height:1.45; }
+.inbox-send-status.success { color:#dffff0; border-color:rgba(101,225,150,.45); background:rgba(17,135,74,.22); }
+.inbox-send-status.error { color:#ffe2e2; border-color:rgba(255,120,120,.45); background:rgba(142,35,35,.25); }
+.sent-message-list { margin-top:25px; padding-top:20px; border-top:1px solid var(--glass-line); }
+.sent-message-list h4 { margin:0 0 10px; color:var(--surface-text); }
+.sent-message-list article { padding:12px 0; border-bottom:1px solid var(--glass-line); }
+@media (max-width:900px) { .inbox-layout { grid-template-columns:1fr; } }
+
 .contact-page {
   width: min(1160px, calc(100% - 40px));
   margin: 60px auto 80px;

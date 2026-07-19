@@ -534,6 +534,14 @@ function Header({ go }) {
   const [menu, setMenu] = useState(false);
   const [accountMenu, setAccountMenu] = useState(false);
   const [session, setSession] = useState(null);
+  const accountMenuRef = useRef(null);
+  useEffect(() => {
+    const closeOnOutsidePress = (event) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target)) setAccountMenu(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
+  }, []);
   useEffect(() => {
     let active = true;
     fetch("/api/auth/session", { credentials: "same-origin" })
@@ -593,9 +601,9 @@ function Header({ go }) {
         <div className="account-nav">
           <ThemeToggle />
           {session ? (
-            <div className="header-account-menu">
+            <div className="header-account-menu" ref={accountMenuRef}>
                 <button type="button" className="header-dashboard-link" aria-label="Open dashboard menu" aria-expanded={accountMenu} onClick={() => setAccountMenu((value) => !value)}>
-                  <SquaresFour weight="bold" /> Dashboard <CaretDown size={13} />
+                  <span>{session.name?.slice(0, 1).toUpperCase() || "F"}</span><CaretDown size={13} />
                 </button>
                 {accountMenu && <div className="header-account-dropdown">
                   <div><strong>{session.name}</strong><small>{session.email}</small></div>
@@ -2702,6 +2710,7 @@ const userSideItems = [
   ["Overview", SquaresFour],
   ["My Listing", Storefront],
   ["Plan & Billing", CreditCard],
+  ["Inbox", EnvelopeSimple],
   ["Inquiries", ChatCircleText],
   ["Analytics", ChartLineUp],
   ["Profile", UserCircle],
@@ -3484,6 +3493,8 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
           </div>
         ) : section === "Plan & Billing" ? (
           <PlanBilling listing={listing} resumePayment={pendingPayment ? () => go("/add-listing") : null} />
+        ) : section === "Inbox" ? (
+          <UserInbox />
         ) : section === "Inquiries" ? (
           <UserInquiries listing={listing} />
         ) : section === "Analytics" ? (
@@ -3571,6 +3582,32 @@ function UserInquiries({ listing }) {
     <section className="welcome-row"><div><h2>Customer inquiries</h2><p>Messages sent through your public business profile will appear here.</p></div></section>
     <section className="panel admin-empty"><ChatCircleText size={42} /><h3>No inquiries yet</h3><p>{listing ? "Publish and share your listing to start receiving customer messages." : "Create and complete a paid listing to receive customer inquiries."}</p></section>
   </div>;
+}
+
+function UserInbox() {
+  const [notifications, setNotifications] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [form, setForm] = useState({ subject: "", message: "" });
+  const [sending, setSending] = useState(false);
+  const [status, setStatus] = useState(null);
+  const load = async () => {
+    const [notificationsResponse, messagesResponse] = await Promise.all([fetch("/api/notifications", { credentials: "same-origin" }), fetch("/api/inbox/messages", { credentials: "same-origin" })]);
+    const notificationsPayload = await notificationsResponse.json().catch(() => ({}));
+    const messagesPayload = await messagesResponse.json().catch(() => ({}));
+    if (notificationsResponse.ok) setNotifications(notificationsPayload.notifications || []);
+    if (messagesResponse.ok) setMessages(messagesPayload.messages || []);
+  };
+  useEffect(() => { load().catch(() => {}); }, []);
+  const send = async (event) => {
+    event.preventDefault(); setSending(true); setStatus(null);
+    try {
+      const response = await fetch("/api/inbox/messages", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Message could not be sent.");
+      setMessages((current) => [payload.message, ...current]); setForm({ subject: "", message: "" }); setStatus({ type: "success", message: "Your message was sent to the Findra admin team." });
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setSending(false); }
+  };
+  return <div className="admin-content inbox-workspace"><section className="welcome-row"><div><span className="section-eyebrow">Account communications</span><h2>Inbox</h2><p>Review all Findra activity and send a message directly to the admin team.</p></div><button className="secondary-button" onClick={() => load()}>Refresh inbox</button></section><div className="inbox-layout"><section className="panel inbox-notifications"><header><h3>Notifications</h3><span>{notifications.length}</span></header>{notifications.length ? notifications.map((item) => <article key={item.id}><CheckCircle weight="fill" /><div><strong>{item.title}</strong><p>{item.body}</p><small>{new Date(item.created_at).toLocaleString()}</small></div></article>) : <p className="muted-copy">No notifications yet.</p>}</section><section className="panel inbox-compose"><span className="section-eyebrow">Message Findra</span><h3>Contact the admin team</h3><p>Use this for account, billing, listing, or platform support. The team receives an email notification.</p><form onSubmit={send}><label><span>Subject *</span><input required value={form.subject} onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))} placeholder="How can Findra help?" /></label><label><span>Message *</span><textarea required value={form.message} onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))} placeholder="Write your message to the Findra admin team…" /></label><button className="admin-primary" disabled={sending} type="submit"><EnvelopeSimple />{sending ? "Sending…" : "Send message"}</button></form>{status && <p className={`inbox-send-status ${status.type}`}>{status.message}</p>}<div className="sent-message-list"><h4>Your sent messages</h4>{messages.length ? messages.map((item) => <article key={item.id}><strong>{item.subject}</strong><p>{item.message}</p><small>{new Date(item.created_at).toLocaleString()}</small></article>) : <p className="muted-copy">No messages sent yet.</p>}</div></section></div></div>;
 }
 
 function UserAnalytics({ listing }) {
