@@ -7959,6 +7959,40 @@ th {
 }
 [data-theme="dark"] :is(.public-app, .admin-main, .auth-page) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), select, textarea):focus { border-color: #68ea9b !important; box-shadow: 0 0 0 4px rgba(99, 232, 149, .18), inset 0 1px 0 rgba(255,255,255,.09), 0 12px 24px rgba(0,0,0,.22) !important; }
 
+/* A compound search field is one control, never a bordered control inside another bordered control. */
+:is(.hero-search, .listings-search, .manager-toolbar, .admin-actions) > label:focus-within {
+  border-color: rgba(148, 213, 173, .6) !important;
+  box-shadow: 0 0 0 3px rgba(171, 235, 193, .11), inset 0 1px 0 rgba(255,255,255,.1), 0 10px 22px rgba(0,0,0,.12) !important;
+}
+:is(.hero-search, .listings-search, .manager-toolbar, .admin-actions) > label :is(input, select) {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+:is(.hero-search, .listings-search, .manager-toolbar, .admin-actions) > label :is(input, select):focus { box-shadow: none !important; }
+
+/* Listing-editor groups use one restrained Findra surface instead of separate pastel blocks. */
+.long-listing-form .form-block {
+  padding: 22px;
+  border: 1px solid rgba(132, 207, 159, .22);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(20, 74, 48, .28), rgba(12, 42, 29, .18));
+  box-shadow: inset 0 1px rgba(255,255,255,.055), 0 10px 24px rgba(0,0,0,.08);
+}
+.long-listing-form .form-section-label { margin-bottom: 16px; color: #61df93; }
+:is(.public-app, .admin-main, .auth-page) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), select, textarea):focus {
+  border-color: rgba(137, 204, 161, .7) !important;
+  box-shadow: 0 0 0 3px rgba(184, 239, 203, .12), inset 0 1px 0 rgba(255,255,255,.94), 0 10px 22px rgba(14, 88, 48, .09) !important;
+}
+[data-theme="dark"] :is(.public-app, .admin-main, .auth-page) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), select, textarea):focus {
+  border-color: rgba(157, 224, 180, .52) !important;
+  box-shadow: 0 0 0 3px rgba(171, 238, 195, .12), inset 0 1px 0 rgba(255,255,255,.09), 0 10px 22px rgba(0,0,0,.18) !important;
+}
+[data-theme="dark"] select option { background: #102c20; color: #f2fff6; }
+
 /* Compact logo without a framed dashboard treatment */
 .admin-brand .brand-logo {
   width: 66px;
