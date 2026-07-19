@@ -7,8 +7,8 @@
   --findra-field-focus: rgba(43, 166, 91, .18);
   --findra-field-inset: rgba(255, 255, 255, .76);
   --findra-field-shadow: 0 6px 16px rgba(20, 65, 41, .055);
-  --findra-field-radius: 24px;
-  --findra-field-height: 58px;
+  --findra-field-radius: 10px;
+  --findra-field-height: 44px;
 }
 
 [data-theme="dark"] {
@@ -24,20 +24,20 @@
 body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]), select, textarea) {
   box-sizing: border-box;
   min-height: var(--findra-field-height) !important;
-  padding: 15px 20px !important;
+  padding: 10px 14px !important;
   border: 1.5px solid var(--findra-field-border) !important;
   border-radius: var(--findra-field-radius) !important;
   background: var(--findra-field-surface) !important;
   box-shadow: inset 0 1px 0 var(--findra-field-inset), var(--findra-field-shadow) !important;
   color: var(--findra-field-text) !important;
-  font-size: 16px !important;
+  font-size: 15px !important;
   font-weight: 500;
   line-height: 1.45;
   letter-spacing: -.01em;
   transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }
 
-body textarea { min-height: 180px !important; padding-top: 18px !important; resize: vertical; }
+body textarea { min-height: 120px !important; padding-top: 12px !important; resize: vertical; }
 body :is(input, textarea)::placeholder { color: var(--findra-field-placeholder) !important; opacity: 1; }
 body select { padding-right: 48px !important; cursor: pointer; }
 body select option { background: #f7fcf8; color: #143725; }
@@ -52,9 +52,9 @@ body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):no
 }
 
 body input[type="file"] {
-  width: 100%; min-height: var(--findra-field-height); padding: 9px;
+  width: 100%; min-height: var(--findra-field-height); padding: 7px;
   border: 1.5px solid var(--findra-field-border); border-radius: var(--findra-field-radius);
-  background: var(--findra-field-surface); color: var(--findra-field-text); font-size: 16px;
+  background: var(--findra-field-surface); color: var(--findra-field-text); font-size: 15px;
 }
 body input[type="file"]::file-selector-button {
   min-height: 36px; margin-right: 12px; padding: 0 12px; border: 0; border-radius: 12px;
@@ -68,7 +68,7 @@ body :is(input[type="checkbox"], input[type="radio"]):focus-visible { outline: 3
 /* Compound search/icon controls retain one field surface, never a nested field. */
 body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .directory-search-shell .listings-search) > label,
 body .auth-shell .auth-card form > label {
-  min-height: var(--findra-field-height) !important; padding: 0 20px !important;
+  min-height: var(--findra-field-height) !important; padding: 0 14px !important;
   border: 1.5px solid var(--findra-field-border) !important; border-radius: var(--findra-field-radius) !important;
   background: var(--findra-field-surface) !important;
   box-shadow: inset 0 1px 0 var(--findra-field-inset), var(--findra-field-shadow) !important;
@@ -84,13 +84,13 @@ body .auth-shell .auth-card form > label:focus-within {
   background: var(--findra-field-surface) !important;
   box-shadow: 0 0 0 3px var(--findra-field-focus), inset 0 1px 0 var(--findra-field-inset), var(--findra-field-shadow) !important;
 }
-body .auth-shell .auth-card form > label { display: grid; padding: 12px 18px !important; }
+body .auth-shell .auth-card form > label { display: grid; padding: 8px 14px !important; }
 
 body :is(.inquiry-card form, .listing-inquiry-card form, .long-listing-form, .editor-form, .management-form-grid, .auth-card form, .contact-form, .newsletter-form) label {
-  gap: 9px; font-size: 16px !important; font-weight: 700; line-height: 1.4;
+  gap: 6px; font-size: 14px !important; font-weight: 700; line-height: 1.4;
 }
 
 @media (max-width: 760px) {
-  :root { --findra-field-height: 54px; --findra-field-radius: 20px; }
-  body textarea { min-height: 160px !important; }
+  :root { --findra-field-height: 42px; }
+  body textarea { min-height: 110px !important; }
 }
