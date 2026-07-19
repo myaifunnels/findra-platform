@@ -7995,6 +7995,18 @@ th {
 }
 [data-theme="dark"] select option { background: #102c20; color: #f2fff6; }
 
+/* Listing editor lives outside the public/dashboard shell, so neutralize its legacy green focus rule directly. */
+.form-block input:focus,
+.form-block select:focus,
+.form-block textarea:focus,
+.editor-form input:focus,
+.editor-form select:focus,
+.editor-form textarea:focus {
+  outline: none;
+  border-color: rgba(182, 233, 201, .28) !important;
+  box-shadow: 0 0 0 4px rgba(224, 255, 235, .06), inset 0 1px 0 rgba(255,255,255,.1), 0 12px 26px rgba(0,0,0,.24) !important;
+}
+
 /* Compact logo without a framed dashboard treatment */
 .admin-brand .brand-logo {
   width: 66px;
