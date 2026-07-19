@@ -4087,16 +4087,50 @@ button.management-status { border: 0; cursor: pointer; }
 }
 .header-dashboard-link { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; padding: 0 14px; border: 1px solid rgba(132, 218, 174, 0.34); border-radius: 12px; background: rgba(15, 121, 68, 0.2); color: #effff5; font-size: 14px; font-weight: 750; transition: var(--motion); }
 .header-dashboard-link:hover { background: rgba(20, 157, 80, 0.35); transform: translateY(-1px); }
+.header-dashboard-link { min-width: 46px; padding: 4px 8px; justify-content: center; }
+.account-avatar { width: 32px; height: 32px; flex: 0 0 auto; border: 1px solid rgba(223, 255, 235, .38); border-radius: 50%; background: #d4f9e0; box-shadow: 0 3px 12px rgba(0,0,0,.22); object-fit: cover; }
 .header-account-menu { position: relative; }
 .header-account-trigger { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; padding: 4px 10px 4px 5px; border: 1px solid rgba(218, 244, 229, 0.24); border-radius: 13px; background: rgba(255, 255, 255, 0.08); color: #f5fff8; }
 .header-account-trigger > span { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 10px; background: linear-gradient(135deg, #bff5d3, #78dc9e); color: #084a28; font-size: 11px; font-weight: 850; }
 .header-account-dropdown { position: absolute; z-index: 50; top: calc(100% + 10px); right: 0; width: 238px; padding: 8px; border: 1px solid rgba(165, 218, 185, 0.28); border-radius: 16px; background: rgba(11, 31, 22, 0.94); box-shadow: 0 20px 58px rgba(0, 0, 0, 0.42), inset 0 1px rgba(255,255,255,0.08); backdrop-filter: blur(20px) saturate(150%); }
 .header-account-dropdown > div { display: flex; flex-direction: column; gap: 3px; padding: 10px 11px 12px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+.header-account-dropdown .account-dropdown-profile { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; column-gap: 10px; }
+.header-account-dropdown .account-dropdown-profile > div { min-width: 0; padding: 0; border: 0; }
+.header-account-dropdown .account-dropdown-profile .account-avatar { width: 38px; height: 38px; grid-row: span 2; }
 .header-account-dropdown strong { color: #f5fff8; font-size: 13px; }
 .header-account-dropdown small { overflow: hidden; color: #b8cec2; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .header-account-dropdown a, .header-account-dropdown button { display: flex; width: 100%; align-items: center; gap: 9px; min-height: 40px; padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: #e6f5ec; font: inherit; font-size: 12px; font-weight: 650; text-align: left; }
 .header-account-dropdown a:hover, .header-account-dropdown button:hover { background: rgba(84, 212, 132, 0.15); }
 .header-account-dropdown button { color: #ffd2d2; }
+
+.account-profile-form { display: grid; gap: 18px; }
+.profile-hero-card { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 24px; background: linear-gradient(135deg, rgba(16, 96, 57, .3), rgba(20, 40, 31, .82)); box-shadow: 0 18px 42px rgba(0, 0, 0, .16), inset 0 1px rgba(255,255,255,.08); }
+.profile-avatar-large { width: 82px; height: 82px; border: 3px solid rgba(196, 255, 217, .62); border-radius: 50%; background: #d8f8e3; box-shadow: 0 10px 24px rgba(0,0,0,.24); object-fit: cover; }
+.profile-hero-card h3, .profile-settings-card h3 { margin: 4px 0 6px; font-size: 21px; color: #f4fff7; }
+.profile-hero-card p, .profile-settings-card > p { margin: 0; color: #b9cec2; line-height: 1.55; }
+.upload-avatar-button { cursor: pointer; white-space: nowrap; }
+.upload-avatar-button input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.profile-settings-card { padding: 24px; }
+.profile-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.profile-form-grid label { display: grid; gap: 8px; color: #e9f6ee; font-weight: 700; }
+.profile-form-grid label span { font-size: 14px; }
+.profile-form-grid input { min-height: 46px; padding: 0 13px; border: 1px solid rgba(146, 205, 166, .35); border-radius: 11px; background: rgba(5, 21, 14, .57); color: #f4fff7; font: inherit; }
+.profile-form-grid input:disabled { cursor: not-allowed; opacity: .72; }
+.profile-save-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border: 1px solid rgba(147, 213, 170, .24); border-radius: 16px; background: rgba(21, 67, 45, .34); box-shadow: inset 0 1px rgba(255,255,255,.05); color: #c3d8cb; }
+.profile-save-status { margin: 0; padding: 13px 15px; border-radius: 12px; font-weight: 700; }
+.profile-save-status.success { border: 1px solid rgba(81, 217, 137, .45); background: rgba(12, 127, 66, .2); color: #bdf7d0; }
+.profile-save-status.error { border: 1px solid rgba(255, 132, 132, .5); background: rgba(176, 46, 46, .2); color: #ffd1d1; }
+@media (max-width: 720px) { .profile-hero-card { grid-template-columns: 70px minmax(0, 1fr); padding: 18px; } .profile-avatar-large { width: 70px; height: 70px; } .upload-avatar-button { grid-column: 1 / -1; justify-self: stretch; justify-content: center; } .profile-form-grid { grid-template-columns: 1fr; } .profile-save-bar { align-items: stretch; flex-direction: column; } .profile-save-bar .admin-primary { justify-content: center; } }
+
+/* Premium liquid-glass fields: deliberately scoped to dashboard forms so public search and checkout controls stay familiar. */
+.admin-main .panel, .admin-main .welcome-row { border-color: rgba(174, 227, 194, .2); background: linear-gradient(145deg, rgba(31, 63, 48, .74), rgba(14, 32, 24, .78)); box-shadow: 0 18px 46px rgba(0, 0, 0, .16), inset 0 1px 0 rgba(255, 255, 255, .075); backdrop-filter: blur(22px) saturate(135%); }
+.admin-main form input, .admin-main form select, .admin-main form textarea { border: 1px solid rgba(180, 230, 199, .27); border-radius: 13px; background: linear-gradient(135deg, rgba(3, 17, 11, .72), rgba(20, 44, 33, .56)); box-shadow: inset 0 1px 1px rgba(255,255,255,.05), 0 5px 13px rgba(0,0,0,.11); color: #f5fff8; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease, transform .2s ease; }
+.admin-main form input:hover, .admin-main form select:hover, .admin-main form textarea:hover { border-color: rgba(158, 237, 190, .48); background: linear-gradient(135deg, rgba(5, 27, 17, .8), rgba(23, 58, 42, .62)); }
+.admin-main form input:focus, .admin-main form select:focus, .admin-main form textarea:focus { outline: none; border-color: #66e798; box-shadow: 0 0 0 3px rgba(89, 226, 143, .2), 0 12px 25px rgba(0,0,0,.16), inset 0 1px 1px rgba(255,255,255,.08); }
+.admin-main form textarea { min-height: 140px; padding: 14px; line-height: 1.55; resize: vertical; }
+.admin-main .admin-primary, .admin-main .secondary-button { border-radius: 13px; box-shadow: 0 9px 20px rgba(0, 0, 0, .17), inset 0 1px rgba(255,255,255,.16); }
+.admin-main .admin-primary { background: linear-gradient(135deg, #08a64d, #008d41); }
+.admin-main .admin-primary:hover { box-shadow: 0 13px 26px rgba(0, 100, 45, .3), inset 0 1px rgba(255,255,255,.2); transform: translateY(-1px); }
 .site-return,
 .topbar-site-link {
   border: 1px solid rgba(121, 205, 165, 0.22);

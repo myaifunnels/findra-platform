@@ -89,6 +89,8 @@ function publicUser(row) {
     name: row.display_name,
     role: row.role,
     emailVerified: Boolean(row.email_verified_at),
+    profileImage: row.profile_image || "",
+    gravatarUrl: `https://www.gravatar.com/avatar/${createHash("md5").update(String(row.email || "").trim().toLowerCase()).digest("hex")}?d=identicon&s=160`,
   };
 }
 
@@ -109,7 +111,7 @@ export async function readSession(request) {
   const token = parseCookies(request.headers.cookie)[SESSION_COOKIE];
   if (!token) return null;
   const result = await query(
-    `SELECT users.id, users.email, users.display_name, users.role, users.email_verified_at
+    `SELECT users.id, users.email, users.display_name, users.role, users.email_verified_at, users.profile_image
        FROM sessions JOIN users ON users.id = sessions.user_id
       WHERE sessions.token_hash = $1 AND sessions.expires_at > NOW()`,
     [hashToken(token)],
@@ -138,7 +140,7 @@ async function register(request, response) {
   const result = await query(
     `INSERT INTO users (id, email, display_name, password_hash, role)
      VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, email, display_name, role, email_verified_at`,
+     RETURNING id, email, display_name, role, email_verified_at, profile_image`,
     [id, email, name, passwordHash, role],
   );
   const user = result.rows[0];
@@ -152,7 +154,7 @@ async function login(request, response) {
   const email = normaliseEmail(body.email);
   const password = String(body.password || "");
   const result = await query(
-    "SELECT id, email, display_name, role, password_hash, email_verified_at FROM users WHERE email = $1",
+    "SELECT id, email, display_name, role, password_hash, email_verified_at, profile_image FROM users WHERE email = $1",
     [email],
   );
   const user = result.rows[0];
@@ -174,6 +176,17 @@ async function session(request, response) {
   const user = await readSession(request);
   if (!user) return json(response, 401, { error: "No active session." });
   return json(response, 200, { user: publicUser(user) });
+}
+
+async function updateProfile(request, response) {
+  const user = await readSession(request);
+  if (!user) return json(response, 401, { error: "Please sign in." });
+  const body = await readJson(request);
+  const displayName = String(body.name || user.display_name).trim().slice(0, 120);
+  const profileImage = String(body.profileImage || "").trim().slice(0, 2000);
+  if (!displayName) return json(response, 400, { error: "Add your display name." });
+  const result = await query("UPDATE users SET display_name=$1, profile_image=$2, updated_at=NOW() WHERE id=$3 RETURNING id,email,display_name,role,email_verified_at,profile_image", [displayName, profileImage, user.id]);
+  return json(response, 200, { user: publicUser(result.rows[0]) });
 }
 
 export async function handleAuthRequest(request, response) {
@@ -200,6 +213,7 @@ export async function handleAuthRequest(request, response) {
       await logout(request, response);
       return true;
     }
+    if (request.method === "PATCH" && url.pathname === "/api/auth/profile") { await updateProfile(request, response); return true; }
     return json(response, 404, { error: "Authentication endpoint not found." });
   } catch (error) {
     return json(response, error.status || 500, {

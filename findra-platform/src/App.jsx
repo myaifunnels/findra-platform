@@ -109,8 +109,14 @@ function sessionFromUser(user) {
         email: user.email,
         username: user.email,
         emailVerified: user.emailVerified,
+        profileImage: user.profileImage || "",
+        gravatarUrl: user.gravatarUrl || "",
       }
     : null;
+}
+
+function accountAvatarUrl(session, businessLogo = "") {
+  return session?.profileImage || businessLogo || session?.gravatarUrl || "/favicon.svg";
 }
 
 function ThemeToggle() {
@@ -534,6 +540,7 @@ function Header({ go }) {
   const [menu, setMenu] = useState(false);
   const [accountMenu, setAccountMenu] = useState(false);
   const [session, setSession] = useState(null);
+  const [businessLogo, setBusinessLogo] = useState("");
   const accountMenuRef = useRef(null);
   useEffect(() => {
     const closeOnOutsidePress = (event) => {
@@ -542,6 +549,20 @@ function Header({ go }) {
     document.addEventListener("pointerdown", closeOnOutsidePress);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
   }, []);
+  useEffect(() => {
+    if (!session || session.role === "admin") {
+      setBusinessLogo("");
+      return;
+    }
+    let active = true;
+    fetch("/api/listings?mine=true", { credentials: "same-origin" })
+      .then((response) => response.ok ? response.json() : {})
+      .then((payload) => {
+        if (active) setBusinessLogo(payload.listings?.[0]?.logo || "");
+      })
+      .catch(() => active && setBusinessLogo(""));
+    return () => { active = false; };
+  }, [session?.id, session?.role]);
   useEffect(() => {
     let active = true;
     fetch("/api/auth/session", { credentials: "same-origin" })
@@ -559,6 +580,11 @@ function Header({ go }) {
     return () => {
       active = false;
     };
+  }, []);
+  useEffect(() => {
+    const syncSession = (event) => setSession(event.detail || null);
+    window.addEventListener("findra-session-change", syncSession);
+    return () => window.removeEventListener("findra-session-change", syncSession);
   }, []);
   const dashboardPath = session?.role === "admin" ? "/admin" : "/user";
   const signOut = async () => {
@@ -602,11 +628,12 @@ function Header({ go }) {
           <ThemeToggle />
           {session ? (
             <div className="header-account-menu" ref={accountMenuRef}>
-                <button type="button" className="header-dashboard-link" aria-label="Open dashboard menu" aria-expanded={accountMenu} onClick={() => setAccountMenu((value) => !value)}>
-                  <span>{session.name?.slice(0, 1).toUpperCase() || "F"}</span><CaretDown size={13} />
+                <button type="button" className="header-dashboard-link" aria-label="Open account menu" aria-expanded={accountMenu} onClick={() => setAccountMenu((value) => !value)}>
+                  <img className="account-avatar" src={accountAvatarUrl(session, businessLogo)} alt="" />
+                  <CaretDown size={13} />
                 </button>
                 {accountMenu && <div className="header-account-dropdown">
-                  <div><strong>{session.name}</strong><small>{session.email}</small></div>
+                  <div className="account-dropdown-profile"><img className="account-avatar" src={accountAvatarUrl(session, businessLogo)} alt="" /><div><strong>{session.name}</strong><small>{session.email}</small></div></div>
                   <Link to={dashboardPath} go={go} onClick={() => setAccountMenu(false)}><SquaresFour /> Dashboard</Link>
                   <Link to="/add-listing" go={go} onClick={() => setAccountMenu(false)}><Plus /> Add business</Link>
                   <button type="button" onClick={signOut}><SignOut /> Sign out</button>
@@ -3500,7 +3527,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
         ) : section === "Analytics" ? (
           <UserAnalytics listing={listing} />
         ) : (
-          <UserAccountProfile session={session} listing={listing} onEdit={openListingFlow} />
+          <UserAccountProfile session={session} listing={listing} onEdit={openListingFlow} onSaveListing={onSave} />
         )}
       </main>
       {editing && (
@@ -3620,7 +3647,47 @@ function UserAnalytics({ listing }) {
   </div>;
 }
 
-function UserAccountProfile({ session, listing, onEdit }) {
+function UserAccountProfile({ session, listing, onEdit, onSaveListing }) {
+  const [form, setForm] = useState({ name: session?.name || "", profileImage: session?.profileImage || "", website: listing?.website || "", facebook: listing?.facebook || "", instagram: listing?.instagram || "", linkedin: listing?.linkedin || "", whatsapp: listing?.whatsapp || "", viber: listing?.viber || "" });
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState(null);
+  const setField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const uploadAvatar = async (file) => {
+    if (!file) return;
+    setSaving(true); setStatus(null);
+    try {
+      const response = await fetch("/api/media/upload", { method: "POST", credentials: "same-origin", headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) }, body: file });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Profile photo could not be uploaded.");
+      setField("profileImage", payload.url); setStatus({ type: "success", message: "Photo uploaded. Save profile to apply it." });
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setSaving(false); }
+  };
+  const save = async (event) => {
+    event.preventDefault(); setSaving(true); setStatus(null);
+    try {
+      const response = await fetch("/api/auth/profile", { method: "PATCH", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: form.name, profileImage: form.profileImage }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Account profile could not be saved.");
+      if (listing && onSaveListing({ ...listing, website: form.website, facebook: form.facebook, instagram: form.instagram, linkedin: form.linkedin, whatsapp: form.whatsapp, viber: form.viber }) === false) throw new Error("Social links could not be saved.");
+      localStorage.setItem("findra-session", JSON.stringify({ ...session, ...sessionFromUser(payload.user) }));
+      window.dispatchEvent(new CustomEvent("findra-session-change", { detail: sessionFromUser(payload.user) }));
+      setStatus({ type: "success", message: "Account profile and contact channels saved." });
+    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setSaving(false); }
+  };
+  const socialFields = [["website", "Business website", "https://yourbusiness.com"], ["facebook", "Facebook page", "https://facebook.com/yourbusiness"], ["instagram", "Instagram profile", "https://instagram.com/yourbusiness"], ["linkedin", "LinkedIn page", "https://linkedin.com/company/yourbusiness"], ["whatsapp", "WhatsApp number", "+63 917 123 4567"], ["viber", "Viber number", "+63 917 123 4567"]];
+  return <div className="admin-content account-profile-page">
+    <section className="welcome-row"><div><span className="section-eyebrow">Personal settings</span><h2>Account & profile</h2><p>Choose how you appear on Findra and keep the contact links on your public listing up to date.</p></div><button className="secondary-button" onClick={onEdit}><PencilSimple /> Edit business details</button></section>
+    <form className="account-profile-form" onSubmit={save}>
+      <section className="panel profile-hero-card"><img className="profile-avatar-large" src={form.profileImage || accountAvatarUrl(session, listing?.logo)} alt="Profile" /><div><span className="section-eyebrow">Account photo</span><h3>{form.name || "Business owner"}</h3><p>{form.profileImage ? "Custom profile photo" : listing?.logo ? "Using your business logo as your account photo" : "Using your Gravatar identicon until you add a photo"}</p></div><label className="secondary-button upload-avatar-button"><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => uploadAvatar(event.target.files?.[0])} />Upload photo</label></section>
+      <section className="panel profile-settings-card"><h3>Account details</h3><p>Your name is used across your dashboard and account communications.</p><div className="profile-form-grid"><label><span>Display name *</span><input required value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Your name" /></label><label><span>Email address</span><input value={session?.email || ""} disabled /></label></div></section>
+      <section className="panel profile-settings-card"><h3>Social & contact links</h3><p>These are synced with your business listing, so customers can reach you from the public profile.</p><div className="profile-form-grid social-links-grid">{socialFields.map(([field, label, placeholder]) => <label key={field}><span>{label}</span><input value={form[field]} onChange={(event) => setField(field, event.target.value)} placeholder={placeholder} /></label>)}</div></section>
+      {status && <p className={`profile-save-status ${status.type}`}>{status.message}</p>}
+      <div className="profile-save-bar"><span>Changes to social links appear on your business listing.</span><button className="admin-primary" disabled={saving} type="submit"><CheckCircle />{saving ? "Saving…" : "Save profile"}</button></div>
+    </form>
+  </div>;
+}
+
+function UserAccountProfileLegacy({ session, listing, onEdit }) {
   const channels = [
     ["Website", listing?.website], ["Facebook", listing?.facebook], ["Instagram", listing?.instagram], ["LinkedIn", listing?.linkedin], ["WhatsApp", listing?.whatsapp], ["Viber", listing?.viber],
   ].filter(([, value]) => value);
