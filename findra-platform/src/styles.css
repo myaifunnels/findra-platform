@@ -724,7 +724,7 @@ footer {
 }
 .detail-meta {
   display: grid;
-  grid-template-columns: 1fr 180px 1fr;
+  grid-template-columns: 1fr 180px;
   gap: 30px;
   align-items: center;
   padding: 45px 10px;
