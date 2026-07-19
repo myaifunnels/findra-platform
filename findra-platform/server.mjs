@@ -9,6 +9,7 @@ import { handleListingsRequest } from "./server/listings.mjs";
 import { handleMediaRequest } from "./server/media.mjs";
 import { handlePackagesRequest } from "./server/packages.mjs";
 import { handleNotificationsRequest } from "./server/notifications.mjs";
+import { handleMapsRequest } from "./server/maps.mjs";
 
 const root = fileURLToPath(new URL("./dist/", import.meta.url));
 try {
@@ -44,6 +45,7 @@ createServer(async (request, response) => {
   if (await handleMediaRequest(request, response)) return;
   if (await handlePackagesRequest(request, response)) return;
   if (await handleNotificationsRequest(request, response)) return;
+  if (await handleMapsRequest(request, response)) return;
   if (await handleBrevoRequest(request, response)) return;
   if (await handlePayMongoRequest(request, response)) return;
   const pathname = decodeURIComponent(

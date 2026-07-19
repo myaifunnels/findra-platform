@@ -411,6 +411,24 @@ function StatusModal({ notice, onClose }) {
   );
 }
 
+function BusinessMapFrame({ location }) {
+  const [embedKey, setEmbedKey] = useState("");
+  useEffect(() => {
+    fetch("/api/maps/embed-key", { credentials: "same-origin" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => setEmbedKey(payload?.key || ""))
+      .catch(() => {});
+  }, []);
+  const query = encodeURIComponent(location || "Metro Manila, Philippines");
+  const source = embedKey
+    ? `https://www.google.com/maps/embed/v1/place?key=${embedKey}&q=${query}`
+    : "https://www.openstreetmap.org/export/embed.html?bbox=120.93%2C14.50%2C121.10%2C14.65&layer=mapnik";
+  return <div className="map-frame">
+    <iframe title="Business location map" src={source} />
+    <span><MapPin weight="fill" /> {location || "Metro Manila, Philippines"}</span>
+  </div>;
+}
+
 function Header({ go }) {
   const [menu, setMenu] = useState(false);
   const [accountMenu, setAccountMenu] = useState(false);
@@ -1776,7 +1794,6 @@ const sideItems = [
   ["Custom Fields", ListBullets],
   ["Notifications", Bell],
   ["Pages & Content", FileText],
-  ["Integrations", Plug],
   ["Settings", Gear],
 ];
 
@@ -2023,8 +2040,8 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
             }}
             remove={(item) => setConfirmation({ type: "delete", item })}
           />
-        ) : section === "Integrations" ? (
-          <IntegrationsAdmin onNotify={onNotify} />
+        ) : section === "Settings" ? (
+          <SettingsAdmin onNotify={onNotify} />
         ) : section === "Users" ? (
           <UsersManagement query={query} onNotify={onNotify} />
         ) : section === "Subscriptions" ? (
@@ -3369,7 +3386,25 @@ function AdminSection({ section }) {
   );
 }
 
-function IntegrationsAdmin({ onNotify }) {
+function SettingsAdmin({ onNotify }) {
+  const [tab, setTab] = useState("account");
+  const setTheme = (theme) => {
+    localStorage.setItem("findra-theme", theme);
+    document.documentElement.dataset.theme = theme;
+    onNotify?.({ type: "success", title: "Appearance updated", message: `${theme === "dark" ? "Dark" : "Light"} mode is now the default appearance for this browser.` });
+  };
+  return <div className="admin-content settings-workspace">
+    <section className="welcome-row"><div><span className="section-eyebrow">Workspace controls</span><h2>Settings</h2><p>Manage administrator preferences, appearance, and connected platform services.</p></div></section>
+    <nav className="settings-tabs" aria-label="Settings sections">
+      {["account", "appearance", "integrations"].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item === "account" ? "Account" : item === "appearance" ? "Appearance" : "Integrations"}</button>)}
+    </nav>
+    {tab === "account" && <section className="settings-card-grid"><article className="panel"><span className="section-eyebrow">Administrator account</span><h3>Workspace ownership</h3><p>Account access, password recovery, and administrator permissions are managed through secure Findra sessions.</p><div className="account-detail-grid"><article><small>ACCESS</small><strong>Administrator</strong></article><article><small>SESSION</small><strong>Secure cookie</strong></article></div></article><article className="panel"><span className="section-eyebrow">Security</span><h3>Recommended controls</h3><p>Use a unique password, enable two-factor authentication on Render, Brevo, Cloudflare, and PayMongo, and restrict credentials to the correct environment.</p></article></section>}
+    {tab === "appearance" && <section className="settings-card-grid"><article className="panel"><span className="section-eyebrow">Interface preference</span><h3>Appearance</h3><p>Choose the visual mode that best suits your working environment. Each user keeps this choice in their own browser.</p><div className="appearance-choice-row"><button className="secondary-button" onClick={() => setTheme("light")}>Light mode</button><button className="admin-primary" onClick={() => setTheme("dark")}>Dark mode</button></div></article><article className="panel"><span className="section-eyebrow">Accessibility</span><h3>Readable by default</h3><p>Findra uses high-contrast text, visible keyboard focus, and clear status colors across administration and business-owner dashboards.</p></article></section>}
+    {tab === "integrations" && <IntegrationsAdmin onNotify={onNotify} embedded />}
+  </div>;
+}
+
+function IntegrationsAdmin({ onNotify, embedded = false }) {
   const [integration, setIntegration] = useState({
     configured: false,
     connectedAt: "",
@@ -3441,8 +3476,8 @@ function IntegrationsAdmin({ onNotify }) {
   };
 
   return (
-    <div className="admin-content integrations-admin">
-      <section className="welcome-row integrations-welcome">
+    <div className={embedded ? "integrations-admin embedded" : "admin-content integrations-admin"}>
+      {!embedded && <section className="welcome-row integrations-welcome">
         <div>
           <span className="section-eyebrow">Payments &amp; checkout</span>
           <h2>Integrations</h2>
@@ -3454,7 +3489,7 @@ function IntegrationsAdmin({ onNotify }) {
         <div className="integration-status-pill provider-count">
           <i />2 service providers
         </div>
-      </section>
+      </section>}
 
       <section className="integration-overview-grid">
         <article className="panel paymongo-integration-card">
@@ -3586,8 +3621,29 @@ function IntegrationsAdmin({ onNotify }) {
         </form>
       </section>
       <BrevoIntegration onNotify={onNotify} />
+      <GoogleMapsIntegration />
     </div>
   );
+}
+
+function GoogleMapsIntegration() {
+  const [status, setStatus] = useState({ configured: false, keyHint: "", provider: "Google Maps Platform" });
+  const [loading, setLoading] = useState(true);
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/maps/integration", { credentials: "same-origin" });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok) setStatus(payload);
+    } finally { setLoading(false); }
+  };
+  useEffect(() => { refresh(); }, []);
+  return <section className="panel maps-integration-card">
+    <header><div className="integration-provider-icon"><MapPin weight="duotone" /></div><div><span>LOCATION SERVICES</span><h3>Google Maps</h3><p>Address maps for the business listing form and public profiles.</p></div><span className={`integration-status-pill ${status.configured ? "connected" : "inactive"}`}><i />{loading ? "Checking" : status.configured ? "Connected" : "Setup required"}</span></header>
+    <div className="integration-summary"><div><span>Provider</span><strong>{status.provider}</strong></div><div><span>API key</span><strong>{status.keyHint || "Not configured"}</strong></div><div><span>Use</span><strong>Embed maps</strong></div></div>
+    <div className="integration-methods"><span>Secure setup</span><div><small>Add <code>GOOGLE_MAPS_API_KEY</code> in Render, restrict it in Google Cloud to <code>staging.findra.ph</code> and your production domain, then enable only the Maps Embed API.</small></div></div>
+    <footer><button type="button" className="secondary-button" onClick={refresh} disabled={loading}>{loading ? "Checking…" : "Refresh status"}</button><a className="admin-primary" href="https://console.cloud.google.com/google/maps-apis" target="_blank" rel="noreferrer">Open Google Cloud <ArrowRight /></a></footer>
+  </section>;
 }
 
 function BrevoIntegration({ onNotify }) {
@@ -5060,16 +5116,7 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
                     <input type="checkbox" defaultChecked /> Autocomplete
                     address when marker position is changed
                   </label>
-                  <div className="map-frame">
-                    <iframe
-                      title="Business location map"
-                      src="https://www.openstreetmap.org/export/embed.html?bbox=120.93%2C14.50%2C121.10%2C14.65&amp;layer=mapnik"
-                    />
-                    <span>
-                      <MapPin weight="fill" />{" "}
-                      {form.location || "Metro Manila, Philippines"}
-                    </span>
-                  </div>
+                  <BusinessMapFrame location={form.location} />
                 </section>
                 <CustomListingFields
                   fields={managedCustomFields.filter((field) => field.section === "Contact & location")}

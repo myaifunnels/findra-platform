@@ -6739,6 +6739,25 @@ th {
 .notification-popover-list small { color: #c4d8cd; }
 .notification-popover-list em { color: #91b3a1; }
 
+.settings-workspace > .welcome-row { margin-bottom: 18px; }
+.settings-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.settings-tabs button { min-height: 42px; padding: 0 16px; border: 1px solid var(--glass-line); border-radius: 11px; background: var(--field-bg); color: var(--surface-muted); font: inherit; font-size: 13px; font-weight: 750; text-transform: capitalize; }
+.settings-tabs button.active { border-color: #159650; background: rgba(20, 150, 80, 0.15); color: #087d3c; box-shadow: inset 3px 0 #159650; }
+.settings-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.settings-card-grid .panel { min-height: 220px; padding: 24px; }
+.settings-card-grid h3 { margin: 7px 0 9px; color: var(--surface-text); font-size: 19px; }
+.settings-card-grid p { margin: 0 0 20px; color: var(--surface-muted); font-size: 14px; line-height: 1.65; }
+.appearance-choice-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.integrations-admin.embedded { display: grid; gap: 20px; }
+.maps-integration-card { margin-top: 20px; padding: 22px; }
+.maps-integration-card > header { display: flex; align-items: center; gap: 13px; }
+.maps-integration-card > header > div:nth-child(2) { margin-right: auto; }
+.maps-integration-card h3 { margin: 3px 0; color: var(--surface-text); font-size: 17px; }
+.maps-integration-card header p { margin: 0; color: var(--surface-muted); font-size: 12px; }
+.maps-integration-card code { padding: 1px 4px; border-radius: 4px; background: rgba(16, 126, 67, 0.12); color: #087d3c; font-size: 10px; }
+.maps-integration-card > footer { display: flex; justify-content: flex-end; gap: 9px; margin-top: 16px; }
+@media (max-width: 720px) { .settings-card-grid { grid-template-columns: 1fr; } .maps-integration-card > header { align-items: flex-start; flex-wrap: wrap; } .maps-integration-card .integration-status-pill { margin-left: 61px; } }
+
 @keyframes dashboard-enter {
   from {
     opacity: 0;
