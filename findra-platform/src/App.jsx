@@ -1012,8 +1012,6 @@ function ListingDetail({ go, item }) {
         </div>
         <div className="detail-columns">
           <article>
-            <h1>{item.name}</h1>
-            <h2>{item.tagline}</h2>
             <div className="detail-sections">
               <section className="panel detail-section detail-social-card">
                 <h3 className="detail-section-title">Social &amp; online presence</h3>
