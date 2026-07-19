@@ -3667,6 +3667,118 @@ body {
   .multi-step-actions :is(button, .green-button, .admin-primary) { min-height: 46px; }
 }
 
+/* Listing editor: use whitespace to group information instead of crowding fields. */
+.listing-editor-workspace {
+  gap: clamp(24px, 3vw, 40px);
+}
+.long-listing-form .listing-step-panel {
+  display: grid;
+  gap: clamp(24px, 3vw, 36px);
+}
+.long-listing-form .form-block {
+  margin: 0;
+  padding: clamp(22px, 2.5vw, 30px);
+  border-radius: 20px;
+}
+.long-listing-form .form-section-label {
+  margin-bottom: 20px;
+}
+.long-listing-form .form-block > label,
+.long-listing-form .form-block > .rich-editor,
+.long-listing-form .form-block > .form-grid,
+.long-listing-form .form-block > .media-grid,
+.long-listing-form .form-block > .media-guidance,
+.long-listing-form .form-block > .video-field,
+.long-listing-form .form-block > .business-map-frame,
+.long-listing-form .form-block > .map-frame {
+  margin-top: 18px;
+}
+.long-listing-form .form-block > .form-section-label + * {
+  margin-top: 0;
+}
+.long-listing-form .form-grid,
+.long-listing-form .form-grid.two,
+.long-listing-form .form-grid.three,
+.long-listing-form .classification-fields {
+  column-gap: 24px;
+  row-gap: 22px;
+}
+.long-listing-form .form-block label {
+  gap: 10px;
+}
+.long-listing-form .form-block label > small,
+.long-listing-form .presence-block > small {
+  display: block;
+  margin-top: 8px;
+  color: var(--surface-muted);
+  line-height: 1.55;
+}
+.long-listing-form .rich-editor {
+  border-radius: 14px;
+}
+
+@media (max-width: 1000px) {
+  .listing-editor-screen {
+    min-height: 100dvh;
+    padding: 20px 16px max(32px, env(safe-area-inset-bottom));
+  }
+  .listing-editor-top {
+    margin-top: 0;
+    padding: 18px;
+    border-radius: 18px;
+  }
+  .listing-editor-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .listing-editor-preview {
+    position: static;
+    max-height: none;
+    padding: 14px;
+  }
+  .mobile-editor-mode {
+    position: sticky;
+    top: 8px;
+    z-index: 4;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .16);
+  }
+}
+
+@media (max-width: 640px) {
+  .long-listing-form {
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .long-listing-form .listing-step-panel { gap: 20px; }
+  .long-listing-form .form-block {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+  .long-listing-form .form-grid,
+  .long-listing-form .form-grid.two,
+  .long-listing-form .form-grid.three,
+  .long-listing-form .classification-fields,
+  .long-listing-form .media-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .listing-editor-top > div,
+  .listing-editor-top > header {
+    min-width: 0;
+  }
+  .listing-editor-top h1,
+  .listing-step-heading h2 { font-size: clamp(24px, 8vw, 30px); }
+  .listing-step-heading p { max-width: 34ch; }
+  .multi-step-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+  .multi-step-actions > :is(button, .green-button, .admin-primary) {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* Toolbar searches are compound controls: never render an input inside a second field. */
 .manager-toolbar > label > input,
 .manager-toolbar > label > input:hover,

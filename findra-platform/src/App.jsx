@@ -34,7 +34,6 @@ import {
   SignOut,
   SquaresFour,
   Storefront,
-  Tag,
   Trash,
   TrendUp,
   UploadSimple,
@@ -57,12 +56,10 @@ import {
   ImageSquare,
 } from "@phosphor-icons/react";
 import {
-  CustomFieldsManagement,
   readCustomFields,
   readManagedTaxonomy,
   recordNotificationEvent,
   SubscriptionsManagement,
-  TaxonomyManagement,
   UsersManagement,
 } from "./adminModules";
 
@@ -1994,10 +1991,7 @@ const sideItems = [
   ["Users", UsersThree],
   ["Inquiries", ChatCircleText],
   ["Subscriptions", CreditCard],
-  ["Categories", Tag],
-  ["Custom Fields", ListBullets],
   ["Automation", ArrowsClockwise],
-  ["Pages & Content", FileText],
   ["Settings", Gear],
 ];
 
@@ -2400,10 +2394,6 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
           <UsersManagement query={query} onNotify={onNotify} />
         ) : section === "Subscriptions" ? (
           <SubscriptionsManagement onNotify={onNotify} />
-        ) : section === "Categories" ? (
-          <TaxonomyManagement query={query} onNotify={onNotify} />
-        ) : section === "Custom Fields" ? (
-          <CustomFieldsManagement query={query} onNotify={onNotify} />
         ) : section === "Automation" ? (
           <AutomationManagement onNotify={onNotify} />
         ) : (
