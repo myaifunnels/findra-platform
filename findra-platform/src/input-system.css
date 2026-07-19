@@ -21,7 +21,7 @@
   --findra-field-shadow: 0 7px 18px rgba(0, 0, 0, .15);
 }
 
-body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]), select, textarea) {
+body :is(input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"])), select, textarea) {
   box-sizing: border-box;
   min-height: var(--findra-field-height) !important;
   padding: 10px 14px !important;
@@ -43,8 +43,8 @@ body select { padding-right: 48px !important; cursor: pointer; }
 body select option { background: #f7fcf8; color: #143725; }
 [data-theme="dark"] body select option { background: #123422; color: #effff4; }
 
-body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]), select, textarea):focus,
-body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]), select, textarea):focus-visible {
+body :is(input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"])), select, textarea):focus,
+body :is(input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"])), select, textarea):focus-visible {
   outline: 0;
   border-color: var(--findra-field-border) !important;
   background: var(--findra-field-surface) !important;
