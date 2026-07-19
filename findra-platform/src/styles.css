@@ -3518,6 +3518,31 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
   }
 }
 
+/* Toolbar searches are compound controls: never render an input inside a second field. */
+.manager-toolbar > label > input,
+.manager-toolbar > label > input:hover,
+.manager-toolbar > label > input:focus,
+.admin-actions > label > input,
+.admin-actions > label > input:hover,
+.admin-actions > label > input:focus,
+.hero-search > label > input,
+.hero-search > label > input:hover,
+.hero-search > label > input:focus,
+.listings-search > label > input,
+.listings-search > label > input:hover,
+.listings-search > label > input:focus {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
 /* Notification automation and custom listing fields */
 .notification-summary-grid {
   display: grid;
