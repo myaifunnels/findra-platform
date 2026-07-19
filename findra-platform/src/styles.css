@@ -4447,6 +4447,285 @@ button.management-status { border: 0; cursor: pointer; }
   .management-table th,
   .management-table td { padding: 15px 16px; }
 }
+
+/* Shared dashboard layout and control states. */
+.admin-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  row-gap: clamp(24px, 2.25vw, 32px);
+}
+.admin-content > :is(.metric-grid, .management-metrics, .dashboard-grid, .panel, .manager-toolbar, .settings-tabs) {
+  margin-block: 0;
+}
+.admin-content > .metric-grid + .dashboard-grid,
+.admin-content > .dashboard-grid + .panel,
+.admin-content > .metric-grid + .panel {
+  margin-top: 0;
+}
+.dashboard-grid > .panel {
+  min-height: 0;
+}
+.performance,
+.review-panel,
+.recent,
+.admin-empty,
+.automation-layout > .panel,
+.settings-workspace > .panel {
+  border-radius: 20px;
+}
+.performance .panel-head,
+.review-panel .panel-head,
+.recent .panel-head {
+  min-height: 104px;
+  align-items: center;
+}
+
+.admin-main :is(.admin-primary, .green-button) {
+  min-height: 46px;
+  border: 1px solid rgba(116, 245, 170, .28);
+  background: linear-gradient(135deg, #12aa55 0%, #07833f 100%);
+  color: #f7fff9;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .16);
+  box-shadow: 0 10px 24px rgba(0, 104, 47, .24), inset 0 1px 0 rgba(255, 255, 255, .18);
+}
+.admin-main :is(.admin-primary, .green-button):hover {
+  border-color: rgba(173, 255, 208, .42);
+  background: linear-gradient(135deg, #19bd62 0%, #079247 100%);
+  color: #fff;
+}
+.admin-main :is(.secondary-button, .manager-toolbar > button) {
+  min-height: 44px;
+  border-color: rgba(177, 225, 195, .28);
+  background: rgba(8, 29, 19, .58);
+  color: #e3f3e8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+.admin-main :is(.secondary-button, .manager-toolbar > button):hover {
+  border-color: rgba(130, 235, 172, .5);
+  background: rgba(24, 79, 49, .78);
+  color: #fff;
+}
+.management-filter-tabs,
+.settings-tabs,
+.management-section-tabs,
+.status-tabs {
+  gap: 8px;
+  padding: 5px;
+  border-color: rgba(178, 228, 198, .22);
+  background: rgba(5, 27, 17, .62);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .04);
+}
+.management-filter-tabs button,
+.settings-tabs button,
+.management-section-tabs button,
+.status-tabs button {
+  min-height: 40px;
+  padding-inline: 14px;
+  border-radius: 10px;
+  color: #c5d9cd;
+}
+.management-filter-tabs button:hover,
+.settings-tabs button:hover,
+.management-section-tabs button:hover,
+.status-tabs button:hover {
+  background: rgba(111, 213, 149, .12);
+  color: #f4fff7;
+}
+.management-filter-tabs button.active,
+.settings-tabs button.active,
+.management-section-tabs button.active,
+.status-tabs button.active {
+  border-color: rgba(131, 247, 178, .4);
+  background: linear-gradient(135deg, #0e9147, #08753a);
+  color: #f7fff9;
+  box-shadow: 0 7px 17px rgba(0, 91, 42, .26), inset 0 1px rgba(255, 255, 255, .16);
+}
+.management-row-actions button,
+.package-management-card header > button,
+.row-actions button {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  color: #dff3e6;
+}
+
+@media (max-width: 720px) {
+  .admin-content { row-gap: 12px; }
+  .performance .panel-head,
+  .review-panel .panel-head,
+  .recent .panel-head { min-height: 0; }
+  .management-filter-tabs,
+  .settings-tabs,
+  .management-section-tabs,
+  .status-tabs { gap: 6px; }
+  .management-filter-tabs button,
+  .settings-tabs button,
+  .management-section-tabs button,
+  .status-tabs button { min-height: 40px; padding-inline: 12px; }
+}
+
+/* Compact dashboard rhythm and complete light-mode surfaces. */
+.admin-content,
+.management-module {
+  gap: clamp(12px, 1.1vw, 16px);
+  row-gap: clamp(12px, 1.1vw, 16px);
+}
+.admin-content {
+  row-gap: clamp(12px, 1.1vw, 16px);
+}
+.metric-grid,
+.management-metrics,
+.dashboard-grid,
+.package-management-grid {
+  gap: clamp(12px, 1.1vw, 16px);
+}
+.welcome-row {
+  min-height: 0;
+  padding: clamp(20px, 1.7vw, 26px);
+}
+.performance .panel-head,
+.review-panel .panel-head,
+.recent .panel-head {
+  min-height: 0;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --glass: rgba(255, 255, 255, 0.78);
+  --glass-strong: rgba(255, 255, 255, 0.92);
+  --glass-line: rgba(27, 92, 59, 0.16);
+  --glass-shadow: 0 14px 34px rgba(24, 74, 50, 0.10);
+  --surface-text: #17362a;
+  --surface-muted: #5a7065;
+  --field-bg: rgba(255, 255, 255, 0.84);
+  --field-line: rgba(32, 105, 67, 0.24);
+}
+[data-theme="light"] body,
+[data-theme="light"] .public-app,
+[data-theme="light"] .admin-shell {
+  background:
+    radial-gradient(circle at 88% -10%, rgba(79, 194, 127, 0.15), transparent 31%),
+    linear-gradient(145deg, #f4faf6, #edf5f0 55%, #e9f2ed);
+  color: var(--surface-text);
+}
+[data-theme="light"] .admin-sidebar {
+  background: linear-gradient(180deg, rgba(243, 250, 246, 0.96), rgba(229, 243, 234, 0.94));
+  border-color: rgba(28, 92, 59, 0.15);
+  color: #214436;
+}
+[data-theme="light"] .admin-topbar {
+  background: rgba(251, 255, 252, 0.76);
+  border-color: rgba(28, 92, 59, 0.14);
+  color: #163b2c;
+  box-shadow: 0 8px 24px rgba(40, 82, 60, 0.06);
+}
+[data-theme="light"] .admin-main .panel,
+[data-theme="light"] .admin-main .welcome-row,
+[data-theme="light"] .metric-grid article,
+[data-theme="light"] .management-metrics article,
+[data-theme="light"] .package-management-card,
+[data-theme="light"] .user-listing-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(239, 249, 243, 0.78));
+  border-color: rgba(32, 105, 67, 0.18);
+  color: var(--surface-text);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+[data-theme="light"] .admin-main :is(h1, h2, h3, h4, th, td, strong, label, .metric-copy h3, .panel-head h3) {
+  color: var(--surface-text);
+}
+[data-theme="light"] .admin-main :is(p, small, .panel-head p, .metric-copy p, .business-cell span) {
+  color: var(--surface-muted);
+}
+[data-theme="light"] .admin-main form input,
+[data-theme="light"] .admin-main form select,
+[data-theme="light"] .admin-main form textarea,
+[data-theme="light"] .manager-toolbar :is(input, select) {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(32, 105, 67, 0.24);
+  color: #17362a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+[data-theme="light"] .admin-main form input::placeholder,
+[data-theme="light"] .admin-main form textarea::placeholder {
+  color: #789084;
+}
+[data-theme="light"] .admin-main form input:hover,
+[data-theme="light"] .admin-main form select:hover,
+[data-theme="light"] .admin-main form textarea:hover {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(25, 111, 67, 0.34);
+}
+[data-theme="light"] .admin-main form input:focus,
+[data-theme="light"] .admin-main form select:focus,
+[data-theme="light"] .admin-main form textarea:focus {
+  border-color: rgba(25, 111, 67, 0.34);
+  box-shadow: 0 0 0 3px rgba(69, 174, 112, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+[data-theme="light"] .admin-main :is(.secondary-button, .manager-toolbar > button) {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(32, 105, 67, 0.2);
+  color: #244c3b;
+  box-shadow: 0 7px 16px rgba(34, 88, 58, 0.08), inset 0 1px 0 #fff;
+}
+[data-theme="light"] .admin-main :is(.secondary-button, .manager-toolbar > button):hover {
+  background: #fff;
+  border-color: rgba(12, 137, 69, 0.42);
+  color: #087c3c;
+}
+[data-theme="light"] :is(.management-filter-tabs, .settings-tabs, .management-section-tabs, .status-tabs) {
+  background: rgba(226, 241, 232, 0.76);
+  border-color: rgba(32, 105, 67, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68);
+}
+[data-theme="light"] :is(.management-filter-tabs, .settings-tabs, .management-section-tabs, .status-tabs) button {
+  color: #49675a;
+}
+[data-theme="light"] :is(.management-filter-tabs, .settings-tabs, .management-section-tabs, .status-tabs) button:hover {
+  background: rgba(255, 255, 255, 0.68);
+  color: #136a3b;
+}
+[data-theme="light"] :is(.management-filter-tabs, .settings-tabs, .management-section-tabs, .status-tabs) button.active {
+  background: linear-gradient(135deg, #0c9148, #08783b);
+  border-color: rgba(6, 112, 54, 0.4);
+  color: #fff;
+}
+[data-theme="light"] .management-table :is(th, td) {
+  border-color: rgba(32, 105, 67, 0.13);
+}
+[data-theme="light"] .management-table th {
+  background: rgba(222, 240, 229, 0.62);
+  color: #46695a;
+}
+[data-theme="light"] .management-table td {
+  background: rgba(255, 255, 255, 0.42);
+}
+[data-theme="light"] .admin-sidebar :is(a, button) {
+  color: #315646;
+}
+[data-theme="light"] .admin-sidebar :is(a, button):hover {
+  background: rgba(113, 206, 151, 0.17);
+  color: #0b7038;
+}
+[data-theme="light"] .admin-sidebar .active,
+[data-theme="light"] .admin-sidebar [aria-current="page"] {
+  background: linear-gradient(135deg, rgba(151, 238, 185, 0.62), rgba(207, 248, 222, 0.84));
+  color: #075e30;
+  box-shadow: inset 3px 0 #0b9648;
+}
+[data-theme="light"] :is(.status-badge, .management-status, .status-pill) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+@media (max-width: 720px) {
+  .admin-content,
+  .management-module { gap: 12px; row-gap: 12px; }
+  .metric-grid,
+  .management-metrics,
+  .dashboard-grid,
+  .package-management-grid { gap: 12px; }
+  .welcome-row { padding: 18px; }
+}
 @media (max-width: 440px) {
   .hero-inner {
     padding-top: 40px;
