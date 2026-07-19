@@ -8123,8 +8123,13 @@ th {
 .auth-shell .auth-card form > label > input,
 .auth-shell .auth-card form > label > input:hover,
 .auth-shell .auth-card form > label > input:focus {
-  background: transparent !important;
-  border: 0 !important;
+  appearance: none;
+  -webkit-appearance: none;
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  border-width: 0 !important;
   box-shadow: none !important;
   outline: 0 !important;
 }
