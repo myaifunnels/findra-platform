@@ -4408,6 +4408,153 @@ button.management-status { border: 0; cursor: pointer; }
   }
 }
 
+/* Public listing contact card: compact, branded, and useful without duplicating page content. */
+.detail-page {
+  margin-top: 24px;
+}
+.listing-inquiry-card {
+  overflow: hidden;
+  padding: 0;
+}
+.inquiry-card-header {
+  padding: 20px 20px 18px;
+  border-bottom: 1px solid rgba(28, 119, 70, 0.18);
+  background: linear-gradient(135deg, rgba(20, 149, 75, 0.15), rgba(59, 187, 102, 0.04));
+}
+.inquiry-card-header > span {
+  display: block;
+  margin-bottom: 10px;
+  color: #087a3b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+.inquiry-card-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.inquiry-card-brand > img,
+.inquiry-card-brand > svg {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  padding: 8px;
+  border: 1px solid rgba(33, 122, 73, 0.24);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #0a8a43;
+  object-fit: contain;
+}
+.inquiry-card-brand > div {
+  min-width: 0;
+}
+.inquiry-card-brand h2 {
+  margin: 0;
+  color: #123b29;
+  font-size: 19px;
+  line-height: 1.2;
+}
+.inquiry-card-brand p {
+  margin: 4px 0 0;
+  color: #527160;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.inquiry-card-form-title {
+  margin: 18px 20px 0;
+  color: #163f2c;
+  font-size: 16px;
+  line-height: 1.35;
+}
+.listing-inquiry-card > form,
+.listing-inquiry-card > .success {
+  margin: 14px 20px 0;
+}
+.listing-inquiry-card .contact-actions {
+  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+  gap: 8px;
+  margin: 18px 20px 20px;
+  padding-top: 16px;
+}
+.listing-inquiry-card .contact-actions a,
+.listing-inquiry-card .contact-actions > span {
+  min-height: 52px;
+  padding: 7px 4px;
+  border: 1px solid rgba(31, 102, 65, 0.17);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.46);
+  color: #285b44;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+.listing-inquiry-card .contact-actions a:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(6, 64, 34, 0.13);
+}
+.listing-inquiry-card .contact-actions a svg,
+.listing-inquiry-card .contact-actions > span svg {
+  width: 20px;
+  height: 20px;
+}
+.listing-inquiry-card .contact-action-whatsapp {
+  border-color: rgba(37, 211, 102, 0.5);
+  background: #e9fff1;
+  color: #087b37;
+}
+.listing-inquiry-card .contact-action-viber {
+  border-color: rgba(115, 77, 183, 0.48);
+  background: #f4eeff;
+  color: #65429d;
+}
+[data-theme="dark"] .inquiry-card-header {
+  border-bottom-color: rgba(169, 234, 190, 0.14);
+  background: linear-gradient(135deg, rgba(30, 150, 78, 0.26), rgba(77, 214, 125, 0.04));
+}
+[data-theme="dark"] .inquiry-card-header > span {
+  color: #85ecad;
+}
+[data-theme="dark"] .inquiry-card-brand > img,
+[data-theme="dark"] .inquiry-card-brand > svg {
+  border-color: rgba(153, 228, 180, 0.25);
+  background: rgba(2, 19, 11, 0.52);
+  color: #73e49d;
+}
+[data-theme="dark"] .inquiry-card-brand h2,
+[data-theme="dark"] .inquiry-card-form-title {
+  color: #f0fff5;
+}
+[data-theme="dark"] .inquiry-card-brand p {
+  color: #b5cfbf;
+}
+[data-theme="dark"] .listing-inquiry-card .contact-actions a,
+[data-theme="dark"] .listing-inquiry-card .contact-actions > span {
+  border-color: rgba(166, 229, 188, 0.16);
+  background: rgba(1, 17, 10, 0.35);
+  color: #d7eee0;
+}
+[data-theme="dark"] .listing-inquiry-card .contact-action-whatsapp {
+  border-color: rgba(61, 214, 121, 0.55);
+  background: rgba(12, 107, 51, 0.44);
+  color: #caffdc;
+}
+[data-theme="dark"] .listing-inquiry-card .contact-action-viber {
+  border-color: rgba(169, 139, 229, 0.53);
+  background: rgba(80, 48, 140, 0.46);
+  color: #f0e9ff;
+}
+@media (max-width: 760px) {
+  .detail-page { margin-top: 16px; }
+  .inquiry-card-header { padding: 18px; }
+  .inquiry-card-form-title { margin: 17px 18px 0; }
+  .listing-inquiry-card > form,
+  .listing-inquiry-card > .success { margin-left: 18px; margin-right: 18px; }
+  .listing-inquiry-card .contact-actions { margin-left: 18px; margin-right: 18px; }
+}
+
 /* Final app-level overrides. Kept at the end to win over legacy input styles. */
 .listing-manager .manager-toolbar > label {
   min-height: 48px;

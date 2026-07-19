@@ -1069,9 +1069,6 @@ function ListingDetail({ go, item }) {
   return (
     <PublicLayout go={go}>
       <main className="detail-page">
-        <button className="back-link" onClick={() => go("/listings")}>
-          <ArrowLeft /> Back to businesses
-        </button>
         <div className="detail-hero">
           <img src={item.image} alt={`${item.name} featured`} />
           <div className="detail-overlay">
@@ -1125,50 +1122,6 @@ function ListingDetail({ go, item }) {
                 <span key={s}>{s}</span>
               ))}
             </div>
-            {(item.email || item.phone || item.website || item.whatsapp || item.viber) && (
-              <section className="listing-contact-details">
-                <h3>CONTACT INFORMATION</h3>
-                <div>
-                  {item.email && (
-                    <a href={`mailto:${item.email}`}>
-                      <EnvelopeSimple />
-                      <span>
-                        <small>Email address</small>
-                        <strong>{item.email}</strong>
-                      </span>
-                    </a>
-                  )}
-                  {item.phone && (
-                    <a href={`tel:${item.phone}`}>
-                      <Phone />
-                      <span>
-                        <small>Business phone</small>
-                        <strong>{item.phone}</strong>
-                      </span>
-                    </a>
-                  )}
-                  {item.website && (
-                    <a href={item.website} target="_blank" rel="noreferrer">
-                      <Globe />
-                      <span>
-                        <small>Website / social page</small>
-                        <strong>{item.website}</strong>
-                      </span>
-                    </a>
-                  )}
-                  {item.whatsapp && (
-                    <a href={`https://wa.me/${item.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">
-                      <ChatCircleText /><span><small>WhatsApp</small><strong>{item.whatsapp}</strong></span>
-                    </a>
-                  )}
-                  {item.viber && (
-                    <a href={`viber://chat?number=${encodeURIComponent(item.viber.replace(/\D/g, ""))}`}>
-                      <ChatCircleText /><span><small>Viber</small><strong>{item.viber}</strong></span>
-                    </a>
-                  )}
-                </div>
-              </section>
-            )}
             {item.location && (
               <section className="listing-location-map">
                 <div className="listing-location-map-heading">
@@ -1248,7 +1201,17 @@ function ListingDetail({ go, item }) {
             )}
           </article>
           <aside className="inquiry-card listing-inquiry-card">
-            <h2>Inquiry Form</h2>
+            <header className="inquiry-card-header">
+              <span>Connect with this business</span>
+              <div className="inquiry-card-brand">
+                {item.logo ? <img src={item.logo} alt="" /> : <Storefront weight="duotone" />}
+                <div>
+                  <h2>{item.cardTitle?.trim() || item.name}</h2>
+                  <p>Send a direct inquiry to {item.name}.</p>
+                </div>
+              </div>
+            </header>
+            <h3 className="inquiry-card-form-title">Inquiry form</h3>
             {sent ? (
               <div className="success">
                 <CheckCircle size={45} weight="fill" />
@@ -1285,7 +1248,7 @@ function ListingDetail({ go, item }) {
                 </GreenButton>
               </form>
             )}
-            <div className="contact-actions">
+            <div className="contact-actions" aria-label="Business contact options">
               {item.phone ? (
                 <a href={`tel:${item.phone}`}>
                   <Phone /> Call
@@ -1312,6 +1275,26 @@ function ListingDetail({ go, item }) {
                 <span>
                   <Globe /> Website
                 </span>
+              )}
+              {item.whatsapp && (
+                <a
+                  className="contact-action-whatsapp"
+                  href={`https://wa.me/${item.whatsapp.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Chat with ${item.name} on WhatsApp`}
+                >
+                  <ChatCircleText weight="fill" /> WhatsApp
+                </a>
+              )}
+              {item.viber && (
+                <a
+                  className="contact-action-viber"
+                  href={`viber://chat?number=${encodeURIComponent(item.viber.replace(/\D/g, ""))}`}
+                  aria-label={`Chat with ${item.name} on Viber`}
+                >
+                  <ChatCircleText weight="fill" /> Viber
+                </a>
               )}
             </div>
           </aside>
