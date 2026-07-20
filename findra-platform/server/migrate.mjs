@@ -72,6 +72,18 @@ CREATE TABLE IF NOT EXISTS inquiries (
 );
 CREATE INDEX IF NOT EXISTS inquiries_listing_id_idx ON inquiries(listing_id);
 CREATE INDEX IF NOT EXISTS inquiries_created_at_idx ON inquiries(created_at DESC);
+ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS sender_user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+
+CREATE TABLE IF NOT EXISTS inquiry_replies (
+  id BIGSERIAL PRIMARY KEY,
+  inquiry_id BIGINT NOT NULL REFERENCES inquiries(id) ON DELETE CASCADE,
+  sender_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  sender_name TEXT NOT NULL,
+  message TEXT NOT NULL,
+  email_status TEXT NOT NULL DEFAULT 'queued',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS inquiry_replies_inquiry_id_idx ON inquiry_replies(inquiry_id, created_at);
 
 -- Contact details identify a business listing. Keep legacy records intact, but
 -- reject any future create/update that reuses a business email or phone number.

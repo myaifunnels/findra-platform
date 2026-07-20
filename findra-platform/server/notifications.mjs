@@ -11,6 +11,7 @@ const copy = {
   "listing-pending-admin": ["New business listing needs review", "A business owner submitted a listing. Review its details and publish or decline it from the Findra admin workspace."],
   "inbox-message-admin": ["New Findra inbox message", "A business owner has sent a message to the Findra admin team."],
   "subscription-renewal": ["Your Findra PH subscription is expiring soon", "Renew your subscription to keep your Business Details live and visible to customers."],
+  "inquiry-reply": ["You have a reply to your Findra PH inquiry", "The business you contacted has responded to your inquiry. Check your email for their reply."],
 };
 const templateNames = {
   "new-user": "New user welcome",
@@ -22,6 +23,7 @@ const templateNames = {
   "listing-pending-admin": "New listing pending admin review",
   "inbox-message-admin": "New inbox message for admin",
   "subscription-renewal": "Subscription renewal reminder",
+  "inquiry-reply": "Reply to customer inquiry",
 };
 const smsCopy = {
   "new-user": `Hi {{contactFirstName}},
@@ -91,6 +93,7 @@ function defaultsFor(event) {
     "listing-pending-admin": "New Business Details pending review",
     "inbox-message-admin": "New Findra inbox message",
     "subscription-renewal": "{{daysLeft}} day(s) left on your Findra PH subscription",
+    "inquiry-reply": "{{replyFrom}} replied to your inquiry on Findra PH",
   };
   const clientBodies = {
     "new-user": `<p>Hi {{contactFirstName}},</p><p>Welcome to Findra PH!</p><p>We’re excited to have you on board. You’re officially registered, and your account is now active.</p><p>Here’s what you can do next:</p><ul><li>Complete your Business Details so customers can easily find and contact you.</li><li>Submit your Business Details for review and approval.</li><li>Manage your account and Business Details from your dashboard anytime.</li></ul><p><a href="{{dashboardUrl}}">Access your dashboard</a></p><p>Once your Business Details are submitted, our team will review them within 3–4 business days before they go live.</p><p>Welcome aboard,<br>The Findra PH Team</p>`,
@@ -102,6 +105,7 @@ function defaultsFor(event) {
     "listing-pending-admin": `<p>Hi {{contactFirstName}},</p><p>A new business, <strong>{{businessName}}</strong>, has been submitted on Findra PH and is awaiting your review.</p><p>Please log in to the admin panel to review and approve or request changes.</p><p><a href="{{adminUrl}}">Review the business listing</a></p><p>Prompt review helps ensure a smooth onboarding experience for suppliers and keeps new businesses visible to customers quickly.</p><p>Regards,<br>Findra PH System</p>`,
     "inbox-message-admin": `<p>Hi {{contactFirstName}},</p><p>You have received a new Findra inbox message: <strong>{{businessName}}</strong>.</p><p>Please review the message in the Findra admin workspace.</p><p>Regards,<br>Findra PH System</p>`,
     "subscription-renewal": `<p>Hi {{contactFirstName}},</p><p>Your <strong>{{businessName}}</strong> subscription on Findra PH has <strong>{{daysLeft}} day(s)</strong> left before it expires.</p><p>Renew now to keep your Business Details live and visible to customers without interruption.</p><p><a href="{{dashboardUrl}}">Manage your subscription</a></p><p>Thank you for growing with Findra PH,<br>The Findra PH Team</p>`,
+    "inquiry-reply": `<p>Hi {{contactFirstName}},</p><p><strong>{{replyFrom}}</strong> from <strong>{{businessName}}</strong> replied to your inquiry on Findra PH:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{replyMessage}}</blockquote><p>You can reply directly to this email to continue the conversation.</p><p>Best regards,<br>The Findra PH Team</p>`,
   };
   return {
     event,
@@ -136,6 +140,8 @@ function renderTemplate(value, context = {}) {
     supportEmail: process.env.BREVO_FROM_EMAIL || "hello@findra.ph",
     currentYear: new Date().getFullYear(),
     daysLeft: context.daysLeft ?? "",
+    replyFrom: context.replyFrom || "The business",
+    replyMessage: context.replyMessage || "",
   };
   return String(value || "").replace(/{{([a-zA-Z]+)}}/g, (match, key) => key in fields ? escapeHtml(fields[key]) : match);
 }

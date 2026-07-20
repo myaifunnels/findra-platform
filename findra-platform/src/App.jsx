@@ -3953,6 +3953,50 @@ function InquiriesPanel({ role, listing, query = "", onNotify }) {
       })
       .catch(() => {});
   };
+  const [selectedId, setSelectedId] = useState(null);
+  const [replies, setReplies] = useState([]);
+  const [repliesLoading, setRepliesLoading] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [replySending, setReplySending] = useState(false);
+  const selected = filtered.find((item) => item.id === selectedId) || null;
+  const select = (item) => {
+    setSelectedId(item.id);
+    setReplyText("");
+    setRepliesLoading(true);
+    setReplies([]);
+    markRead(item);
+    fetch(`/api/inquiries/${item.id}/replies`, { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => setReplies(payload?.replies || []))
+      .catch(() => {})
+      .finally(() => setRepliesLoading(false));
+  };
+  const sendReply = async () => {
+    if (!selected || !replyText.trim()) return;
+    setReplySending(true);
+    try {
+      const response = await fetch(`/api/inquiries/${selected.id}/replies`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: replyText }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Reply could not be sent.");
+      setReplies((current) => [...current, payload.reply]);
+      setInquiries((current) => current.map((row) => (row.id === selected.id ? { ...row, status: "Responded" } : row)));
+      setReplyText("");
+      onNotify?.({ type: "success", title: "Reply sent", message: `${selected.name} will receive your reply by email.` });
+    } catch (error) {
+      onNotify?.({ type: "error", title: "Reply could not be sent", message: error.message });
+    } finally {
+      setReplySending(false);
+    }
+  };
+  const senderTag = (item) =>
+    item.sender_registered
+      ? item.sender_role === "admin" ? "Findra admin" : "Business owner"
+      : "Guest";
   if (role === "user" && !listing) {
     return (
       <div className="admin-content">
@@ -3973,18 +4017,73 @@ function InquiriesPanel({ role, listing, query = "", onNotify }) {
       {loading ? (
         <section className="panel admin-empty"><p>Loading…</p></section>
       ) : filtered.length ? (
-        <section className="panel inquiries-list">
-          {filtered.map((item) => (
-            <article key={item.id} className={`inquiry-row ${item.status.toLowerCase()}`} onClick={() => markRead(item)}>
-              <div>
-                <strong>{item.name}</strong>
-                <span className={`status-badge ${item.status.toLowerCase()}`}>{item.status}</span>
+        <section className="panel inquiry-workspace">
+          <aside className="inquiry-contact-list">
+            {filtered.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`inquiry-contact ${item.status === "New" ? "unread" : ""} ${item.id === selectedId ? "selected" : ""}`}
+                onClick={() => select(item)}
+              >
+                <div className="inquiry-contact-top">
+                  <strong>{item.name}</strong>
+                  {item.status === "New" && <i className="inquiry-unread-dot" aria-label="Unread" />}
+                </div>
+                <small className="inquiry-contact-email">{item.email}</small>
+                <div className="inquiry-contact-meta">
+                  <span className={`inquiry-sender-tag ${item.sender_registered ? "registered" : "guest"}`}>{senderTag(item)}</span>
+                  <time>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</time>
+                </div>
+              </button>
+            ))}
+          </aside>
+          <div className="inquiry-conversation">
+            {selected ? (
+              <>
+                <header className="inquiry-conversation-head">
+                  <div>
+                    <strong>{selected.name}</strong>
+                    <small>{selected.email}{selected.phone ? ` · ${selected.phone}` : ""}</small>
+                  </div>
+                  <div className="inquiry-conversation-tags">
+                    <span className={`inquiry-sender-tag ${selected.sender_registered ? "registered" : "guest"}`}>{senderTag(selected)}</span>
+                    <span className={`status-badge ${selected.status.toLowerCase()}`}>{selected.status}</span>
+                  </div>
+                </header>
+                <div className="inquiry-thread">
+                  <div className="inquiry-bubble inbound">
+                    <p>{selected.message}</p>
+                    <time>{new Date(selected.created_at).toLocaleString()}{selected.listing_name ? ` · via ${selected.listing_name}` : " · via website contact form"}</time>
+                  </div>
+                  {repliesLoading && <p className="muted-copy">Loading conversation…</p>}
+                  {replies.map((reply) => (
+                    <div key={reply.id} className="inquiry-bubble outbound">
+                      <p>{reply.message}</p>
+                      <time>{reply.sender_name} · {new Date(reply.created_at).toLocaleString()}{reply.email_status === "failed" ? " · Email failed" : " · Sent by email"}</time>
+                    </div>
+                  ))}
+                </div>
+                <div className="inquiry-reply-box">
+                  <textarea
+                    value={replyText}
+                    onChange={(event) => setReplyText(event.target.value)}
+                    placeholder={`Reply to ${selected.name}… They'll receive it by email.`}
+                    rows={3}
+                  />
+                  <button className="admin-primary" disabled={replySending || !replyText.trim()} onClick={sendReply}>
+                    <EnvelopeSimple /> {replySending ? "Sending…" : "Send reply"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="inquiry-conversation-empty">
+                <ChatCircleText size={42} />
+                <h3>Select an inquiry</h3>
+                <p>Choose a conversation on the left to read the full message and reply.</p>
               </div>
-              <small>{item.email}{item.phone ? ` · ${item.phone}` : ""}{item.listing_name ? ` · ${item.listing_name}` : " · Website contact form"}</small>
-              <p>{item.message}</p>
-              <time>{new Date(item.created_at).toLocaleString()}</time>
-            </article>
-          ))}
+            )}
+          </div>
         </section>
       ) : (
         <section className="panel admin-empty"><ChatCircleText size={42} /><h3>No inquiries yet</h3><p>{role === "admin" ? "Inquiries from listings and the contact form will show up here." : "Publish and share your listing to start receiving customer messages."}</p></section>

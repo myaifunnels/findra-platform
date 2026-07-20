@@ -33,11 +33,19 @@ async function create(request, response) {
     const result = await query("SELECT * FROM listings WHERE id = $1", [listingId]);
     listing = result.rows[0] || null;
   }
+  // A signed-in session, or a matching account email, identifies the sender as
+  // a registered member instead of a guest.
+  const sessionUser = await readSession(request).catch(() => null);
+  let senderUserId = sessionUser?.id || null;
+  if (!senderUserId) {
+    const match = await query("SELECT id FROM users WHERE email = $1", [email]);
+    senderUserId = match.rows[0]?.id || null;
+  }
   const target = listing ? "business" : "admin";
   const created = await query(
-    `INSERT INTO inquiries (listing_id, target, name, email, phone, message)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [listing ? listing.id : null, target, name, email, phone, message],
+    `INSERT INTO inquiries (listing_id, target, name, email, phone, message, sender_user_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [listing ? listing.id : null, target, name, email, phone, message, senderUserId],
   );
 
   const context = { contactFirstName: name, contactFullName: name, contactEmail: email, contactPhone: phone, businessName: listing ? listing.name : "Website contact form" };
@@ -48,15 +56,75 @@ async function create(request, response) {
   return json(response, 201, { inquiry: created.rows[0] });
 }
 
+const listSelect = `SELECT inquiries.*, listings.name AS listing_name,
+    users.role AS sender_role, users.display_name AS sender_display_name,
+    (inquiries.sender_user_id IS NOT NULL) AS sender_registered`;
+
 async function list(request, response, user) {
   const result =
     user.role === "admin"
-      ? await query("SELECT inquiries.*, listings.name AS listing_name FROM inquiries LEFT JOIN listings ON listings.id = inquiries.listing_id ORDER BY inquiries.created_at DESC LIMIT 200")
+      ? await query(`${listSelect} FROM inquiries
+          LEFT JOIN listings ON listings.id = inquiries.listing_id
+          LEFT JOIN users ON users.id = inquiries.sender_user_id
+          ORDER BY inquiries.created_at DESC LIMIT 200`)
       : await query(
-          "SELECT inquiries.*, listings.name AS listing_name FROM inquiries JOIN listings ON listings.id = inquiries.listing_id WHERE listings.owner_id = $1 ORDER BY inquiries.created_at DESC LIMIT 200",
+          `${listSelect} FROM inquiries
+            JOIN listings ON listings.id = inquiries.listing_id
+            LEFT JOIN users ON users.id = inquiries.sender_user_id
+            WHERE listings.owner_id = $1 ORDER BY inquiries.created_at DESC LIMIT 200`,
           [user.id],
         );
   return json(response, 200, { inquiries: result.rows });
+}
+
+async function findAccessibleInquiry(id, user) {
+  const result =
+    user.role === "admin"
+      ? await query("SELECT inquiries.*, listings.name AS listing_name FROM inquiries LEFT JOIN listings ON listings.id = inquiries.listing_id WHERE inquiries.id = $1", [id])
+      : await query(
+          `SELECT inquiries.*, listings.name AS listing_name FROM inquiries
+            JOIN listings ON listings.id = inquiries.listing_id
+            WHERE inquiries.id = $1 AND listings.owner_id = $2`,
+          [id, user.id],
+        );
+  return result.rows[0] || null;
+}
+
+async function listReplies(response, inquiry) {
+  const result = await query(
+    "SELECT * FROM inquiry_replies WHERE inquiry_id = $1 ORDER BY created_at ASC",
+    [inquiry.id],
+  );
+  return json(response, 200, { replies: result.rows });
+}
+
+async function createReply(request, response, inquiry, user) {
+  const body = await readJson(request);
+  const message = String(body.message || "").trim().slice(0, 4000);
+  if (!message) return json(response, 400, { error: "Write a reply message first." });
+  const senderName = user.display_name || "Findra";
+  const context = {
+    contactFirstName: inquiry.name,
+    contactFullName: inquiry.name,
+    contactEmail: inquiry.email,
+    businessName: inquiry.listing_name || "Findra",
+    replyFrom: senderName,
+    replyMessage: message,
+  };
+  let emailStatus = "queued";
+  try {
+    await notify({ userId: inquiry.sender_user_id, email: inquiry.email, event: "inquiry-reply", context });
+    emailStatus = "sent";
+  } catch {
+    emailStatus = "failed";
+  }
+  const created = await query(
+    `INSERT INTO inquiry_replies (inquiry_id, sender_user_id, sender_name, message, email_status)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [inquiry.id, user.id, senderName, message, emailStatus],
+  );
+  await query("UPDATE inquiries SET status = 'Responded' WHERE id = $1", [inquiry.id]);
+  return json(response, 201, { reply: created.rows[0] });
 }
 
 export async function handleInquiriesRequest(request, response) {
@@ -73,6 +141,14 @@ export async function handleInquiriesRequest(request, response) {
     if (request.method === "GET" && url.pathname === "/api/inquiries") {
       await list(request, response, user);
       return true;
+    }
+
+    const replyMatch = url.pathname.match(/^\/api\/inquiries\/(\d+)\/replies$/);
+    if (replyMatch) {
+      const inquiry = await findAccessibleInquiry(replyMatch[1], user);
+      if (!inquiry) return json(response, 404, { error: "Inquiry not found." }), true;
+      if (request.method === "GET") return await listReplies(response, inquiry), true;
+      if (request.method === "POST") return await createReply(request, response, inquiry, user), true;
     }
 
     const match = url.pathname.match(/^\/api\/inquiries\/(\d+)$/);
