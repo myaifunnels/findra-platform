@@ -13,6 +13,8 @@ import { handleMapsRequest } from "./server/maps.mjs";
 import { handleTextbeeRequest } from "./server/textbee.mjs";
 import { handleUsersRequest } from "./server/users.mjs";
 import { handleInquiriesRequest } from "./server/inquiries.mjs";
+import { databaseConfigured } from "./server/db.mjs";
+import { runSubscriptionReminders } from "./server/reminders.mjs";
 
 const root = fileURLToPath(new URL("./dist/", import.meta.url));
 try {
@@ -76,3 +78,10 @@ createServer(async (request, response) => {
 }).listen(port, "0.0.0.0", () => {
   console.log(`Findra server running on http://localhost:${port}`);
 });
+
+if (databaseConfigured()) {
+  const SIX_HOURS = 6 * 60 * 60 * 1000;
+  const checkSubscriptionReminders = () => runSubscriptionReminders().catch((error) => console.error("Subscription reminder check failed:", error.message));
+  checkSubscriptionReminders();
+  setInterval(checkSubscriptionReminders, SIX_HOURS);
+}

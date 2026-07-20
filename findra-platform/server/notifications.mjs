@@ -10,6 +10,7 @@ const copy = {
   "inquiry-received": ["You have a new inquiry on Findra PH", "A potential customer sent you an inquiry. Respond promptly to turn it into an opportunity."],
   "listing-pending-admin": ["New business listing needs review", "A business owner submitted a listing. Review its details and publish or decline it from the Findra admin workspace."],
   "inbox-message-admin": ["New Findra inbox message", "A business owner has sent a message to the Findra admin team."],
+  "subscription-renewal": ["Your Findra PH subscription is expiring soon", "Renew your subscription to keep your Business Details live and visible to customers."],
 };
 const templateNames = {
   "new-user": "New user welcome",
@@ -20,6 +21,7 @@ const templateNames = {
   "inquiry-received": "New inquiry received",
   "listing-pending-admin": "New listing pending admin review",
   "inbox-message-admin": "New inbox message for admin",
+  "subscription-renewal": "Subscription renewal reminder",
 };
 const smsCopy = {
   "new-user": `Hi {{contactFirstName}},
@@ -62,6 +64,11 @@ Check your email for full details.`,
 You have a new message from {{contactFirstName}}.
 
 Check your email for full details.`,
+  "subscription-renewal": `Hi {{contactFirstName}},
+
+{{daysLeft}} day(s) left on your {{businessName}} subscription.
+
+Renew soon to stay live on Findra PH.`,
 };
 function json(res, status, body) { res.statusCode=status; res.setHeader("Content-Type","application/json"); res.end(JSON.stringify(body)); }
 async function readJson(request) {
@@ -83,6 +90,7 @@ function defaultsFor(event) {
     "inquiry-received": "You have a new inquiry on Findra PH",
     "listing-pending-admin": "New Business Details pending review",
     "inbox-message-admin": "New Findra inbox message",
+    "subscription-renewal": "{{daysLeft}} day(s) left on your Findra PH subscription",
   };
   const clientBodies = {
     "new-user": `<p>Hi {{contactFirstName}},</p><p>Welcome to Findra PH!</p><p>We’re excited to have you on board. You’re officially registered, and your account is now active.</p><p>Here’s what you can do next:</p><ul><li>Complete your Business Details so customers can easily find and contact you.</li><li>Submit your Business Details for review and approval.</li><li>Manage your account and Business Details from your dashboard anytime.</li></ul><p><a href="{{dashboardUrl}}">Access your dashboard</a></p><p>Once your Business Details are submitted, our team will review them within 3–4 business days before they go live.</p><p>Welcome aboard,<br>The Findra PH Team</p>`,
@@ -93,6 +101,7 @@ function defaultsFor(event) {
     "inquiry-received": `<p>Hi {{contactFirstName}},</p><p>Good news! You’ve received a new inquiry from a potential customer on Findra PH.</p><p>Responding quickly can help turn inquiries into real business opportunities.</p><p><a href="{{dashboardUrl}}">View and reply to the message</a></p><p>Best regards,<br>The Findra PH Team</p>`,
     "listing-pending-admin": `<p>Hi {{contactFirstName}},</p><p>A new business, <strong>{{businessName}}</strong>, has been submitted on Findra PH and is awaiting your review.</p><p>Please log in to the admin panel to review and approve or request changes.</p><p><a href="{{adminUrl}}">Review the business listing</a></p><p>Prompt review helps ensure a smooth onboarding experience for suppliers and keeps new businesses visible to customers quickly.</p><p>Regards,<br>Findra PH System</p>`,
     "inbox-message-admin": `<p>Hi {{contactFirstName}},</p><p>You have received a new Findra inbox message: <strong>{{businessName}}</strong>.</p><p>Please review the message in the Findra admin workspace.</p><p>Regards,<br>Findra PH System</p>`,
+    "subscription-renewal": `<p>Hi {{contactFirstName}},</p><p>Your <strong>{{businessName}}</strong> subscription on Findra PH has <strong>{{daysLeft}} day(s)</strong> left before it expires.</p><p>Renew now to keep your Business Details live and visible to customers without interruption.</p><p><a href="{{dashboardUrl}}">Manage your subscription</a></p><p>Thank you for growing with Findra PH,<br>The Findra PH Team</p>`,
   };
   return {
     event,
@@ -126,6 +135,7 @@ function renderTemplate(value, context = {}) {
     businessUrl: context.businessUrl || context.dashboardUrl || `${appUrl}/user`,
     supportEmail: process.env.BREVO_FROM_EMAIL || "hello@findra.ph",
     currentYear: new Date().getFullYear(),
+    daysLeft: context.daysLeft ?? "",
   };
   return String(value || "").replace(/{{([a-zA-Z]+)}}/g, (match, key) => key in fields ? escapeHtml(fields[key]) : match);
 }
@@ -152,7 +162,8 @@ async function send(email, template, context) {
   const key=process.env.BREVO_API_KEY, from=template.from_email || process.env.BREVO_FROM_EMAIL;
   if (process.env.BREVO_ENABLED === "false" || !key || !from) return "not_configured";
   const htmlContent = renderTemplate(template.body_html, context);
-  const response=await fetch("https://api.brevo.com/v3/smtp/email", {method:"POST",headers:{"api-key":key,"Content-Type":"application/json"},body:JSON.stringify({sender:{email:from,name:template.from_name||process.env.BREVO_FROM_NAME||"Findra PH"},replyTo:template.reply_to ? {email:template.reply_to} : undefined,to:[{email}],subject:template.subject,htmlContent,textContent:htmlContent.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim()})});
+  const subject = renderTemplate(template.subject, context);
+  const response=await fetch("https://api.brevo.com/v3/smtp/email", {method:"POST",headers:{"api-key":key,"Content-Type":"application/json"},body:JSON.stringify({sender:{email:from,name:template.from_name||process.env.BREVO_FROM_NAME||"Findra PH"},replyTo:template.reply_to ? {email:template.reply_to} : undefined,to:[{email}],subject,htmlContent,textContent:htmlContent.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim()})});
   return response.ok ? "sent" : "failed";
 }
 async function runAdditionalActions(event, email, context) {

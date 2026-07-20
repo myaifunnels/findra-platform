@@ -24,16 +24,29 @@ async function readJson(request) {
   return body ? JSON.parse(body) : {};
 }
 
+export function subscriptionDaysLeft(subscription, createdAt) {
+  if (!subscription) return null;
+  const start = new Date(subscription.startDate || createdAt);
+  const cycleDays = String(subscription.billing || "").toLowerCase() === "monthly" ? 30 : 365;
+  const expires = new Date(start.getTime() + cycleDays * 86_400_000);
+  return Math.ceil((expires.getTime() - Date.now()) / 86_400_000);
+}
+
 function publicRecord(row) {
+  const data = row.data || {};
+  const subscription = data.subscription
+    ? { ...data.subscription, daysLeft: subscriptionDaysLeft(data.subscription, row.created_at) }
+    : data.subscription;
   return {
-    ...row.data,
+    ...data,
+    subscription,
     id: Number(row.id),
     name: row.name,
     category: row.category || "",
     location: row.location || "",
     status: row.status,
     ownerId: row.owner_id,
-    owner: row.owner_name || row.data?.owner || "",
+    owner: row.owner_name || data.owner || "",
   };
 }
 

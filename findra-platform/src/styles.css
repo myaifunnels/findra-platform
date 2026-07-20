@@ -877,8 +877,10 @@ footer {
   flex-wrap: wrap;
 }
 .service-tags span {
-  font-size: 13px;
-  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 11px;
+  letter-spacing: 0.01em;
 }
 .project-grid {
   display: grid;
@@ -8204,12 +8206,24 @@ th {
   font-weight: 800;
   text-transform: capitalize;
 }
-.package-grid {
+.billing-card dd.days-left.warning {
+  color: #b8863a;
+}
+.billing-card dd.days-left.critical {
+  color: #c0334a;
+}
+[data-theme="dark"] .billing-card dd.days-left.warning {
+  color: #ffb648;
+}
+[data-theme="dark"] .billing-card dd.days-left.critical {
+  color: #ff8b9b;
+}
+.plan-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
 }
-.package-card {
+.plan-card {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -8221,57 +8235,56 @@ th {
   box-shadow: 0 1px 2px rgba(16, 40, 28, 0.04);
   transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
 }
-.package-card:hover {
+.plan-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 16px 32px rgba(16, 40, 28, 0.08);
 }
-.package-card.featured {
+.plan-card.featured {
   border-color: rgba(11, 145, 71, 0.4);
 }
-.package-card.current {
+.plan-card.current {
   border-color: var(--green);
   box-shadow: 0 0 0 1px var(--green), 0 16px 32px rgba(11, 145, 71, 0.12);
 }
-.package-card-top {
+.plan-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
-.package-card h3 {
+.plan-card h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 750;
   color: var(--surface-text);
 }
-.package-badge {
+.plan-badge {
   flex: 0 0 auto;
-  padding: 3px 10px;
+  padding: 1px 9px;
   border-radius: 99px;
-  font-size: 10.5px;
   font-weight: 800;
-  letter-spacing: 0.03em;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   background: rgba(11, 145, 71, 0.12);
   color: #0b9147;
 }
-.package-badge.current {
+.plan-badge.current {
   background: var(--green);
   color: white;
 }
-.package-price {
+.plan-price {
   margin: 0;
-  font-size: 30px;
+  font-size: 30px !important;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--surface-text);
 }
-.package-price small {
-  font-size: 13px;
+.plan-price small {
   font-weight: 600;
   color: var(--surface-muted);
 }
-.package-checklist {
+.plan-checklist {
   display: grid;
   gap: 11px;
   margin: 0;
@@ -8280,56 +8293,55 @@ th {
   list-style: none;
   flex: 1;
 }
-.package-checklist li {
+.plan-checklist li {
   display: flex;
   align-items: flex-start;
   gap: 9px;
-  font-size: 13.5px;
   line-height: 1.4;
   color: var(--surface-text);
 }
-.package-checklist li svg {
+.plan-checklist li svg {
   flex: 0 0 auto;
   margin-top: 2px;
   width: 16px;
   height: 16px;
   color: #0b9147;
 }
-.package-card > button {
+.plan-card > button {
   width: 100%;
   justify-content: center;
   min-height: 46px;
   border-radius: 11px;
   font-weight: 750;
 }
-.package-card > button.secondary-button {
+.plan-card > button.secondary-button {
   border: 1px solid var(--glass-line, #d4e2dc);
   background: transparent;
   color: var(--surface-muted);
 }
-.package-card > button.secondary-button:disabled {
+.plan-card > button.secondary-button:disabled {
   opacity: 0.7;
   cursor: default;
 }
-[data-theme="dark"] .package-card {
+[data-theme="dark"] .plan-card {
   background: var(--surface-1, #16211e);
   border-color: var(--glass-line, #293a35);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
-[data-theme="dark"] .package-card:hover {
+[data-theme="dark"] .plan-card:hover {
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.32);
 }
-[data-theme="dark"] .package-card.current {
+[data-theme="dark"] .plan-card.current {
   box-shadow: 0 0 0 1px var(--green), 0 16px 32px rgba(11, 145, 71, 0.22);
 }
-[data-theme="dark"] .package-checklist {
+[data-theme="dark"] .plan-checklist {
   border-top-color: var(--glass-line, #293a35);
 }
-[data-theme="dark"] .package-badge {
+[data-theme="dark"] .plan-badge {
   background: rgba(114, 229, 172, 0.16);
   color: #72e5ac;
 }
-[data-theme="dark"] .package-card > button.secondary-button {
+[data-theme="dark"] .plan-card > button.secondary-button {
   border-color: var(--glass-line, #293a35);
   color: #9eb0a9;
 }

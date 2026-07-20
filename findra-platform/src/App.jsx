@@ -3702,6 +3702,14 @@ function PlanBilling({ listing, go, resumePayment }) {
               <dt>PayMongo reference</dt>
               <dd>{subscription.paymentReference}</dd>
             </div>
+            {typeof subscription.daysLeft === "number" && (
+              <div>
+                <dt>Renews in</dt>
+                <dd className={`days-left ${subscription.daysLeft <= 1 ? "critical" : subscription.daysLeft <= 7 ? "warning" : ""}`}>
+                  {subscription.daysLeft <= 0 ? "Expired" : `${subscription.daysLeft} day${subscription.daysLeft === 1 ? "" : "s"} left`}
+                </dd>
+              </div>
+            )}
             <div>
               <dt>Listing status</dt>
               <dd>{listing.status}</dd>
@@ -3715,21 +3723,21 @@ function PlanBilling({ listing, go, resumePayment }) {
           <p>Packages are managed by the Findra team and update here automatically.</p>
         </div>
       </section>
-      <section className="package-grid">
+      <section className="plan-grid">
         {packages.map((item) => {
           const isCurrent = subscription && subscription.plan === item.name;
           const currentPackage = subscription && packages.find((p) => p.name === subscription.plan);
           const currentPrice = currentPackage?.price ?? subscription?.amount;
           const isUpgrade = subscription && !isCurrent && currentPrice != null && item.price > currentPrice;
           return (
-            <article key={item.id} className={`panel package-card ${item.featured ? "featured" : ""} ${isCurrent ? "current" : ""}`}>
-              <div className="package-card-top">
+            <article key={item.id} className={`panel plan-card ${item.featured ? "featured" : ""} ${isCurrent ? "current" : ""}`}>
+              <div className="plan-card-top">
                 <h3>{item.name}</h3>
-                {isCurrent && <span className="package-badge current">Current plan</span>}
-                {!isCurrent && item.featured && <span className="package-badge">Most popular</span>}
+                {isCurrent && <span className="plan-badge current">Current plan</span>}
+                {!isCurrent && item.featured && <span className="plan-badge">Most popular</span>}
               </div>
-              <p className="package-price">₱{Number(item.price).toLocaleString()} <small>/ {item.interval}</small></p>
-              <ul className="package-checklist">
+              <p className="plan-price">₱{Number(item.price).toLocaleString()} <small>/ {item.interval}</small></p>
+              <ul className="plan-checklist">
                 {(item.features || []).map((feature) => (
                   <li key={feature}><CheckCircle weight="fill" />{feature}</li>
                 ))}
@@ -6722,6 +6730,7 @@ export function App() {
         paymentMethod: payment.method || "paymongo",
         paymentReference: payment.reference || "PayMongo payment",
         paymentSessionId: payment.sessionId || "",
+        startDate: new Date().toISOString(),
       },
     };
     if (!(await saveUserListing(paidRecord, account.name)))
