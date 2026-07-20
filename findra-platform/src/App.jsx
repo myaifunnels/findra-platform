@@ -3986,10 +3986,11 @@ function InquiriesPanel({ role, listing, query = "", onNotify }) {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Reply could not be sent.");
+      // No success alert — the reply bubble appearing in the thread in real
+      // time is the confirmation.
       setReplies((current) => [...current, payload.reply]);
       setInquiries((current) => current.map((row) => (row.id === selected.id ? { ...row, status: "Responded" } : row)));
       setReplyText("");
-      onNotify?.({ type: "success", title: "Reply sent", message: `${selected.name} will receive your reply by email.` });
     } catch (error) {
       onNotify?.({ type: "error", title: "Reply could not be sent", message: error.message });
     } finally {
@@ -4101,9 +4102,8 @@ function UserInbox() {
   const [form, setForm] = useState({ subject: "", message: "" });
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const [sent, setSent] = useState(false);
-  const [expandedId, setExpandedId] = useState(null);
-  const [repliesByMessage, setRepliesByMessage] = useState({});
+  const [selectedId, setSelectedId] = useState(null);
+  const [replies, setReplies] = useState([]);
   const [repliesLoading, setRepliesLoading] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [replySending, setReplySending] = useState(false);
@@ -4120,6 +4120,18 @@ function UserInbox() {
   useEffect(() => {
     load().catch(() => {});
   }, []);
+  const selected = messages.find((item) => item.id === selectedId) || null;
+  const select = (item) => {
+    setSelectedId(item.id);
+    setReplyText("");
+    setRepliesLoading(true);
+    setReplies([]);
+    fetch(`/api/inbox/messages/${item.id}/replies`, { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => setReplies(payload?.replies || []))
+      .catch(() => {})
+      .finally(() => setRepliesLoading(false));
+  };
   const send = async () => {
     if (!form.subject.trim() || !form.message.trim()) {
       setError("Add a subject and message before sending.");
@@ -4136,35 +4148,23 @@ function UserInbox() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Message could not be sent.");
+      // Realtime, no confirmation modal: clear the form and drop straight into
+      // the new thread so the sender can keep talking immediately.
       setMessages((current) => [payload.message, ...current]);
       setForm({ subject: "", message: "" });
-      setSent(true);
+      setSelectedId(payload.message.id);
+      setReplies([]);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
       setSending(false);
     }
   };
-  const toggleThread = (item) => {
-    if (expandedId === item.id) {
-      setExpandedId(null);
-      return;
-    }
-    setExpandedId(item.id);
-    setReplyText("");
-    if (repliesByMessage[item.id]) return;
-    setRepliesLoading(true);
-    fetch(`/api/inbox/messages/${item.id}/replies`, { credentials: "same-origin" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => setRepliesByMessage((current) => ({ ...current, [item.id]: payload?.replies || [] })))
-      .catch(() => {})
-      .finally(() => setRepliesLoading(false));
-  };
   const sendThreadReply = async () => {
-    if (!expandedId || !replyText.trim()) return;
+    if (!selected || !replyText.trim()) return;
     setReplySending(true);
     try {
-      const response = await fetch(`/api/inbox/messages/${expandedId}/replies`, {
+      const response = await fetch(`/api/inbox/messages/${selected.id}/replies`, {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
@@ -4172,7 +4172,9 @@ function UserInbox() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Reply could not be sent.");
-      setRepliesByMessage((current) => ({ ...current, [expandedId]: [...(current[expandedId] || []), payload.reply] }));
+      // No success alert — the new bubble appearing in the thread is the
+      // confirmation.
+      setReplies((current) => [...current, payload.reply]);
       setReplyText("");
     } catch (requestError) {
       setError(requestError.message);
@@ -4204,81 +4206,108 @@ function UserInbox() {
           <span className="section-eyebrow">Message Findra</span>
           <h3>Contact the admin team</h3>
           <p>Use this for account, billing, listing, or platform support. The team receives an email notification.</p>
-          {sent ? (
-            <div className="success">
-              <CheckCircle size={40} weight="fill" />
-              <h3>Message sent</h3>
-              <p>The Findra admin team received your message and will get back to you soon.</p>
-              <button onClick={() => setSent(false)}>Send another message</button>
-            </div>
-          ) : (
-            <div className="inbox-compose-form">
-              <label>
-                <span>Subject *</span>
-                <input
-                  required
-                  value={form.subject}
-                  onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
-                  placeholder="How can Findra help?"
-                />
-              </label>
-              <label>
-                <span>Message *</span>
-                <textarea
-                  required
-                  value={form.message}
-                  onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-                  placeholder="Write your message to the Findra admin team…"
-                />
-              </label>
-              {error && <p className="inquiry-form-error">{error}</p>}
-              <button className="admin-primary" disabled={sending} type="button" onClick={send}>
-                <EnvelopeSimple />{sending ? "Sending…" : "Send message"}
-              </button>
-            </div>
-          )}
-          <div className="sent-message-list">
-            <h4>Your sent messages</h4>
-            {messages.length ? messages.map((item) => (
-              <article key={item.id} className={`sent-message-thread ${expandedId === item.id ? "open" : ""}`}>
-                <button type="button" className="sent-message-header" onClick={() => toggleThread(item)}>
-                  <div>
-                    <strong>{item.subject}</strong>
-                    <p>{item.message}</p>
-                    <small>{new Date(item.created_at).toLocaleString()}{item.status === "Responded" ? " · Admin replied" : ""}</small>
-                  </div>
-                  <span className={`status-badge ${item.status?.toLowerCase()}`}>{item.status}</span>
-                </button>
-                {expandedId === item.id && (
-                  <div className="inquiry-thread">
-                    {repliesLoading && !repliesByMessage[item.id] ? (
-                      <p className="muted-copy">Loading conversation…</p>
-                    ) : (
-                      (repliesByMessage[item.id] || []).map((reply) => (
-                        <div key={reply.id} className={`inquiry-bubble ${reply.sender_role === "admin" ? "inbound" : "outbound"}`}>
-                          <p>{reply.message}</p>
-                          <time>{reply.sender_name} · {new Date(reply.created_at).toLocaleString()}{reply.email_status === "failed" ? " · Email failed" : " · Sent by email"}</time>
-                        </div>
-                      ))
-                    )}
-                    <div className="inquiry-reply-box">
-                      <textarea
-                        value={replyText}
-                        onChange={(event) => setReplyText(event.target.value)}
-                        placeholder="Reply to the admin team… They'll receive it by email."
-                        rows={2}
-                      />
-                      <button className="admin-primary" disabled={replySending || !replyText.trim()} onClick={sendThreadReply}>
-                        <EnvelopeSimple /> {replySending ? "Sending…" : "Send reply"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </article>
-            )) : <p className="muted-copy">No messages sent yet.</p>}
+          <div className="inbox-compose-form">
+            <label>
+              <span>Subject *</span>
+              <input
+                required
+                value={form.subject}
+                onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
+                placeholder="How can Findra help?"
+              />
+            </label>
+            <label>
+              <span>Message *</span>
+              <textarea
+                required
+                value={form.message}
+                onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
+                placeholder="Write your message to the Findra admin team…"
+              />
+            </label>
+            {error && <p className="inquiry-form-error">{error}</p>}
+            <button className="admin-primary" disabled={sending} type="button" onClick={send}>
+              <EnvelopeSimple />{sending ? "Sending…" : "Send message"}
+            </button>
           </div>
         </section>
       </div>
+      <section className="welcome-row">
+        <div>
+          <h2>Your conversations with Findra</h2>
+          <p>Replies from the admin team land here in real time.</p>
+        </div>
+      </section>
+      {messages.length ? (
+        <section className="panel inquiry-workspace">
+          <aside className="inquiry-contact-list">
+            {messages.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`inquiry-contact ${item.id === selectedId ? "selected" : ""}`}
+                onClick={() => select(item)}
+              >
+                <div className="inquiry-contact-top">
+                  <strong>{item.subject}</strong>
+                </div>
+                <small className="inquiry-contact-email">{item.message}</small>
+                <div className="inquiry-contact-meta">
+                  <span className={`status-badge ${item.status?.toLowerCase()}`}>{item.status}</span>
+                  <time>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</time>
+                </div>
+              </button>
+            ))}
+          </aside>
+          <div className="inquiry-conversation">
+            {selected ? (
+              <>
+                <header className="inquiry-conversation-head">
+                  <div>
+                    <strong>{selected.subject}</strong>
+                    <small>Findra admin team</small>
+                  </div>
+                  <div className="inquiry-conversation-tags">
+                    <span className={`status-badge ${selected.status.toLowerCase()}`}>{selected.status}</span>
+                  </div>
+                </header>
+                <div className="inquiry-thread">
+                  <div className="inquiry-bubble outbound">
+                    <p>{selected.message}</p>
+                    <time>{new Date(selected.created_at).toLocaleString()}</time>
+                  </div>
+                  {repliesLoading && <p className="muted-copy">Loading conversation…</p>}
+                  {replies.map((reply) => (
+                    <div key={reply.id} className={`inquiry-bubble ${reply.sender_role === "admin" ? "inbound" : "outbound"}`}>
+                      <p>{reply.message}</p>
+                      <time>{reply.sender_name} · {new Date(reply.created_at).toLocaleString()}{reply.email_status === "failed" ? " · Email failed" : " · Sent by email"}</time>
+                    </div>
+                  ))}
+                </div>
+                <div className="inquiry-reply-box">
+                  <textarea
+                    value={replyText}
+                    onChange={(event) => setReplyText(event.target.value)}
+                    placeholder="Reply to the admin team… They'll receive it by email."
+                    rows={3}
+                  />
+                  <button className="admin-primary" disabled={replySending || !replyText.trim()} onClick={sendThreadReply}>
+                    <EnvelopeSimple /> {replySending ? "Sending…" : "Send reply"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="inquiry-conversation-empty">
+                <ChatCircleText size={42} />
+                <h3>Select a conversation</h3>
+                <p>Choose a message on the left to read the full thread and reply.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="panel admin-empty"><ChatCircleText size={42} /><h3>No messages yet</h3><p>Send a message above to start a conversation with the Findra admin team.</p></section>
+      )}
     </div>
   );
 }
@@ -4353,10 +4382,11 @@ function SupportInboxPanel({ query = "", onNotify }) {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Reply could not be sent.");
+      // No success alert — the reply bubble appearing in the thread in real
+      // time is the confirmation.
       setReplies((current) => [...current, payload.reply]);
       setMessages((current) => current.map((row) => (row.id === selected.id ? { ...row, status: "Responded" } : row)));
       setReplyText("");
-      onNotify?.({ type: "success", title: "Reply sent", message: `${selected.sender_display_name || selected.sender_email} will receive your reply by email.` });
     } catch (error) {
       onNotify?.({ type: "error", title: "Reply could not be sent", message: error.message });
     } finally {
