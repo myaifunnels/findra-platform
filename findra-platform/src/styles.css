@@ -9931,37 +9931,38 @@ th {
   background: rgba(255, 255, 255, 0.16);
   color: #a7f0c7;
 }
-.package-shared-features {
-  padding: 30px 34px;
-}
-.package-shared-features h3 {
-  margin: 0 0 18px;
-  color: var(--surface-text);
-  font: 750 20px "Lexend Deca", sans-serif;
-  text-align: center;
-}
-.package-shared-features ul {
+.package-tier-features {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px 24px;
-  margin: 0;
-  padding: 0;
+  flex: 1;
+  gap: 12px;
+  margin: 4px 0 20px;
+  padding: 20px 0 0;
+  border-top: 1px solid rgba(17, 62, 45, 0.12);
   list-style: none;
 }
-.package-shared-features li {
+.package-tier-card.featured .package-tier-features {
+  border-top-color: rgba(255, 255, 255, 0.16);
+}
+.package-tier-features li {
   display: flex;
   align-items: flex-start;
   gap: 9px;
-  color: var(--surface-text);
+  color: #274238;
   font-size: 13.5px;
   font-weight: 650;
   line-height: 1.4;
 }
-.package-shared-features li svg {
+.package-tier-card.featured .package-tier-features li {
+  color: #eef7f2;
+}
+.package-tier-features li svg {
   flex: 0 0 auto;
   margin-top: 2px;
   color: var(--green);
   font-size: 17px;
+}
+.package-tier-card.featured .package-tier-features li svg {
+  color: #a7f0c7;
 }
 .package-tier-card .green-button {
   width: 100%;

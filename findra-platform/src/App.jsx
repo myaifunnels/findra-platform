@@ -1954,6 +1954,13 @@ function PackagesPage({ go }) {
                       : "Billed monthly"}
                   </p>
                   {savings > 0 && <span className="package-tier-savings">Save {savings}%</span>}
+                  <ul className="package-tier-features">
+                    {(pkg.features || []).map((feature) => (
+                      <li key={feature}>
+                        <CheckCircle weight="fill" /> {feature}
+                      </li>
+                    ))}
+                  </ul>
                   {isCurrent ? (
                     <button className="secondary-button" disabled>
                       <CheckCircle weight="fill" /> Current Plan
@@ -1974,18 +1981,6 @@ function PackagesPage({ go }) {
                 </article>
               );
             })}
-          </section>
-        )}
-        {Boolean(monthly?.features?.length) && (
-          <section className="panel package-shared-features">
-            <h3>Every plan includes</h3>
-            <ul>
-              {monthly.features.map((feature) => (
-                <li key={feature}>
-                  <CheckCircle weight="fill" /> {feature}
-                </li>
-              ))}
-            </ul>
           </section>
         )}
         <section className="package-clarity-row">
