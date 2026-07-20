@@ -429,6 +429,26 @@ a {
   padding: 20px;
   position: relative;
 }
+.listing-image .listing-card-logo {
+  position: absolute;
+  bottom: -24px;
+  left: 16px;
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 50%;
+  border: 3px solid white;
+  background: white;
+  object-fit: contain;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+[data-theme="dark"] .listing-image .listing-card-logo {
+  border-color: #16211e;
+  background: #16211e;
+}
+.listing-card-grid .listing-content {
+  padding-top: 40px;
+}
 .chips {
   display: flex;
   gap: 6px;
@@ -440,6 +460,7 @@ a {
   background: var(--green);
   color: white;
   font-weight: 700;
+  font-size: 12px !important;
   line-height: 1.7;
   border-radius: 999px;
 }
@@ -717,6 +738,7 @@ footer {
 }
 .view-mode-toggle {
   display: flex;
+  justify-content: flex-end;
   gap: 6px;
   margin-bottom: 4px;
 }
@@ -5849,7 +5871,7 @@ body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .dire
 .directory-search-active svg { color: #70e99e; }
 .directory-search-active button { margin-left: 5px; border: 0; background: transparent; color: #95f3b8; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
 .listing-card { border-color: rgba(113, 163, 139, .26); border-radius: 18px; box-shadow: 0 12px 28px rgba(0,0,0,.12); }
-.listing-card-category { display: inline-flex; max-width: calc(100% - 112px); margin-bottom: 10px; color: #119a50; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.listing-card-category { display: inline-flex; max-width: calc(100% - 112px); margin-bottom: 10px; color: #119a50; font-size: 12px !important; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
 .listing-card-summary { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .listing-card-detail { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; padding: 0; border: 0; background: transparent; color: #078844; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
 .listing-card-detail:hover { color: #006d35; text-decoration: underline; }

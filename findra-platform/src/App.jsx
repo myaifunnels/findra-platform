@@ -876,6 +876,7 @@ function ListingCard({ item, go, layout = "list" }) {
       <div className="listing-image">
         <img src={item.image} alt="" />
         <span>{item.tagline}</span>
+        {item.logo && <img className="listing-card-logo" src={item.logo} alt={`${cardTitle} logo`} />}
       </div>
       <div className="listing-content">
         <div className="listing-card-category">{item.category}</div>
@@ -915,6 +916,36 @@ function ListingCard({ item, go, layout = "list" }) {
   );
 }
 
+const darkMapStyle = [
+  { elementType: "geometry", stylers: [{ color: "#0d1f16" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#0d1f16" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#8ea49b" }] },
+  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#293a35" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#16211e" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#6c9a80" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#12281e" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1c2a26" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#0d1f16" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#25392f" }] },
+  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#16211e" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#082017" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4b6358" }] },
+];
+
+function useSiteTheme() {
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || "light");
+  useEffect(() => {
+    const sync = () => setTheme(document.documentElement.dataset.theme || "light");
+    window.addEventListener("findra-theme-change", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("findra-theme-change", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+  return theme;
+}
+
 function BusinessesMapView({ listings, go }) {
   const mapRef = useRef(null);
   const mapObjRef = useRef(null);
@@ -922,6 +953,7 @@ function BusinessesMapView({ listings, go }) {
   const markersRef = useRef([]);
   const currentItemRef = useRef(null);
   const [status, setStatus] = useState("loading");
+  const theme = useSiteTheme();
 
   useEffect(() => {
     let active = true;
@@ -939,6 +971,7 @@ function BusinessesMapView({ listings, go }) {
           zoom: 6,
           streetViewControl: false,
           mapTypeControl: false,
+          styles: document.documentElement.dataset.theme === "dark" ? darkMapStyle : [],
         });
         const infoWindow = new google.maps.InfoWindow();
         infoWindow.addListener("domready", () => {
@@ -959,6 +992,10 @@ function BusinessesMapView({ listings, go }) {
   }, [go]);
 
   useEffect(() => {
+    mapObjRef.current?.setOptions({ styles: theme === "dark" ? darkMapStyle : [] });
+  }, [theme]);
+
+  useEffect(() => {
     const google = window.google;
     const map = mapObjRef.current;
     if (status !== "ready" || !map || !google) return;
@@ -968,7 +1005,15 @@ function BusinessesMapView({ listings, go }) {
     const geocoder = new google.maps.Geocoder();
 
     const placeMarker = (item, position) => {
-      const marker = new google.maps.Marker({ map, position, title: item.name });
+      const markerOptions = { map, position, title: item.name };
+      if (item.logo) {
+        markerOptions.icon = {
+          url: item.logo,
+          scaledSize: new google.maps.Size(40, 40),
+          anchor: new google.maps.Point(20, 20),
+        };
+      }
+      const marker = new google.maps.Marker(markerOptions);
       markersRef.current.push(marker);
       bounds.extend(position);
       map.fitBounds(bounds);
@@ -1026,7 +1071,7 @@ function ListingsPage({ go, listings }) {
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [cat, setCat] = useState("All");
   const [type, setType] = useState("All");
-  const [viewMode, setViewMode] = useState("list");
+  const [viewMode, setViewMode] = useState("grid");
   const filtered = listings.filter(
     (l) =>
       l.status === "Published" &&
