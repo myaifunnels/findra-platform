@@ -1831,59 +1831,104 @@ function ContactPage({ go }) {
   );
 }
 
+// Billing-cycle order and how many calendar months each cycle actually
+// covers, used to compute the "you only pay for N months" savings badge
+// against the Monthly package's price.
+const packageTierOrder = ["Monthly", "6 Months", "Annually"];
+const packageTierMonths = { Monthly: 1, "6 Months": 6, Annually: 12 };
+
 function PackagesPage({ go }) {
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetch("/api/packages", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => setPackages(payload?.packages || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+  const tiers = useMemo(
+    () =>
+      [...packages].sort(
+        (a, b) => packageTierOrder.indexOf(a.interval) - packageTierOrder.indexOf(b.interval),
+      ),
+    [packages],
+  );
+  const monthly = tiers.find((item) => item.interval === "Monthly");
+  const selectPackage = (pkg) => {
+    try {
+      sessionStorage.setItem("findra-selected-package-id", String(pkg.id));
+    } catch {
+      // sessionStorage can be unavailable in private-browsing edge cases; the
+      // checkout flow just falls back to the featured tier in that case.
+    }
+    go("/add-listing");
+  };
   return (
     <PublicLayout go={go}>
       <InfoPageHero
-        title="BUSINESS LISTING PACKAGE"
+        title="BUSINESS LISTING PACKAGES"
         image="/assets/packages-banner.png"
       />
       <main className="packages-page">
         <section className="packages-intro">
           <span className="info-kicker">Simple, transparent pricing</span>
-          <h2>One package. Everything your business needs to be discovered.</h2>
+          <h2>One plan. Pick the billing cycle that saves you the most.</h2>
           <p>
-            You do not need an account to review the price or inclusions. Start
+            You do not need an account to review pricing or inclusions. Start
             as a guest, complete your business details, then create or sign in
             to your account before secure checkout.
           </p>
         </section>
-        <section className="public-package-card">
-          <div className="public-package-main">
-            <span className="public-package-badge">Findra Business Listing</span>
-            <h2>
-              ₱{findraPlan.amount.toLocaleString()}
-              <small> / {findraPlan.billing}</small>
-            </h2>
-            <p>
-              An annual business profile built for visibility, credibility,
-              and direct customer inquiries.
-            </p>
-            <GreenButton onClick={() => go("/add-listing")}>
-              Start your listing
-            </GreenButton>
-            <small className="package-account-note">
-              No registration required to begin. Account creation happens
-              before checkout so your draft stays protected.
-            </small>
-          </div>
-          <div className="public-package-inclusions">
-            <span>EVERYTHING INCLUDED</span>
-            <ul>
-              <li><CheckCircle weight="fill" /> Complete public business profile</li>
-              <li><CheckCircle weight="fill" /> Categories and multiple services</li>
-              <li><CheckCircle weight="fill" /> Logo, featured image, gallery, and video</li>
-              <li><CheckCircle weight="fill" /> Customer inquiry and direct contact tools</li>
-              <li><CheckCircle weight="fill" /> Business-owner dashboard access</li>
-              <li><CheckCircle weight="fill" /> Annual listing renewal</li>
-            </ul>
-          </div>
-        </section>
+        {loading ? (
+          <section className="panel admin-empty"><p>Loading packages…</p></section>
+        ) : !tiers.length ? (
+          <section className="panel admin-empty"><p>Packages are being updated. Please check back shortly.</p></section>
+        ) : (
+          <section className="package-tier-grid">
+            {tiers.map((pkg) => {
+              const months = packageTierMonths[pkg.interval] || 1;
+              const regularTotal = monthly ? monthly.price * months : null;
+              const savings = regularTotal ? Math.round((1 - pkg.price / regularTotal) * 100) : 0;
+              const monthlyEquivalent = Math.round(pkg.price / months);
+              return (
+                <article key={pkg.id} className={`package-tier-card ${pkg.featured ? "featured" : ""}`}>
+                  {pkg.featured && <span className="package-tier-badge">Best value</span>}
+                  <span className="package-tier-name">{pkg.name}</span>
+                  <h2>
+                    ₱{pkg.price.toLocaleString()}
+                    <small> / {pkg.interval}</small>
+                  </h2>
+                  {months > 1 && (
+                    <p className="package-tier-equivalent">
+                      ≈ ₱{monthlyEquivalent.toLocaleString()} / month
+                    </p>
+                  )}
+                  {savings > 0 && <span className="package-tier-savings">Save {savings}%</span>}
+                  <ul>
+                    {(pkg.features || []).map((feature) => (
+                      <li key={feature}>
+                        <CheckCircle weight="fill" /> {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <GreenButton onClick={() => selectPackage(pkg)}>
+                    Start your listing
+                  </GreenButton>
+                </article>
+              );
+            })}
+          </section>
+        )}
         <section className="package-clarity-row">
           <article><ShieldCheck /><div><strong>See the price first</strong><p>Review everything before entering business or account details.</p></div></article>
           <article><CreditCard /><div><strong>Secure PayMongo checkout</strong><p>Payment happens only after your listing and account are ready.</p></div></article>
           <article><CheckCircle /><div><strong>Reviewed before publishing</strong><p>Your paid listing enters Findra’s approval workflow before going live.</p></div></article>
         </section>
+        <p className="packages-footnote">
+          No registration required to begin. Account creation happens before
+          checkout so your draft stays protected.
+        </p>
       </main>
     </PublicLayout>
   );
@@ -1899,7 +1944,7 @@ const faqGroups = [
       ],
       [
         "Is there a cost to use the platform?",
-        "Using Findra as a buyer or seeker is free. Businesses currently have one annual Findra Business Listing package at ₱999. Anyone can review the package before registering on the public Packages page.",
+        "Using Findra as a buyer or seeker is free. Businesses pay ₱799/month for a Findra Business Listing, with discounted 6-month and annual billing cycles available. Anyone can review pricing before registering on the public Packages page.",
       ],
       [
         "Is my information secure?",
@@ -6792,9 +6837,9 @@ function GuestAccountGate({ draft, go, createAccount, onReady }) {
 }
 
 const findraPlan = {
-  name: "Findra Business Listing",
-  amount: 999,
-  billing: "year",
+  name: "Monthly",
+  amount: 799,
+  billing: "Monthly",
 };
 
 function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan }) {
@@ -7074,11 +7119,24 @@ function GuestListingPage({ go, session, complete, createAccount }) {
   );
   const [stage, setStage] = useState(pendingCheckout ? "checkout" : "listing");
   useEffect(() => {
+    // A resumed checkout already has its billing cycle locked in from when it
+    // was started; don't let this refetch silently swap it to another tier.
+    if (pendingCheckout?.plan) return;
     fetch("/api/packages", { credentials: "same-origin" })
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
-        const active = payload?.packages?.[0];
-        if (!active) return;
+        const packages = payload?.packages || [];
+        if (!packages.length) return;
+        let selectedId = null;
+        try {
+          selectedId = sessionStorage.getItem("findra-selected-package-id");
+        } catch {
+          // ignore
+        }
+        const active =
+          packages.find((item) => String(item.id) === selectedId) ||
+          packages.find((item) => item.featured) ||
+          packages[0];
         const nextPlan = { ...active, amount: active.price, billing: active.interval };
         Object.assign(findraPlan, nextPlan);
         setPlan(nextPlan);

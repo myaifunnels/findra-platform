@@ -24,11 +24,17 @@ async function readJson(request) {
   return body ? JSON.parse(body) : {};
 }
 
+function billingCycleDays(billing) {
+  const label = String(billing || "").toLowerCase();
+  if (label.includes("6")) return 183;
+  if (label === "monthly") return 30;
+  return 365;
+}
+
 export function subscriptionDaysLeft(subscription, createdAt) {
   if (!subscription) return null;
   const start = new Date(subscription.startDate || createdAt);
-  const cycleDays = String(subscription.billing || "").toLowerCase() === "monthly" ? 30 : 365;
-  const expires = new Date(start.getTime() + cycleDays * 86_400_000);
+  const expires = new Date(start.getTime() + billingCycleDays(subscription.billing) * 86_400_000);
   return Math.ceil((expires.getTime() - Date.now()) / 86_400_000);
 }
 

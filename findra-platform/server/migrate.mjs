@@ -144,6 +144,27 @@ SELECT 'Findra Business Listing', 999, 'Yearly', 'Active', TRUE,
   '["Published business listing", "Logo, gallery, video, and attachments", "Customer inquiry and direct contact tools", "Business-owner dashboard access"]'::jsonb
 WHERE NOT EXISTS (SELECT 1 FROM packages);
 
+-- Replaced by three billing-cycle tiers of the same ₱799/month listing
+-- package (Monthly, 6 Months paying only 5, Annually paying only 10). The
+-- old flat ₱999/Yearly default and any ad-hoc ₱499 package are removed.
+DELETE FROM packages WHERE price = 499;
+DELETE FROM packages WHERE name = 'Findra Business Listing' AND price = 999 AND interval = 'Yearly';
+
+INSERT INTO packages (name, price, interval, status, featured, features)
+SELECT 'Monthly', 799, 'Monthly', 'Active', FALSE,
+  '["Complete public business profile", "Categories and multiple services", "Logo, featured image, gallery, and video", "Customer inquiry and direct contact tools", "Business-owner dashboard access"]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = 'Monthly');
+
+INSERT INTO packages (name, price, interval, status, featured, features)
+SELECT '6 Months', 3995, '6 Months', 'Active', FALSE,
+  '["Complete public business profile", "Categories and multiple services", "Logo, featured image, gallery, and video", "Customer inquiry and direct contact tools", "Business-owner dashboard access"]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = '6 Months');
+
+INSERT INTO packages (name, price, interval, status, featured, features)
+SELECT 'Annually', 7990, 'Annually', 'Active', TRUE,
+  '["Complete public business profile", "Categories and multiple services", "Logo, featured image, gallery, and video", "Customer inquiry and direct contact tools", "Business-owner dashboard access"]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = 'Annually');
+
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGSERIAL PRIMARY KEY, user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   recipient_email TEXT, event TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
