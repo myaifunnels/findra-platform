@@ -239,6 +239,19 @@ function formatDate() {
   }).format(new Date());
 }
 
+// Real completeness check driven by which fields the owner has actually
+// filled in, instead of a hardcoded percentage.
+function listingCompleteness(listing) {
+  const checks = [
+    ["Contact details", Boolean(listing?.email || listing?.phone || listing?.website)],
+    ["Services listed", Boolean(listing?.services?.length)],
+    ["Description", Boolean(listing?.description?.trim())],
+    ["Logo & photos", Boolean(listing?.logo || listing?.galleryImages?.length)],
+  ];
+  const done = checks.filter(([, ok]) => ok).length;
+  return { percent: listing ? Math.round((done / checks.length) * 100) : 0, checks };
+}
+
 function usePath() {
   const [path, setPath] = useState(window.location.pathname);
   useEffect(() => {
@@ -1175,6 +1188,10 @@ function ListingDetail({ go, item }) {
     () => readCustomFields().filter((field) => field.visibility?.publicProfile !== false),
     [],
   );
+  useEffect(() => {
+    if (!item?.id) return;
+    fetch(`/api/listings/${item.id}/view`, { method: "POST", credentials: "same-origin" }).catch(() => {});
+  }, [item?.id]);
   if (!item)
     return (
       <PublicLayout go={go}>
@@ -2252,6 +2269,58 @@ function NotificationInbox() {
   </div>;
 }
 
+// Interactive account menu for the in-dashboard topbar (admin + business
+// owner), modeled on the public header's account dropdown so both surfaces
+// share the same open/close-on-outside-click behavior.
+function DashboardAccountMenu({ session, businessLogo = "", roleLabel, items = [], onLogout }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    const closeOnOutsidePress = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
+  }, []);
+  return (
+    <div className="header-account-menu dashboard-account-menu" ref={menuRef}>
+      <button
+        type="button"
+        className="dashboard-account-trigger"
+        aria-label="Open account menu"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <AccountAvatar session={session} businessLogo={businessLogo} className="admin-user" />
+        <div className="admin-user-copy">
+          <strong>{session?.name || "Findra member"}</strong>
+          <span>{roleLabel}</span>
+        </div>
+        <CaretDown size={13} />
+      </button>
+      {open && (
+        <div className="header-account-dropdown">
+          <div className="account-dropdown-profile">
+            <AccountAvatar session={session} businessLogo={businessLogo} />
+            <div>
+              <strong>{session?.name}</strong>
+              <small>{session?.email}</small>
+            </div>
+          </div>
+          {items.map(([label, Icon, onClick]) => (
+            <button key={label} type="button" onClick={() => { setOpen(false); onClick(); }}>
+              <Icon /> {label}
+            </button>
+          ))}
+          <button type="button" className="header-account-signout" onClick={onLogout}>
+            <SignOut /> Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AutomationManagement({ onNotify }) {
   const mergeFields = [
     ["{{contactFirstName}}", "Contact first name"],
@@ -2577,11 +2646,12 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
             </label>
             <ThemeToggle />
             <NotificationInbox />
-            <AccountAvatar session={session} className="admin-user" />
-            <div className="admin-user-copy">
-              <strong>{session?.name || "Findra admin"}</strong>
-              <span>Administrator</span>
-            </div>
+            <DashboardAccountMenu
+              session={session}
+              roleLabel={session?.role === "admin" ? "Administrator" : "Findra team"}
+              onLogout={onLogout}
+              items={[["Settings", Gear, () => setSection("Settings")]]}
+            />
           </div>
         </header>
         {section === "Overview" ? (
@@ -2996,7 +3066,6 @@ const userSideItems = [
   ["Plan & Billing", CreditCard],
   ["Inbox", EnvelopeSimple],
   ["Inquiries", ChatCircleText],
-  ["Analytics", ChartLineUp],
   ["Profile", UserCircle],
 ];
 
@@ -3521,13 +3590,19 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [lockedNotice, setLockedNotice] = useState(false);
-  const [inquiryCount, setInquiryCount] = useState(0);
+  const [inquiries, setInquiries] = useState([]);
   useEffect(() => {
     fetch("/api/inquiries", { credentials: "same-origin" })
       .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => setInquiryCount((payload?.inquiries || []).filter((item) => item.status === "New").length))
+      .then((payload) => setInquiries(payload?.inquiries || []))
       .catch(() => {});
   }, [section]);
+  const inquiryCount = useMemo(() => inquiries.filter((item) => item.status === "New").length, [inquiries]);
+  const responseRate = useMemo(() => {
+    if (!inquiries.length) return null;
+    return Math.round((inquiries.filter((item) => item.status === "Responded").length / inquiries.length) * 100);
+  }, [inquiries]);
+  const completeness = useMemo(() => listingCompleteness(listing), [listing]);
   const displayName = session?.name || "Business Owner";
   const firstName = displayName.split(" ")[0];
   const current = listing || { ...blankListing, owner: displayName };
@@ -3626,11 +3701,16 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
             </button>
             <ThemeToggle />
             <NotificationInbox />
-            <AccountAvatar session={session} businessLogo={listing?.logo} className="admin-user" />
-            <div className="admin-user-copy">
-              <strong>{displayName}</strong>
-              <span>Business Owner</span>
-            </div>
+            <DashboardAccountMenu
+              session={session}
+              businessLogo={listing?.logo}
+              roleLabel="Business Owner"
+              onLogout={onLogout}
+              items={[
+                ["Account & profile", UserCircle, () => setSection("Profile")],
+                ["Plan & billing", CreditCard, () => setSection("Plan & Billing")],
+              ]}
+            />
           </div>
         </header>
         {saved && (
@@ -3677,17 +3757,11 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
             </section>
             <section className="metric-grid">
               {[
-                ["Listing views", listing?.views || 0, "+18.2%", Eye, "green"],
-                ["New inquiries", 12, "3 unread", ChatCircleText, "blue"],
-                ["Saved by users", 47, "+8 this week", Heart, "violet"],
-                [
-                  "Profile strength",
-                  listing ? "92%" : "0%",
-                  "Keep details current",
-                  ChartLineUp,
-                  "amber",
-                ],
-              ].map(([label, value, note, Icon, tone], index) => (
+                ["Listing views", listing?.views || 0, listing ? "Since publishing" : "Publish to start counting", Eye, "green", true],
+                ["New inquiries", inquiryCount, `${inquiries.length} total received`, ChatCircleText, "blue", true],
+                ["Response rate", responseRate === null ? "—" : `${responseRate}%`, responseRate === null ? "No inquiries yet" : "Of inquiries replied to", ChartLineUp, "violet", responseRate !== null],
+                ["Profile strength", `${completeness.percent}%`, completeness.percent === 100 ? "Fully complete" : "Keep details current", Storefront, "amber", completeness.percent === 100],
+              ].map(([label, value, note, Icon, tone, positive], index) => (
                 <article style={{ "--stagger": `${index * 45}ms` }} key={label}>
                   <div className={`metric-icon ${tone}`}>
                     <Icon />
@@ -3695,10 +3769,8 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
                   <div className="metric-copy">
                     <p>{label}</p>
                     <h3>{value}</h3>
-                    <span
-                      className={tone === "amber" ? "attention" : "positive"}
-                    >
-                      {tone !== "amber" && <TrendUp />}
+                    <span className={positive ? "positive" : "attention"}>
+                      {positive && <TrendUp />}
                       {note}
                     </span>
                   </div>
@@ -3715,15 +3787,11 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
                     <MapPin weight="fill" /> {listing.location}, Philippines
                   </p>
                   <div className="listing-health">
-                    <span>
-                      <CheckCircle weight="fill" /> Contact details
-                    </span>
-                    <span>
-                      <CheckCircle weight="fill" /> Services
-                    </span>
-                    <span>
-                      <WarningCircle weight="fill" /> Business hours
-                    </span>
+                    {completeness.checks.map(([label, ok]) => (
+                      <span key={label} className={ok ? "" : "incomplete"}>
+                        {ok ? <CheckCircle weight="fill" /> : <WarningCircle weight="fill" />} {label}
+                      </span>
+                    ))}
                   </div>
                   <button
                     className="admin-primary"
@@ -3796,8 +3864,6 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
           <UserInbox />
         ) : section === "Inquiries" ? (
           <InquiriesPanel role="user" listing={listing} />
-        ) : section === "Analytics" ? (
-          <UserAnalytics listing={listing} />
         ) : (
           <UserAccountProfile session={session} listing={listing} onEdit={openListingFlow} onSaveListing={onSave} />
         )}
@@ -4478,16 +4544,6 @@ function SupportInboxPanel({ query = "", onNotify }) {
       )}
     </div>
   );
-}
-
-function UserAnalytics({ listing }) {
-  const views = listing?.views || 0;
-  return <div className="admin-content">
-    <section className="welcome-row"><div><h2>Listing performance</h2><p>A clear view of how customers discover and engage with your business.</p></div></section>
-    <section className="metric-grid simple">
-      {[["Profile views", views, Eye, "green"], ["Inquiry rate", listing ? "—" : "0%", ChatCircleText, "blue"], ["Profile completeness", listing ? "92%" : "0%", ChartLineUp, "violet"]].map(([label, value, Icon, tone]) => <article key={label}><div className={`metric-icon ${tone}`}><Icon /></div><div className="metric-copy"><p>{label}</p><h3>{value}</h3><span className="positive">Updates as customers interact</span></div></article>)}
-    </section>
-  </div>;
 }
 
 function UserAccountProfile({ session, listing, onEdit, onSaveListing }) {

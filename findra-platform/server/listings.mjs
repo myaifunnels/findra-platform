@@ -47,6 +47,7 @@ function publicRecord(row) {
     status: row.status,
     ownerId: row.owner_id,
     owner: row.owner_name || data.owner || "",
+    views: row.views_count || 0,
   };
 }
 
@@ -149,6 +150,14 @@ async function update(request, response, id) {
   return json(response, 200, { listing: publicRecord({ ...result.rows[0], owner_name: user.display_name }) });
 }
 
+async function recordView(request, response, id) {
+  const result = await query(
+    "UPDATE listings SET views_count = views_count + 1 WHERE id = $1 AND status = 'Published' RETURNING views_count",
+    [id],
+  );
+  return json(response, 200, { views: result.rows[0]?.views_count ?? null });
+}
+
 async function remove(request, response, id) {
   const user = await readSession(request);
   if (!user || user.role !== "admin") return json(response, 403, { error: "Administrator access is required." });
@@ -166,6 +175,8 @@ export async function handleListingsRequest(request, response) {
     const match = url.pathname.match(/^\/api\/listings\/(\d+)$/);
     if (request.method === "PATCH" && match) return await update(request, response, match[1]), true;
     if (request.method === "DELETE" && match) return await remove(request, response, match[1]), true;
+    const viewMatch = url.pathname.match(/^\/api\/listings\/(\d+)\/view$/);
+    if (request.method === "POST" && viewMatch) return await recordView(request, response, viewMatch[1]), true;
     return json(response, 404, { error: "Listing endpoint not found." }), true;
   } catch (error) {
     if (error?.code === "23505" && /business (email|phone)/i.test(error.message || "")) {

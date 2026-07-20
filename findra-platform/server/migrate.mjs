@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS listings (
 
 CREATE INDEX IF NOT EXISTS listings_owner_id_idx ON listings(owner_id);
 CREATE INDEX IF NOT EXISTS listings_status_idx ON listings(status);
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS views_count INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS inquiries (
   id BIGSERIAL PRIMARY KEY,

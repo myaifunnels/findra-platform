@@ -1822,6 +1822,24 @@ footer {
   color: #8b9a96;
   margin-top: 3px;
 }
+.dashboard-account-menu { position: relative; }
+.dashboard-account-trigger { display: flex; align-items: center; gap: 9px; padding: 4px 8px 4px 4px; border: 1px solid transparent; border-radius: 12px; background: transparent; cursor: pointer; transition: var(--motion); }
+.dashboard-account-trigger:hover { background: rgba(11, 145, 71, 0.08); border-color: rgba(11, 145, 71, 0.16); }
+.dashboard-account-trigger .admin-user-copy { text-align: left; }
+.dashboard-account-trigger > svg { color: var(--surface-muted, #8b9a96); flex: 0 0 auto; }
+.dashboard-account-menu .header-account-dropdown {
+  border-color: var(--glass-line);
+  background: var(--surface-bg);
+  box-shadow: 0 20px 55px rgba(4, 22, 14, 0.26);
+  backdrop-filter: none;
+}
+.dashboard-account-menu .header-account-dropdown > div { border-color: var(--glass-line); }
+.dashboard-account-menu .header-account-dropdown strong,
+.dashboard-account-menu .header-account-dropdown a,
+.dashboard-account-menu .header-account-dropdown button { color: var(--surface-text); }
+.dashboard-account-menu .header-account-dropdown small { color: var(--surface-muted); }
+.dashboard-account-menu .header-account-dropdown a:hover,
+.dashboard-account-menu .header-account-dropdown button:hover { background: rgba(11, 145, 71, 0.12); }
 .admin-menu {
   display: none;
   border: 0;
@@ -3250,7 +3268,7 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
 .listing-health svg {
   color: var(--green);
 }
-.listing-health span:last-child svg {
+.listing-health span.incomplete svg {
   color: #d38a17;
 }
 .inquiry-avatar {
