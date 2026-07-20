@@ -8156,6 +8156,79 @@ th {
   font-weight: 800;
   text-transform: capitalize;
 }
+.package-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+.package-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 26px;
+}
+.package-card.featured {
+  border-color: var(--green);
+}
+.package-card.current {
+  border-color: var(--green);
+  background: rgba(11, 145, 71, 0.06);
+}
+.package-badge {
+  position: absolute;
+  top: -11px;
+  right: 20px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: var(--green);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.package-badge.current {
+  background: #078341;
+}
+.package-card h3 {
+  margin: 6px 0 0;
+  font-size: 19px;
+}
+.package-price {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--green);
+}
+.package-price small {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--surface-muted);
+}
+.package-checklist {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: 1;
+}
+.package-checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--surface-text);
+}
+.package-checklist li svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #0b9147;
+}
+.package-card > button {
+  width: 100%;
+  justify-content: center;
+}
 
 :where(button, a, input, select, textarea):focus-visible {
   outline: 3px solid rgba(21, 170, 80, 0.34);
@@ -9029,7 +9102,7 @@ th {
 .inbox-notifications article p, .sent-message-list article p { margin:6px 0; color:var(--surface-muted); line-height:1.55; }
 .inbox-notifications article small, .sent-message-list article small { color:var(--surface-muted); }
 .inbox-compose > p { color:var(--surface-muted); line-height:1.55; }
-.inbox-compose form { display:grid; gap:14px; margin-top:18px; }
+.inbox-compose form, .inbox-compose-form { display:grid; gap:14px; margin-top:18px; }
 .inbox-compose label { display:grid; gap:8px; color:var(--surface-text); font-weight:750; }
 .inbox-compose textarea { min-height:130px; resize:vertical; }
 .inbox-send-status { margin:15px 0 0; padding:12px; border:1px solid; border-radius:10px; line-height:1.45; }

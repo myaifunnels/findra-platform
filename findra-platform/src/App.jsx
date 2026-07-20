@@ -653,7 +653,14 @@ function Footer({ go }) {
         <div>
           <h4>Follow #Findra</h4>
           <div className="socials">
-            <FacebookLogo weight="fill" />
+            <a
+              href="https://www.facebook.com/findraph/?_rdc=1&_rdr#"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Follow Findra on Facebook"
+            >
+              <FacebookLogo weight="fill" />
+            </a>
             <a
               href="https://www.instagram.com/findra.ph/"
               target="_blank"
@@ -3563,7 +3570,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
             )}
           </div>
         ) : section === "Plan & Billing" ? (
-          <PlanBilling listing={listing} resumePayment={pendingPayment ? () => go("/add-listing") : null} />
+          <PlanBilling listing={listing} go={go} resumePayment={pendingPayment ? () => go("/add-listing") : null} />
         ) : section === "Inbox" ? (
           <UserInbox />
         ) : section === "Inquiries" ? (
@@ -3585,8 +3592,15 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
   );
 }
 
-function PlanBilling({ listing, resumePayment }) {
+function PlanBilling({ listing, go, resumePayment }) {
   const subscription = listing?.subscription;
+  const [packages, setPackages] = useState([]);
+  useEffect(() => {
+    fetch("/api/packages", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => setPackages(payload?.packages || []))
+      .catch(() => {});
+  }, []);
   return (
     <div className="admin-content">
       <section className="welcome-row">
@@ -3596,53 +3610,71 @@ function PlanBilling({ listing, resumePayment }) {
         </div>
         {subscription && <StatusPill status={subscription.status} />}
       </section>
-      <section className="panel billing-card">
-        {subscription ? (
-          <>
-            <div className="billing-icon">
-              <CreditCard />
+      {subscription && (
+        <section className="panel billing-card">
+          <div className="billing-icon">
+            <CreditCard />
+          </div>
+          <div>
+            <span>CURRENT PLAN</span>
+            <h3>{subscription.plan}</h3>
+            <p>
+              ₱{Number(subscription.amount).toLocaleString()} per{" "}
+              {subscription.billing}
+            </p>
+          </div>
+          <dl>
+            <div>
+              <dt>Payment method</dt>
+              <dd>
+                {String(subscription.paymentMethod).replaceAll("_", " ")}
+              </dd>
             </div>
             <div>
-              <span>CURRENT PLAN</span>
-              <h3>{subscription.plan}</h3>
-              <p>
-                ₱{Number(subscription.amount).toLocaleString()} per{" "}
-                {subscription.billing}
-              </p>
-            </div>
-            <dl>
-              <div>
-                <dt>Payment method</dt>
-                <dd>
-                  {String(subscription.paymentMethod).replaceAll("_", " ")}
-                </dd>
-              </div>
-              <div>
-                <dt>PayMongo reference</dt>
-                <dd>{subscription.paymentReference}</dd>
-              </div>
-              <div>
-                <dt>Listing status</dt>
-                <dd>{listing.status}</dd>
-              </div>
-            </dl>
-          </>
-        ) : (
-          <>
-            <div className="billing-icon">
-              <CreditCard />
+              <dt>PayMongo reference</dt>
+              <dd>{subscription.paymentReference}</dd>
             </div>
             <div>
-              <span>NO ACTIVE PLAN</span>
-              <h3>Finish your listing checkout</h3>
-              <p>
-                Your subscription details will appear here after a successful
-                PayMongo payment.
-              </p>
+              <dt>Listing status</dt>
+              <dd>{listing.status}</dd>
             </div>
-            {resumePayment && <button className="admin-primary" onClick={resumePayment}>Continue payment <ArrowRight /></button>}
-          </>
-        )}
+          </dl>
+        </section>
+      )}
+      <section className="welcome-row">
+        <div>
+          <h3>{subscription ? "Available packages" : "Choose a package to get started"}</h3>
+          <p>Packages are managed by the Findra team and update here automatically.</p>
+        </div>
+      </section>
+      <section className="package-grid">
+        {packages.map((item) => {
+          const isCurrent = subscription && subscription.plan === item.name;
+          return (
+            <article key={item.id} className={`panel package-card ${item.featured ? "featured" : ""} ${isCurrent ? "current" : ""}`}>
+              {item.featured && !isCurrent && <span className="package-badge">Most popular</span>}
+              {isCurrent && <span className="package-badge current">Your current plan</span>}
+              <h3>{item.name}</h3>
+              <p className="package-price">₱{Number(item.price).toLocaleString()} <small>/ {item.interval}</small></p>
+              <ul className="package-checklist">
+                {(item.features || []).map((feature) => (
+                  <li key={feature}><CheckCircle weight="fill" />{feature}</li>
+                ))}
+              </ul>
+              {isCurrent ? (
+                <button className="secondary-button" disabled>
+                  <CheckCircle weight="fill" /> Active
+                </button>
+              ) : subscription ? (
+                <button className="secondary-button" disabled>Contact support to switch plans</button>
+              ) : resumePayment ? (
+                <button className="admin-primary" onClick={resumePayment}>Continue payment <ArrowRight /></button>
+              ) : (
+                <button className="admin-primary" onClick={() => go?.("/add-listing")}>Subscribe <ArrowRight /></button>
+              )}
+            </article>
+          );
+        })}
       </section>
     </div>
   );
@@ -3733,25 +3765,113 @@ function UserInbox() {
   const [messages, setMessages] = useState([]);
   const [form, setForm] = useState({ subject: "", message: "" });
   const [sending, setSending] = useState(false);
-  const [status, setStatus] = useState(null);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
   const load = async () => {
-    const [notificationsResponse, messagesResponse] = await Promise.all([fetch("/api/notifications", { credentials: "same-origin" }), fetch("/api/inbox/messages", { credentials: "same-origin" })]);
+    const [notificationsResponse, messagesResponse] = await Promise.all([
+      fetch("/api/notifications", { credentials: "same-origin" }),
+      fetch("/api/inbox/messages", { credentials: "same-origin" }),
+    ]);
     const notificationsPayload = await notificationsResponse.json().catch(() => ({}));
     const messagesPayload = await messagesResponse.json().catch(() => ({}));
     if (notificationsResponse.ok) setNotifications(notificationsPayload.notifications || []);
     if (messagesResponse.ok) setMessages(messagesPayload.messages || []);
   };
-  useEffect(() => { load().catch(() => {}); }, []);
-  const send = async (event) => {
-    event.preventDefault(); setSending(true); setStatus(null);
+  useEffect(() => {
+    load().catch(() => {});
+  }, []);
+  const send = async () => {
+    if (!form.subject.trim() || !form.message.trim()) {
+      setError("Add a subject and message before sending.");
+      return;
+    }
+    setSending(true);
+    setError("");
     try {
-      const response = await fetch("/api/inbox/messages", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const response = await fetch("/api/inbox/messages", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Message could not be sent.");
-      setMessages((current) => [payload.message, ...current]); setForm({ subject: "", message: "" }); setStatus({ type: "success", message: "Your message was sent to the Findra admin team." });
-    } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setSending(false); }
+      setMessages((current) => [payload.message, ...current]);
+      setForm({ subject: "", message: "" });
+      setSent(true);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSending(false);
+    }
   };
-  return <div className="admin-content inbox-workspace"><section className="welcome-row"><div><span className="section-eyebrow">Account communications</span><h2>Inbox</h2><p>Review all Findra activity and send a message directly to the admin team.</p></div><button className="secondary-button" onClick={() => load()}>Refresh inbox</button></section><div className="inbox-layout"><section className="panel inbox-notifications"><header><h3>Notifications</h3><span>{notifications.length}</span></header>{notifications.length ? notifications.map((item) => <article key={item.id}><CheckCircle weight="fill" /><div><strong>{item.title}</strong><p>{item.body}</p><small>{new Date(item.created_at).toLocaleString()}</small></div></article>) : <p className="muted-copy">No notifications yet.</p>}</section><section className="panel inbox-compose"><span className="section-eyebrow">Message Findra</span><h3>Contact the admin team</h3><p>Use this for account, billing, listing, or platform support. The team receives an email notification.</p><form onSubmit={send}><label><span>Subject *</span><input required value={form.subject} onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))} placeholder="How can Findra help?" /></label><label><span>Message *</span><textarea required value={form.message} onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))} placeholder="Write your message to the Findra admin team…" /></label><button className="admin-primary" disabled={sending} type="submit"><EnvelopeSimple />{sending ? "Sending…" : "Send message"}</button></form>{status && <p className={`inbox-send-status ${status.type}`}>{status.message}</p>}<div className="sent-message-list"><h4>Your sent messages</h4>{messages.length ? messages.map((item) => <article key={item.id}><strong>{item.subject}</strong><p>{item.message}</p><small>{new Date(item.created_at).toLocaleString()}</small></article>) : <p className="muted-copy">No messages sent yet.</p>}</div></section></div></div>;
+  return (
+    <div className="admin-content inbox-workspace">
+      <section className="welcome-row">
+        <div>
+          <span className="section-eyebrow">Account communications</span>
+          <h2>Inbox</h2>
+          <p>Review all Findra activity and send a message directly to the admin team.</p>
+        </div>
+        <button className="secondary-button" onClick={() => load()}>Refresh inbox</button>
+      </section>
+      <div className="inbox-layout">
+        <section className="panel inbox-notifications">
+          <header><h3>Notifications</h3><span>{notifications.length}</span></header>
+          {notifications.length ? notifications.map((item) => (
+            <article key={item.id}>
+              <CheckCircle weight="fill" />
+              <div><strong>{item.title}</strong><p>{item.body}</p><small>{new Date(item.created_at).toLocaleString()}</small></div>
+            </article>
+          )) : <p className="muted-copy">No notifications yet.</p>}
+        </section>
+        <section className="panel inbox-compose">
+          <span className="section-eyebrow">Message Findra</span>
+          <h3>Contact the admin team</h3>
+          <p>Use this for account, billing, listing, or platform support. The team receives an email notification.</p>
+          {sent ? (
+            <div className="success">
+              <CheckCircle size={40} weight="fill" />
+              <h3>Message sent</h3>
+              <p>The Findra admin team received your message and will get back to you soon.</p>
+              <button onClick={() => setSent(false)}>Send another message</button>
+            </div>
+          ) : (
+            <div className="inbox-compose-form">
+              <label>
+                <span>Subject *</span>
+                <input
+                  required
+                  value={form.subject}
+                  onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
+                  placeholder="How can Findra help?"
+                />
+              </label>
+              <label>
+                <span>Message *</span>
+                <textarea
+                  required
+                  value={form.message}
+                  onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
+                  placeholder="Write your message to the Findra admin team…"
+                />
+              </label>
+              {error && <p className="inquiry-form-error">{error}</p>}
+              <button className="admin-primary" disabled={sending} type="button" onClick={send}>
+                <EnvelopeSimple />{sending ? "Sending…" : "Send message"}
+              </button>
+            </div>
+          )}
+          <div className="sent-message-list">
+            <h4>Your sent messages</h4>
+            {messages.length ? messages.map((item) => (
+              <article key={item.id}><strong>{item.subject}</strong><p>{item.message}</p><small>{new Date(item.created_at).toLocaleString()}</small></article>
+            )) : <p className="muted-copy">No messages sent yet.</p>}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 }
 
 function UserAnalytics({ listing }) {

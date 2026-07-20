@@ -43,9 +43,8 @@ async function create(request, response) {
   const context = { contactFirstName: name, contactFullName: name, contactEmail: email, contactPhone: phone, businessName: listing ? listing.name : "Website contact form" };
   if (listing) {
     notify({ userId: listing.owner_id, email: listing.data?.email, event: "inquiry-received", context }).catch(() => {});
-  } else {
-    notifyAdmins("inbox-message-admin", context).catch(() => {});
   }
+  notifyAdmins("inbox-message-admin", context).catch(() => {});
   return json(response, 201, { inquiry: created.rows[0] });
 }
 
