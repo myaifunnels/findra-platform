@@ -29,22 +29,17 @@ const notificationLogsKey = "findra-notification-logs-v1";
 const mailSettingsKey = "findra-mail-settings-v1";
 const customFieldsKey = "findra-custom-fields-v1";
 
+const packageFeatures = [
+  "Complete public business profile",
+  "Categories and multiple services",
+  "Logo, featured image, gallery, and video",
+  "Customer inquiry and direct contact tools",
+  "Business-owner dashboard access",
+];
 const seedPackages = [
-  {
-    id: 1,
-    name: "Findra Business Listing",
-    price: 999,
-    interval: "Yearly",
-    status: "Active",
-    subscribers: 54,
-    featured: true,
-    features: [
-      "Published business listing",
-      "Logo, gallery, video, and attachments",
-      "Customer inquiry and direct contact tools",
-      "Business-owner dashboard access",
-    ],
-  },
+  { id: 1, name: "Monthly", price: 799, interval: "Monthly", status: "Active", subscribers: 0, featured: false, features: packageFeatures },
+  { id: 2, name: "6 Months", price: 3995, interval: "6 Months", status: "Active", subscribers: 0, featured: false, features: packageFeatures },
+  { id: 3, name: "Annually", price: 7990, interval: "Annually", status: "Active", subscribers: 0, featured: true, features: packageFeatures },
 ];
 
 const seedTaxonomy = {
@@ -543,8 +538,8 @@ function PackageEditor({ item, close, save }) {
   const [form, setForm] = useState(
     item || {
       name: "",
-      price: 999,
-      interval: "Yearly",
+      price: 799,
+      interval: "Monthly",
       status: "Active",
       featured: false,
       features: [],
@@ -597,9 +592,13 @@ function PackageEditor({ item, close, save }) {
             <span>Billing interval</span>
             <select value={form.interval} onChange={change("interval")}>
               <option>Monthly</option>
-              <option>Yearly</option>
-              <option>Forever</option>
+              <option>6 Months</option>
+              <option>Annually</option>
             </select>
+            <small className="management-field-hint">
+              The public Packages page groups tiers by this exact label and
+              shows the savings versus the Monthly price.
+            </small>
           </label>
           <label>
             <span>Status</span>
@@ -688,7 +687,7 @@ export function SubscriptionsManagement({ onNotify }) {
       message: `${nextRecord.name} is ready for subscription assignment.`,
     });
   };
-  const remove = (item) => {
+  const remove = async (item) => {
     if (item.subscribers > 0) {
       onNotify?.({
         type: "error",
@@ -698,18 +697,29 @@ export function SubscriptionsManagement({ onNotify }) {
       return;
     }
     if (!window.confirm(`Delete the ${item.name} package?`)) return;
-    commit(packages.filter((entry) => entry.id !== item.id));
+    try {
+      const response = await fetch(`/api/packages/${item.id}`, { method: "DELETE", credentials: "same-origin" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Package could not be deleted.");
+      commit(packages.filter((entry) => entry.id !== item.id));
+      onNotify?.({ type: "success", title: "Package deleted", message: `${item.name} was removed and no longer appears on the Packages page.` });
+    } catch (error) {
+      onNotify?.({ type: "error", title: "Package could not be deleted", message: error.message });
+    }
   };
   const activeSubscribers = packages.reduce(
     (sum, item) => sum + Number(item.subscribers || 0),
     0,
   );
+  // Annualize each tier's revenue by how many billing cycles a year it
+  // actually runs, instead of assuming every non-Monthly plan is Yearly.
+  const packageCyclesPerYear = { Monthly: 12, "6 Months": 2, Annually: 1 };
   const annualRevenue = packages.reduce(
     (sum, item) =>
       sum +
       Number(item.price || 0) *
         Number(item.subscribers || 0) *
-        (item.interval === "Monthly" ? 12 : 1),
+        (packageCyclesPerYear[item.interval] ?? 1),
     0,
   );
   return (

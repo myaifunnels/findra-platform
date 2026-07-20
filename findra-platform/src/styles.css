@@ -4719,6 +4719,13 @@ button.management-status { border: 0; cursor: pointer; }
 .management-metrics strong {
   font-size: 24px;
 }
+.management-field-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--surface-muted, #8b9a96);
+  font-size: 10.5px;
+  line-height: 1.4;
+}
 .management-filter-tabs button {
   font-size: 11px;
 }
@@ -10631,6 +10638,13 @@ th {
 }
 .management-metrics strong {
   font-size: 24px;
+}
+.management-field-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--surface-muted, #8b9a96);
+  font-size: 10.5px;
+  line-height: 1.4;
 }
 .management-form-grid label,
 .integration-connect-card > label:not(.integration-enable-option) {

@@ -1,4 +1,4 @@
-import { activePackage } from "./packages.mjs";
+import { activePackage, activePackageById } from "./packages.mjs";
 import { query } from "./db.mjs";
 import { notify } from "./notifications.mjs";
 import { readSession } from "./auth.mjs";
@@ -147,7 +147,7 @@ async function requireAdmin(request, response) {
 
 async function createCheckoutSession(request, response) {
   const body = await readJson(request);
-  const plan = await activePackage();
+  const plan = (await activePackageById(body.packageId)) || (await activePackage());
   if (!plan) return json(response, 409, { error: "There is no active subscription package. Please contact Findra." });
   const method = ALLOWED_METHODS.has(body.method) ? body.method : "gcash";
   const name = String(body.accountName || body.listingName || "Findra customer")

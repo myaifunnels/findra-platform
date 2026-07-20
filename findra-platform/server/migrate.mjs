@@ -145,10 +145,11 @@ SELECT 'Findra Business Listing', 999, 'Yearly', 'Active', TRUE,
 WHERE NOT EXISTS (SELECT 1 FROM packages);
 
 -- Replaced by three billing-cycle tiers of the same ₱799/month listing
--- package (Monthly, 6 Months paying only 5, Annually paying only 10). The
--- old flat ₱999/Yearly default and any ad-hoc ₱499 package are removed.
-DELETE FROM packages WHERE price = 499;
-DELETE FROM packages WHERE name = 'Findra Business Listing' AND price = 999 AND interval = 'Yearly';
+-- package (Monthly, 6 Months paying only 5, Annually paying only 10). Any
+-- other package - the old ₱999/Yearly default, an ad-hoc ₱499 plan, or one
+-- since renamed by hand in the admin panel (e.g. "Basic Plan") - is removed
+-- so the Packages page and PayMongo checkout only ever see these three.
+DELETE FROM packages WHERE name NOT IN ('Monthly', '6 Months', 'Annually');
 
 INSERT INTO packages (name, price, interval, status, featured, features)
 SELECT 'Monthly', 799, 'Monthly', 'Active', FALSE,
