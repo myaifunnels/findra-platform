@@ -272,6 +272,31 @@ function usePersistedDashboardSection(storageKey, fallback) {
   return [section, setSection];
 }
 
+const savedListingsKey = "findra-saved-listings";
+function readSavedListings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(savedListingsKey));
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+function useSavedListings() {
+  const [saved, setSaved] = useState(readSavedListings);
+  const toggle = (id) => {
+    setSaved((current) => {
+      const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
+      try {
+        localStorage.setItem(savedListingsKey, JSON.stringify(next));
+      } catch {
+        // Saved listings are a convenience enhancement only.
+      }
+      return next;
+    });
+  };
+  return [saved, toggle];
+}
+
 function Link({ to, go, className = "", children, onClick }) {
   return (
     <a
@@ -828,6 +853,24 @@ function HomePage({ go, listings }) {
 
 function ListingCard({ item, go }) {
   const cardTitle = item.cardTitle?.trim() || item.name;
+  const [saved, toggleSaved] = useSavedListings();
+  const isSaved = saved.includes(item.id);
+  const [copied, setCopied] = useState(false);
+  const share = async (event) => {
+    event.stopPropagation();
+    const url = `${window.location.origin}/listing/${item.id}`;
+    if (navigator.share) {
+      navigator.share({ title: cardTitle, text: item.tagline, url }).catch(() => {});
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard access can be blocked; the link is still visible in the browser bar after visiting.
+    }
+  };
   return (
     <article className="listing-card" onClick={() => go(`/listing/${item.id}`)}>
       <div className="listing-image">
@@ -848,12 +891,23 @@ function ListingCard({ item, go }) {
         </p>
         <p className="listing-card-summary">{item.description || `${item.tagline}. Discover services, connect directly, and make your next project easier.`}</p>
         <div className="card-actions">
-          <button className="save-listing-action" aria-label={`Save ${cardTitle}`} title="Save business" onClick={(event) => event.stopPropagation()}>
-            <Heart />
+          <button
+            className={`save-listing-action ${isSaved ? "saved" : ""}`}
+            aria-label={isSaved ? `Remove ${cardTitle} from saved` : `Save ${cardTitle}`}
+            title={isSaved ? "Saved" : "Save business"}
+            onClick={(event) => {
+              event.stopPropagation();
+              toggleSaved(item.id);
+            }}
+          >
+            <Heart weight={isSaved ? "fill" : "regular"} />
           </button>
-          <button aria-label={`Share ${cardTitle}`} onClick={(event) => { event.stopPropagation(); navigator.share?.({ title: cardTitle, text: item.tagline, url: `${window.location.origin}/listing/${item.id}` }); }}>
-            <ShareNetwork />
-          </button>
+          <span className="share-action-wrap">
+            <button aria-label={`Share ${cardTitle}`} onClick={share}>
+              <ShareNetwork />
+            </button>
+            {copied && <small className="share-copied-tooltip">Link copied!</small>}
+          </span>
         </div>
         <button className="listing-card-detail" onClick={(event) => { event.stopPropagation(); go(`/listing/${item.id}`); }}>View business <ArrowRight /></button>
       </div>
@@ -3313,6 +3367,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
   const [mobileSide, setMobileSide] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [lockedNotice, setLockedNotice] = useState(false);
   const [inquiryCount, setInquiryCount] = useState(0);
   useEffect(() => {
     fetch("/api/inquiries", { credentials: "same-origin" })
@@ -3332,6 +3387,11 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
   }, []);
   const openListingFlow = () => {
     if (listing) {
+      if (listing.status === "Published") {
+        setLockedNotice(true);
+        setTimeout(() => setLockedNotice(false), 3600);
+        return;
+      }
       setEditing(true);
       return;
     }
@@ -3424,6 +3484,12 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
           <div className="toast" role="status">
             <CheckCircle weight="fill" />
             Listing changes saved
+          </div>
+        )}
+        {lockedNotice && (
+          <div className="toast toast-warning" role="status">
+            <WarningCircle weight="fill" />
+            Your listing is live and its details are locked. Contact support to request changes.
           </div>
         )}
         {pendingPayment && (
@@ -3540,8 +3606,9 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
               <button
                 className="admin-primary"
                 onClick={openListingFlow}
+                disabled={listing?.status === "Published"}
               >
-                <PencilSimple /> {listing ? "Edit details" : "Create listing"}
+                <PencilSimple /> {listing ? (listing.status === "Published" ? "Details locked" : "Edit details") : "Create listing"}
               </button>
             </section>
             {listing ? (
@@ -3549,6 +3616,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
                 <img src={listing.image} alt="" />
                 <div>
                   <StatusPill status={listing.status} />
+                  {listing.status === "Published" && <p className="listing-locked-note"><WarningCircle /> Live listings are locked. Contact support to request changes.</p>}
                   <h3>{listing.name}</h3>
                   <p>{listing.tagline}</p>
                   <p>
@@ -3650,11 +3718,16 @@ function PlanBilling({ listing, go, resumePayment }) {
       <section className="package-grid">
         {packages.map((item) => {
           const isCurrent = subscription && subscription.plan === item.name;
+          const currentPackage = subscription && packages.find((p) => p.name === subscription.plan);
+          const currentPrice = currentPackage?.price ?? subscription?.amount;
+          const isUpgrade = subscription && !isCurrent && currentPrice != null && item.price > currentPrice;
           return (
             <article key={item.id} className={`panel package-card ${item.featured ? "featured" : ""} ${isCurrent ? "current" : ""}`}>
-              {item.featured && !isCurrent && <span className="package-badge">Most popular</span>}
-              {isCurrent && <span className="package-badge current">Your current plan</span>}
-              <h3>{item.name}</h3>
+              <div className="package-card-top">
+                <h3>{item.name}</h3>
+                {isCurrent && <span className="package-badge current">Current plan</span>}
+                {!isCurrent && item.featured && <span className="package-badge">Most popular</span>}
+              </div>
               <p className="package-price">₱{Number(item.price).toLocaleString()} <small>/ {item.interval}</small></p>
               <ul className="package-checklist">
                 {(item.features || []).map((feature) => (
@@ -3666,7 +3739,9 @@ function PlanBilling({ listing, go, resumePayment }) {
                   <CheckCircle weight="fill" /> Active
                 </button>
               ) : subscription ? (
-                <button className="secondary-button" disabled>Contact support to switch plans</button>
+                <button className="admin-primary" onClick={() => go?.("/contact")}>
+                  {isUpgrade ? "Upgrade to this plan" : "Downgrade to this plan"} <ArrowRight />
+                </button>
               ) : resumePayment ? (
                 <button className="admin-primary" onClick={resumePayment}>Continue payment <ArrowRight /></button>
               ) : (
@@ -3912,8 +3987,9 @@ function UserAccountProfile({ session, listing, onEdit, onSaveListing }) {
     } catch (error) { setStatus({ type: "error", message: error.message }); } finally { setSaving(false); }
   };
   const socialFields = [["website", "Business website", "https://yourbusiness.com"], ["facebook", "Facebook page", "https://facebook.com/yourbusiness"], ["instagram", "Instagram profile", "https://instagram.com/yourbusiness"], ["linkedin", "LinkedIn page", "https://linkedin.com/company/yourbusiness"], ["whatsapp", "WhatsApp number", "+63 917 123 4567"], ["viber", "Viber number", "+63 917 123 4567"]];
+  const listingLocked = listing?.status === "Published";
   return <div className="admin-content account-profile-page">
-    <section className="welcome-row"><div><span className="section-eyebrow">Personal settings</span><h2>Account & profile</h2><p>Choose how you appear on Findra and keep the contact links on your public listing up to date.</p></div><button className="secondary-button" onClick={onEdit}><PencilSimple /> Edit business details</button></section>
+    <section className="welcome-row"><div><span className="section-eyebrow">Personal settings</span><h2>Account & profile</h2><p>Choose how you appear on Findra and keep the contact links on your public listing up to date.</p>{listingLocked && <p className="listing-locked-note"><WarningCircle /> Your listing is live and its details are locked. Contact support to request changes.</p>}</div>{listingLocked ? <button className="secondary-button" disabled><PencilSimple /> Details locked</button> : <button className="secondary-button" onClick={onEdit}><PencilSimple /> Edit business details</button>}</section>
     <form className="account-profile-form" onSubmit={save}>
       <section className="panel profile-hero-card"><AccountAvatar session={{ ...session, profileImage: form.profileImage || session?.profileImage }} businessLogo={listing?.logo} className="profile-avatar-large" /><div><span className="section-eyebrow">Account photo</span><h3>{form.name || "Business owner"}</h3><p>{form.profileImage ? "Custom profile photo" : listing?.logo ? "Using your business logo as your account photo" : "Using your Findra initials until you add a photo"}</p></div><label className="secondary-button upload-avatar-button"><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => uploadAvatar(event.target.files?.[0])} />Upload photo</label></section>
       <section className="panel profile-settings-card"><h3>Account details</h3><p>Your name is used across your dashboard and account communications.</p><div className="profile-form-grid"><label><span>Display name *</span><input required value={form.name} onChange={(event) => setField("name", event.target.value)} placeholder="Your name" /></label><label><span>Email address</span><input value={session?.email || ""} disabled /></label></div></section>
