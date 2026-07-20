@@ -14,6 +14,7 @@ const copy = {
   "inquiry-reply": ["You have a reply to your Findra PH inquiry", "The business you contacted has responded to your inquiry. Check your email for their reply."],
   "inquiry-sent-guest": ["We received your inquiry on Findra PH", "Your message has been sent. The business will get back to you soon."],
   "inquiry-reply-sent-owner": ["Your reply was sent on Findra PH", "Your reply was delivered to the customer by email."],
+  "inbox-message-reply": ["Findra support replied to your message", "The Findra admin team has responded to your inbox message. Check your email for their reply."],
 };
 const templateNames = {
   "new-user": "New user welcome",
@@ -28,6 +29,7 @@ const templateNames = {
   "inquiry-reply": "Reply to customer inquiry",
   "inquiry-sent-guest": "Inquiry confirmation to guest",
   "inquiry-reply-sent-owner": "Reply confirmation to business owner",
+  "inbox-message-reply": "Admin reply to support message",
 };
 const smsCopy = {
   "new-user": `Hi {{contactFirstName}},
@@ -100,6 +102,7 @@ function defaultsFor(event) {
     "inquiry-reply": "{{replyFrom}} replied to your inquiry on Findra PH",
     "inquiry-sent-guest": "We received your inquiry on Findra PH",
     "inquiry-reply-sent-owner": "Your reply was sent to {{contactFullName}}",
+    "inbox-message-reply": "{{replyFrom}} replied to your Findra message",
   };
   const clientBodies = {
     "new-user": `<p>Hi {{contactFirstName}},</p><p>Welcome to Findra PH!</p><p>We’re excited to have you on board. You’re officially registered, and your account is now active.</p><p>Here’s what you can do next:</p><ul><li>Complete your Business Details so customers can easily find and contact you.</li><li>Submit your Business Details for review and approval.</li><li>Manage your account and Business Details from your dashboard anytime.</li></ul><p><a href="{{dashboardUrl}}">Access your dashboard</a></p><p>Once your Business Details are submitted, our team will review them within 3–4 business days before they go live.</p><p>Welcome aboard,<br>The Findra PH Team</p>`,
@@ -114,6 +117,7 @@ function defaultsFor(event) {
     "inquiry-reply": `<p>Hi {{contactFirstName}},</p><p><strong>{{replyFrom}}</strong> from <strong>{{businessName}}</strong> replied to your inquiry on Findra PH:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{replyMessage}}</blockquote><p>You can reply directly to this email to continue the conversation.</p><p>Best regards,<br>The Findra PH Team</p>`,
     "inquiry-sent-guest": `<p>Hi {{contactFirstName}},</p><p>Thanks for reaching out to <strong>{{businessName}}</strong> on Findra PH. Here's a copy of your message:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{inquiryMessage}}</blockquote><p>The business has been notified and will get back to you soon.</p><p>Best regards,<br>The Findra PH Team</p>`,
     "inquiry-reply-sent-owner": `<p>Hi {{contactFirstName}},</p><p>Your reply to <strong>{{contactFullName}}</strong>'s inquiry on Findra PH has been sent:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{replyMessage}}</blockquote><p><a href="{{dashboardUrl}}">View the conversation</a></p><p>Best regards,<br>The Findra PH Team</p>`,
+    "inbox-message-reply": `<p>Hi {{contactFirstName}},</p><p><strong>{{replyFrom}}</strong> from the Findra PH support team replied to your message about <strong>"{{businessName}}"</strong>:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{replyMessage}}</blockquote><p><a href="{{dashboardUrl}}">View the conversation</a></p><p>Best regards,<br>The Findra PH Team</p>`,
   };
   return {
     event,
@@ -215,16 +219,80 @@ export async function notifyAdmins(event, context = {}) {
   await Promise.all(admins.rows.map((admin) => notify({ userId: admin.id, email: admin.email, event, context })));
 }
 export async function handleNotificationsRequest(req,res) {
-  const url=new URL(req.url,`http://${req.headers.host||"localhost"}`); if(!url.pathname.startsWith("/api/notifications") && !url.pathname.startsWith("/api/automations")) return false;
+  const url=new URL(req.url,`http://${req.headers.host||"localhost"}`); if(!url.pathname.startsWith("/api/notifications") && !url.pathname.startsWith("/api/automations") && !url.pathname.startsWith("/api/inbox")) return false;
   try { const user=await readSession(req); if(!user) return json(res,401,{error:"Please sign in."}),true;
     if(req.method==="GET"&&url.pathname==="/api/notifications") { const result=await query(user.role==="admin"?"SELECT * FROM notifications ORDER BY created_at DESC LIMIT 100":"SELECT * FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100",user.role==="admin"?[]:[user.id]); return json(res,200,{notifications:result.rows}),true; }
-    if(req.method === "GET" && url.pathname === "/api/inbox/messages") { const result = await query("SELECT * FROM support_messages WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50", [user.id]); return json(res, 200, { messages: result.rows }), true; }
+    if(req.method === "GET" && url.pathname === "/api/inbox/messages") {
+      const result = user.role === "admin"
+        ? await query(`SELECT support_messages.*, users.display_name AS sender_display_name FROM support_messages
+            LEFT JOIN users ON users.id = support_messages.user_id ORDER BY support_messages.created_at DESC LIMIT 200`)
+        : await query("SELECT * FROM support_messages WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50", [user.id]);
+      return json(res, 200, { messages: result.rows }), true;
+    }
     if(req.method === "POST" && url.pathname === "/api/inbox/messages") {
       const body = await readJson(req); const subject = String(body.subject || "").trim().slice(0, 160); const message = String(body.message || "").trim().slice(0, 5000);
       if (!subject || !message) return json(res, 400, { error: "Add a subject and message for the Findra team." }), true;
       const created = await query("INSERT INTO support_messages (user_id,sender_email,subject,message) VALUES ($1,$2,$3,$4) RETURNING *", [user.id, user.email, subject, message]);
-      notifyAdmins("inbox-message-admin", { contactFirstName: user.display_name, contactFullName: user.display_name, contactEmail: user.email, businessName: subject }).catch(() => {});
+      notifyAdmins("inbox-message-admin", { contactFirstName: user.display_name, contactFullName: user.display_name, contactEmail: user.email, businessName: subject, inquiryMessage: message }).catch(() => {});
       return json(res, 201, { message: created.rows[0] }), true;
+    }
+    const findAccessibleMessage = async (id) => {
+      const result = user.role === "admin"
+        ? await query("SELECT * FROM support_messages WHERE id=$1", [id])
+        : await query("SELECT * FROM support_messages WHERE id=$1 AND user_id=$2", [id, user.id]);
+      return result.rows[0] || null;
+    };
+    const inboxMatch = url.pathname.match(/^\/api\/inbox\/messages\/(\d+)$/);
+    if (inboxMatch && req.method === "PATCH") {
+      const message = await findAccessibleMessage(inboxMatch[1]);
+      if (!message) return json(res, 404, { error: "Message not found." }), true;
+      const body = await readJson(req);
+      const status = ["New", "Read", "Responded"].includes(body.status) ? body.status : "Read";
+      const result = await query("UPDATE support_messages SET status=$1 WHERE id=$2 RETURNING *", [status, message.id]);
+      return json(res, 200, { message: result.rows[0] }), true;
+    }
+    const inboxRepliesMatch = url.pathname.match(/^\/api\/inbox\/messages\/(\d+)\/replies$/);
+    if (inboxRepliesMatch) {
+      const message = await findAccessibleMessage(inboxRepliesMatch[1]);
+      if (!message) return json(res, 404, { error: "Message not found." }), true;
+      if (req.method === "GET") {
+        const result = await query("SELECT * FROM support_message_replies WHERE message_id=$1 ORDER BY created_at ASC", [message.id]);
+        return json(res, 200, { replies: result.rows }), true;
+      }
+      if (req.method === "POST") {
+        const body = await readJson(req);
+        const replyText = String(body.message || "").trim().slice(0, 4000);
+        if (!replyText) return json(res, 400, { error: "Write a reply message first." }), true;
+        const senderName = user.display_name || (user.role === "admin" ? "Findra admin" : "Findra");
+        const context = {
+          contactFirstName: senderName,
+          contactFullName: senderName,
+          contactEmail: message.sender_email,
+          businessName: message.subject,
+          replyFrom: senderName,
+          replyMessage: replyText,
+        };
+        let emailStatus = "queued";
+        if (user.role === "admin") {
+          try {
+            await notify({ userId: message.user_id, email: message.sender_email, event: "inbox-message-reply", context });
+            emailStatus = "sent";
+          } catch { emailStatus = "failed"; }
+          await query("UPDATE support_messages SET status='Responded' WHERE id=$1", [message.id]);
+        } else {
+          try {
+            await notifyAdmins("inbox-message-admin", { ...context, contactEmail: user.email, inquiryMessage: replyText });
+            emailStatus = "sent";
+          } catch { emailStatus = "failed"; }
+          await query("UPDATE support_messages SET status='New' WHERE id=$1", [message.id]);
+        }
+        const created = await query(
+          `INSERT INTO support_message_replies (message_id, sender_user_id, sender_name, sender_role, message, email_status)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+          [message.id, user.id, senderName, user.role === "admin" ? "admin" : "user", replyText, emailStatus],
+        );
+        return json(res, 201, { reply: created.rows[0] }), true;
+      }
     }
     if(user.role === "admin" && req.method === "GET" && url.pathname === "/api/automations/templates") {
       const saved = await query("SELECT * FROM email_templates ORDER BY event");

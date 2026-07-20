@@ -2199,6 +2199,7 @@ const sideItems = [
   ["Listings", Buildings],
   ["Users", UsersThree],
   ["Inquiries", ChatCircleText],
+  ["Inbox", EnvelopeSimple],
   ["Subscriptions", CreditCard],
   ["Automation", ArrowsClockwise],
   ["Settings", Gear],
@@ -2613,6 +2614,8 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
           <UsersManagement query={query} onNotify={onNotify} />
         ) : section === "Inquiries" ? (
           <InquiriesPanel role="admin" query={query} onNotify={onNotify} />
+        ) : section === "Inbox" ? (
+          <SupportInboxPanel query={query} onNotify={onNotify} />
         ) : section === "Subscriptions" ? (
           <SubscriptionsManagement onNotify={onNotify} />
         ) : section === "Automation" ? (
@@ -4099,6 +4102,11 @@ function UserInbox() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const [repliesByMessage, setRepliesByMessage] = useState({});
+  const [repliesLoading, setRepliesLoading] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [replySending, setReplySending] = useState(false);
   const load = async () => {
     const [notificationsResponse, messagesResponse] = await Promise.all([
       fetch("/api/notifications", { credentials: "same-origin" }),
@@ -4135,6 +4143,41 @@ function UserInbox() {
       setError(requestError.message);
     } finally {
       setSending(false);
+    }
+  };
+  const toggleThread = (item) => {
+    if (expandedId === item.id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(item.id);
+    setReplyText("");
+    if (repliesByMessage[item.id]) return;
+    setRepliesLoading(true);
+    fetch(`/api/inbox/messages/${item.id}/replies`, { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => setRepliesByMessage((current) => ({ ...current, [item.id]: payload?.replies || [] })))
+      .catch(() => {})
+      .finally(() => setRepliesLoading(false));
+  };
+  const sendThreadReply = async () => {
+    if (!expandedId || !replyText.trim()) return;
+    setReplySending(true);
+    try {
+      const response = await fetch(`/api/inbox/messages/${expandedId}/replies`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: replyText }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Reply could not be sent.");
+      setRepliesByMessage((current) => ({ ...current, [expandedId]: [...(current[expandedId] || []), payload.reply] }));
+      setReplyText("");
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setReplySending(false);
     }
   };
   return (
@@ -4197,11 +4240,212 @@ function UserInbox() {
           <div className="sent-message-list">
             <h4>Your sent messages</h4>
             {messages.length ? messages.map((item) => (
-              <article key={item.id}><strong>{item.subject}</strong><p>{item.message}</p><small>{new Date(item.created_at).toLocaleString()}</small></article>
+              <article key={item.id} className={`sent-message-thread ${expandedId === item.id ? "open" : ""}`}>
+                <button type="button" className="sent-message-header" onClick={() => toggleThread(item)}>
+                  <div>
+                    <strong>{item.subject}</strong>
+                    <p>{item.message}</p>
+                    <small>{new Date(item.created_at).toLocaleString()}{item.status === "Responded" ? " · Admin replied" : ""}</small>
+                  </div>
+                  <span className={`status-badge ${item.status?.toLowerCase()}`}>{item.status}</span>
+                </button>
+                {expandedId === item.id && (
+                  <div className="inquiry-thread">
+                    {repliesLoading && !repliesByMessage[item.id] ? (
+                      <p className="muted-copy">Loading conversation…</p>
+                    ) : (
+                      (repliesByMessage[item.id] || []).map((reply) => (
+                        <div key={reply.id} className={`inquiry-bubble ${reply.sender_role === "admin" ? "inbound" : "outbound"}`}>
+                          <p>{reply.message}</p>
+                          <time>{reply.sender_name} · {new Date(reply.created_at).toLocaleString()}{reply.email_status === "failed" ? " · Email failed" : " · Sent by email"}</time>
+                        </div>
+                      ))
+                    )}
+                    <div className="inquiry-reply-box">
+                      <textarea
+                        value={replyText}
+                        onChange={(event) => setReplyText(event.target.value)}
+                        placeholder="Reply to the admin team… They'll receive it by email."
+                        rows={2}
+                      />
+                      <button className="admin-primary" disabled={replySending || !replyText.trim()} onClick={sendThreadReply}>
+                        <EnvelopeSimple /> {replySending ? "Sending…" : "Send reply"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </article>
             )) : <p className="muted-copy">No messages sent yet.</p>}
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function SupportInboxPanel({ query = "", onNotify }) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const load = () => {
+    setLoading(true);
+    fetch("/api/inbox/messages", { credentials: "same-origin" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Inbox messages could not be loaded.");
+        setMessages(payload.messages || []);
+      })
+      .catch((error) => onNotify?.({ type: "error", title: "Could not load inbox", message: error.message }))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => {
+    load();
+  }, []);
+  const filtered = useMemo(
+    () =>
+      messages.filter((item) =>
+        `${item.sender_display_name || ""} ${item.sender_email} ${item.subject} ${item.message}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+      ),
+    [messages, query],
+  );
+  const markRead = (item) => {
+    if (item.status !== "New") return;
+    fetch(`/api/inbox/messages/${item.id}`, {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "Read" }),
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (payload?.message) setMessages((current) => current.map((row) => (row.id === item.id ? payload.message : row)));
+      })
+      .catch(() => {});
+  };
+  const [selectedId, setSelectedId] = useState(null);
+  const [replies, setReplies] = useState([]);
+  const [repliesLoading, setRepliesLoading] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [replySending, setReplySending] = useState(false);
+  const selected = filtered.find((item) => item.id === selectedId) || null;
+  const select = (item) => {
+    setSelectedId(item.id);
+    setReplyText("");
+    setRepliesLoading(true);
+    setReplies([]);
+    markRead(item);
+    fetch(`/api/inbox/messages/${item.id}/replies`, { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => setReplies(payload?.replies || []))
+      .catch(() => {})
+      .finally(() => setRepliesLoading(false));
+  };
+  const sendReply = async () => {
+    if (!selected || !replyText.trim()) return;
+    setReplySending(true);
+    try {
+      const response = await fetch(`/api/inbox/messages/${selected.id}/replies`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: replyText }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Reply could not be sent.");
+      setReplies((current) => [...current, payload.reply]);
+      setMessages((current) => current.map((row) => (row.id === selected.id ? { ...row, status: "Responded" } : row)));
+      setReplyText("");
+      onNotify?.({ type: "success", title: "Reply sent", message: `${selected.sender_display_name || selected.sender_email} will receive your reply by email.` });
+    } catch (error) {
+      onNotify?.({ type: "error", title: "Reply could not be sent", message: error.message });
+    } finally {
+      setReplySending(false);
+    }
+  };
+  return (
+    <div className="admin-content">
+      <section className="welcome-row">
+        <div>
+          <h2>Support inbox</h2>
+          <p>Messages business owners and members sent from their Findra dashboard.</p>
+        </div>
+        <button className="secondary-button" onClick={load}>Refresh</button>
+      </section>
+      {loading ? (
+        <section className="panel admin-empty"><p>Loading…</p></section>
+      ) : filtered.length ? (
+        <section className="panel inquiry-workspace">
+          <aside className="inquiry-contact-list">
+            {filtered.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`inquiry-contact ${item.status === "New" ? "unread" : ""} ${item.id === selectedId ? "selected" : ""}`}
+                onClick={() => select(item)}
+              >
+                <div className="inquiry-contact-top">
+                  <strong>{item.sender_display_name || item.sender_email}</strong>
+                  {item.status === "New" && <i className="inquiry-unread-dot" aria-label="Unread" />}
+                </div>
+                <small className="inquiry-contact-email">{item.subject}</small>
+                <div className="inquiry-contact-meta">
+                  <span className="inquiry-sender-tag registered">{item.sender_display_name ? "Member" : "User"}</span>
+                  <time>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</time>
+                </div>
+              </button>
+            ))}
+          </aside>
+          <div className="inquiry-conversation">
+            {selected ? (
+              <>
+                <header className="inquiry-conversation-head">
+                  <div>
+                    <strong>{selected.sender_display_name || selected.sender_email}</strong>
+                    <small>{selected.sender_email}</small>
+                  </div>
+                  <div className="inquiry-conversation-tags">
+                    <span className={`status-badge ${selected.status.toLowerCase()}`}>{selected.status}</span>
+                  </div>
+                </header>
+                <div className="inquiry-thread">
+                  <div className="inquiry-bubble inbound">
+                    <p><strong>{selected.subject}</strong></p>
+                    <p>{selected.message}</p>
+                    <time>{new Date(selected.created_at).toLocaleString()}</time>
+                  </div>
+                  {repliesLoading && <p className="muted-copy">Loading conversation…</p>}
+                  {replies.map((reply) => (
+                    <div key={reply.id} className={`inquiry-bubble ${reply.sender_role === "admin" ? "outbound" : "inbound"}`}>
+                      <p>{reply.message}</p>
+                      <time>{reply.sender_name} · {new Date(reply.created_at).toLocaleString()}{reply.email_status === "failed" ? " · Email failed" : " · Sent by email"}</time>
+                    </div>
+                  ))}
+                </div>
+                <div className="inquiry-reply-box">
+                  <textarea
+                    value={replyText}
+                    onChange={(event) => setReplyText(event.target.value)}
+                    placeholder={`Reply to ${selected.sender_display_name || selected.sender_email}… They'll receive it by email.`}
+                    rows={3}
+                  />
+                  <button className="admin-primary" disabled={replySending || !replyText.trim()} onClick={sendReply}>
+                    <EnvelopeSimple /> {replySending ? "Sending…" : "Send reply"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="inquiry-conversation-empty">
+                <ChatCircleText size={42} />
+                <h3>Select a message</h3>
+                <p>Choose a conversation on the left to read the full message and reply.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="panel admin-empty"><ChatCircleText size={42} /><h3>No support messages yet</h3><p>Messages sent from the business or member Inbox will show up here.</p></section>
+      )}
     </div>
   );
 }

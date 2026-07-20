@@ -201,6 +201,19 @@ CREATE TABLE IF NOT EXISTS support_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS support_messages_user_id_idx ON support_messages(user_id, created_at DESC);
+ALTER TABLE support_messages ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'New' CHECK (status IN ('New', 'Read', 'Responded'));
+
+CREATE TABLE IF NOT EXISTS support_message_replies (
+  id BIGSERIAL PRIMARY KEY,
+  message_id BIGINT NOT NULL REFERENCES support_messages(id) ON DELETE CASCADE,
+  sender_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  sender_name TEXT NOT NULL,
+  sender_role TEXT NOT NULL DEFAULT 'user' CHECK (sender_role IN ('user', 'admin')),
+  message TEXT NOT NULL,
+  email_status TEXT NOT NULL DEFAULT 'queued',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS support_message_replies_message_id_idx ON support_message_replies(message_id, created_at ASC);
 `;
 
 try {
