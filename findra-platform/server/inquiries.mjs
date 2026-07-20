@@ -48,11 +48,12 @@ async function create(request, response) {
     [listing ? listing.id : null, target, name, email, phone, message, senderUserId],
   );
 
-  const context = { contactFirstName: name, contactFullName: name, contactEmail: email, contactPhone: phone, businessName: listing ? listing.name : "Website contact form" };
+  const context = { contactFirstName: name, contactFullName: name, contactEmail: email, contactPhone: phone, businessName: listing ? listing.name : "Website contact form", inquiryMessage: message };
   if (listing) {
     notify({ userId: listing.owner_id, email: listing.data?.email, event: "inquiry-received", context }).catch(() => {});
   }
   notifyAdmins("inbox-message-admin", context).catch(() => {});
+  notify({ userId: senderUserId, email, event: "inquiry-sent-guest", context }).catch(() => {});
   return json(response, 201, { inquiry: created.rows[0] });
 }
 
@@ -124,6 +125,7 @@ async function createReply(request, response, inquiry, user) {
     [inquiry.id, user.id, senderName, message, emailStatus],
   );
   await query("UPDATE inquiries SET status = 'Responded' WHERE id = $1", [inquiry.id]);
+  notify({ userId: user.id, email: user.email, event: "inquiry-reply-sent-owner", context: { ...context, contactFirstName: senderName, contactFullName: senderName } }).catch(() => {});
   return json(response, 201, { reply: created.rows[0] });
 }
 

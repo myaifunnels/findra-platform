@@ -12,6 +12,8 @@ const copy = {
   "inbox-message-admin": ["New Findra inbox message", "A business owner has sent a message to the Findra admin team."],
   "subscription-renewal": ["Your Findra PH subscription is expiring soon", "Renew your subscription to keep your Business Details live and visible to customers."],
   "inquiry-reply": ["You have a reply to your Findra PH inquiry", "The business you contacted has responded to your inquiry. Check your email for their reply."],
+  "inquiry-sent-guest": ["We received your inquiry on Findra PH", "Your message has been sent. The business will get back to you soon."],
+  "inquiry-reply-sent-owner": ["Your reply was sent on Findra PH", "Your reply was delivered to the customer by email."],
 };
 const templateNames = {
   "new-user": "New user welcome",
@@ -24,6 +26,8 @@ const templateNames = {
   "inbox-message-admin": "New inbox message for admin",
   "subscription-renewal": "Subscription renewal reminder",
   "inquiry-reply": "Reply to customer inquiry",
+  "inquiry-sent-guest": "Inquiry confirmation to guest",
+  "inquiry-reply-sent-owner": "Reply confirmation to business owner",
 };
 const smsCopy = {
   "new-user": `Hi {{contactFirstName}},
@@ -94,6 +98,8 @@ function defaultsFor(event) {
     "inbox-message-admin": "New Findra inbox message",
     "subscription-renewal": "{{daysLeft}} day(s) left on your Findra PH subscription",
     "inquiry-reply": "{{replyFrom}} replied to your inquiry on Findra PH",
+    "inquiry-sent-guest": "We received your inquiry on Findra PH",
+    "inquiry-reply-sent-owner": "Your reply was sent to {{contactFullName}}",
   };
   const clientBodies = {
     "new-user": `<p>Hi {{contactFirstName}},</p><p>Welcome to Findra PH!</p><p>We’re excited to have you on board. You’re officially registered, and your account is now active.</p><p>Here’s what you can do next:</p><ul><li>Complete your Business Details so customers can easily find and contact you.</li><li>Submit your Business Details for review and approval.</li><li>Manage your account and Business Details from your dashboard anytime.</li></ul><p><a href="{{dashboardUrl}}">Access your dashboard</a></p><p>Once your Business Details are submitted, our team will review them within 3–4 business days before they go live.</p><p>Welcome aboard,<br>The Findra PH Team</p>`,
@@ -106,6 +112,8 @@ function defaultsFor(event) {
     "inbox-message-admin": `<p>Hi {{contactFirstName}},</p><p>You have received a new Findra inbox message: <strong>{{businessName}}</strong>.</p><p>Please review the message in the Findra admin workspace.</p><p>Regards,<br>Findra PH System</p>`,
     "subscription-renewal": `<p>Hi {{contactFirstName}},</p><p>Your <strong>{{businessName}}</strong> subscription on Findra PH has <strong>{{daysLeft}} day(s)</strong> left before it expires.</p><p>Renew now to keep your Business Details live and visible to customers without interruption.</p><p><a href="{{dashboardUrl}}">Manage your subscription</a></p><p>Thank you for growing with Findra PH,<br>The Findra PH Team</p>`,
     "inquiry-reply": `<p>Hi {{contactFirstName}},</p><p><strong>{{replyFrom}}</strong> from <strong>{{businessName}}</strong> replied to your inquiry on Findra PH:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{replyMessage}}</blockquote><p>You can reply directly to this email to continue the conversation.</p><p>Best regards,<br>The Findra PH Team</p>`,
+    "inquiry-sent-guest": `<p>Hi {{contactFirstName}},</p><p>Thanks for reaching out to <strong>{{businessName}}</strong> on Findra PH. Here's a copy of your message:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{inquiryMessage}}</blockquote><p>The business has been notified and will get back to you soon.</p><p>Best regards,<br>The Findra PH Team</p>`,
+    "inquiry-reply-sent-owner": `<p>Hi {{contactFirstName}},</p><p>Your reply to <strong>{{contactFullName}}</strong>'s inquiry on Findra PH has been sent:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{replyMessage}}</blockquote><p><a href="{{dashboardUrl}}">View the conversation</a></p><p>Best regards,<br>The Findra PH Team</p>`,
   };
   return {
     event,
@@ -142,6 +150,7 @@ function renderTemplate(value, context = {}) {
     daysLeft: context.daysLeft ?? "",
     replyFrom: context.replyFrom || "The business",
     replyMessage: context.replyMessage || "",
+    inquiryMessage: context.inquiryMessage || "",
   };
   return String(value || "").replace(/{{([a-zA-Z]+)}}/g, (match, key) => key in fields ? escapeHtml(fields[key]) : match);
 }
