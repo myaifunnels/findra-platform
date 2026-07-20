@@ -4757,7 +4757,10 @@ button.management-status { border: 0; cursor: pointer; }
   font-size: 21px;
 }
 .package-price strong {
-  font-size: 31px;
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--green);
+  letter-spacing: -0.02em;
 }
 .package-price span,
 .package-management-card > p,
@@ -7712,10 +7715,11 @@ th {
   margin: 20px 0 4px;
 }
 .package-price strong {
-  color: var(--surface-text);
+  color: var(--green);
   font:
-    700 29px "Lexend Deca",
+    800 40px "Lexend Deca",
     sans-serif;
+  letter-spacing: -0.02em;
 }
 .package-price span,
 .package-management-card > p {
@@ -9910,6 +9914,14 @@ th {
 .package-tier-card.featured .package-tier-equivalent {
   color: #c6ded3;
 }
+.package-tier-subscribers {
+  margin: 0 0 12px;
+  color: #8a9c94;
+  font-size: 11px;
+}
+.package-tier-card.featured .package-tier-subscribers {
+  color: #9fc4b1;
+}
 .package-tier-savings {
   display: inline-flex;
   align-self: flex-start;
@@ -10783,7 +10795,10 @@ th {
   font-size: 21px;
 }
 .package-price strong {
-  font-size: 31px;
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--green);
+  letter-spacing: -0.02em;
 }
 .package-price span,
 .package-management-card > p,
