@@ -9799,6 +9799,7 @@ th {
 }
 .package-tier-card .secondary-button {
   width: 100%;
+  margin-top: 8px;
   justify-content: center;
 }
 .package-tier-grid {
@@ -9914,14 +9915,6 @@ th {
 .package-tier-card.featured .package-tier-equivalent {
   color: #c6ded3;
 }
-.package-tier-subscribers {
-  margin: 0 0 12px;
-  color: #8a9c94;
-  font-size: 11px;
-}
-.package-tier-card.featured .package-tier-subscribers {
-  color: #9fc4b1;
-}
 .package-tier-savings {
   display: inline-flex;
   align-self: flex-start;
@@ -9937,10 +9930,6 @@ th {
 .package-tier-card.featured .package-tier-savings {
   background: rgba(255, 255, 255, 0.16);
   color: #a7f0c7;
-}
-.package-tier-spacer {
-  flex: 1;
-  min-height: 20px;
 }
 .package-shared-features {
   padding: 30px 34px;
@@ -9976,6 +9965,7 @@ th {
 }
 .package-tier-card .green-button {
   width: 100%;
+  margin-top: 8px;
 }
 .packages-footnote {
   margin: 22px 0 0;

@@ -1953,11 +1953,7 @@ function PackagesPage({ go }) {
                       ? `Billed ₱${pkg.price.toLocaleString()} every ${pkg.interval.toLowerCase()}`
                       : "Billed monthly"}
                   </p>
-                  <p className="package-tier-subscribers">
-                    {pkg.subscribers || 0} current subscriber{pkg.subscribers === 1 ? "" : "s"}
-                  </p>
                   {savings > 0 && <span className="package-tier-savings">Save {savings}%</span>}
-                  <div className="package-tier-spacer" />
                   {isCurrent ? (
                     <button className="secondary-button" disabled>
                       <CheckCircle weight="fill" /> Current Plan
