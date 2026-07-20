@@ -173,6 +173,21 @@ UPDATE packages SET price = 799 WHERE name = 'Monthly';
 UPDATE packages SET price = 3894 WHERE name = '6 Months';
 UPDATE packages SET price = 5988 WHERE name = 'Annually';
 
+-- Early subscribers were bought under now-retired package names/prices
+-- (e.g. a hand-edited "Basic Plan"). Since we're just starting out, reset
+-- any active subscription that isn't already on one of the three canonical
+-- tiers to the baseline Monthly plan so upgrade detection works correctly.
+UPDATE listings
+SET data = jsonb_set(
+  jsonb_set(
+    jsonb_set(data, '{subscription,plan}', '"Monthly"'::jsonb),
+    '{subscription,amount}', '799'::jsonb
+  ),
+  '{subscription,billing}', '"Monthly"'::jsonb
+)
+WHERE data->'subscription'->>'status' = 'Active'
+  AND data->'subscription'->>'plan' NOT IN ('Monthly', '6 Months', 'Annually');
+
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGSERIAL PRIMARY KEY, user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   recipient_email TEXT, event TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,

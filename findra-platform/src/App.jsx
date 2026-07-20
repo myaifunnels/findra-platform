@@ -1909,14 +1909,17 @@ function PackagesPage({ go }) {
             as a guest, complete your business details, then create or sign in
             to your account before secure checkout.
           </p>
-          {subscription && (
-            <p className="packages-current-plan-note">
+        </section>
+        {subscription && (
+          <section className="packages-current-plan-note">
+            <CheckCircle weight="fill" />
+            <p>
               You’re currently on the <strong>{subscription.plan}</strong> plan.
               Pick a longer billing cycle below to upgrade — downgrades aren’t
               available online.
             </p>
-          )}
-        </section>
+          </section>
+        )}
         {loading ? (
           <section className="panel admin-empty"><p>Loading packages…</p></section>
         ) : !tiers.length ? (
@@ -1951,16 +1954,10 @@ function PackagesPage({ go }) {
                       : "Billed monthly"}
                   </p>
                   {savings > 0 && <span className="package-tier-savings">Save {savings}%</span>}
-                  <ul>
-                    {(pkg.features || []).map((feature) => (
-                      <li key={feature}>
-                        <CheckCircle weight="fill" /> {feature}
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="package-tier-spacer" />
                   {isCurrent ? (
                     <button className="secondary-button" disabled>
-                      <CheckCircle weight="fill" /> Your current plan
+                      <CheckCircle weight="fill" /> Current Plan
                     </button>
                   ) : isUpgrade ? (
                     <GreenButton onClick={goToBilling}>
@@ -1978,6 +1975,18 @@ function PackagesPage({ go }) {
                 </article>
               );
             })}
+          </section>
+        )}
+        {Boolean(monthly?.features?.length) && (
+          <section className="panel package-shared-features">
+            <h3>Every plan includes</h3>
+            <ul>
+              {monthly.features.map((feature) => (
+                <li key={feature}>
+                  <CheckCircle weight="fill" /> {feature}
+                </li>
+              ))}
+            </ul>
           </section>
         )}
         <section className="package-clarity-row">
@@ -4094,7 +4103,7 @@ function PlanBilling({ listing, go, resumePayment }) {
               </ul>
               {isCurrent ? (
                 <button className="secondary-button" disabled>
-                  <CheckCircle weight="fill" /> Active
+                  <CheckCircle weight="fill" /> Current Plan
                 </button>
               ) : subscription && isUpgrade ? (
                 <button className="admin-primary" onClick={() => go?.("/contact")}>

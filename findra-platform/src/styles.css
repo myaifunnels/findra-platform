@@ -9750,21 +9750,39 @@ th {
   line-height: 1.75;
 }
 .packages-current-plan-note {
-  display: inline-flex;
-  margin: 16px auto 0;
-  padding: 9px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 720px;
+  margin: 0 auto 30px;
+  padding: 14px 22px;
   border: 1px solid rgba(11, 145, 71, 0.28);
-  border-radius: 999px;
+  border-radius: 14px;
   background: rgba(11, 145, 71, 0.1);
   color: #0c7a3f;
-  font-size: 13px;
+  text-align: center;
+}
+.packages-current-plan-note > svg {
+  flex: 0 0 auto;
+  font-size: 20px;
+}
+.packages-current-plan-note p {
+  margin: 0;
+  font-size: 14px;
   font-weight: 650;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 [data-theme="dark"] .packages-current-plan-note {
   border-color: rgba(120, 220, 158, 0.3);
   background: rgba(78, 223, 142, 0.12);
   color: #a7f0c7;
+}
+@media (max-width: 640px) {
+  .packages-current-plan-note {
+    flex-direction: column;
+    text-align: center;
+  }
 }
 .package-tier-badge.current {
   background: var(--green);
@@ -9784,6 +9802,7 @@ th {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 22px;
   align-items: stretch;
+  margin-bottom: 26px;
 }
 .package-tier-card {
   position: relative;
@@ -9907,34 +9926,41 @@ th {
   background: rgba(255, 255, 255, 0.16);
   color: #a7f0c7;
 }
-.package-tier-card ul {
-  display: grid;
+.package-tier-spacer {
   flex: 1;
-  gap: 12px;
-  margin: 6px 0 24px;
+  min-height: 20px;
+}
+.package-shared-features {
+  padding: 30px 34px;
+}
+.package-shared-features h3 {
+  margin: 0 0 18px;
+  color: var(--surface-text);
+  font: 750 20px "Lexend Deca", sans-serif;
+  text-align: center;
+}
+.package-shared-features ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px 24px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
-.package-tier-card li {
+.package-shared-features li {
   display: flex;
   align-items: flex-start;
   gap: 9px;
-  color: #274238;
+  color: var(--surface-text);
   font-size: 13.5px;
   font-weight: 650;
   line-height: 1.4;
 }
-.package-tier-card.featured li {
-  color: #eef7f2;
-}
-.package-tier-card li svg {
+.package-shared-features li svg {
   flex: 0 0 auto;
   margin-top: 2px;
   color: var(--green);
   font-size: 17px;
-}
-.package-tier-card.featured li svg {
-  color: #a7f0c7;
 }
 .package-tier-card .green-button {
   width: 100%;
