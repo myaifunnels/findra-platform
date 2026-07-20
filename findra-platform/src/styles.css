@@ -422,6 +422,12 @@ a {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin: 0 0 10px;
+}
+/* The logo only overlaps the cover image in the grid layout, where the image
+   sits directly above the content; in the list layout the image is beside
+   the content, so pulling the logo up there just produced blank whitespace. */
+.listing-card-grid .listing-card-header {
   margin: -34px 0 10px;
 }
 .listing-card-header .listing-card-logo {
@@ -446,12 +452,15 @@ a {
   background: #16211e;
 }
 .listing-card-header h3 {
-  margin: 20px 0 0;
+  margin: 0;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 17px !important;
+}
+.listing-card-grid .listing-card-header h3 {
+  margin: 20px 0 0;
 }
 .listing-card-tagline {
   margin: 0 0 8px;
@@ -502,12 +511,13 @@ a {
 .listing-content .location svg {
   color: var(--green);
 }
+/* Rendered in normal flow (below the chips, above "View business") instead of
+   floating over the image/logo, which used to overlap the header on some
+   cards. */
 .card-actions {
-  position: absolute;
-  right: 15px;
-  top: 15px;
   display: flex;
   gap: 8px;
+  margin: 12px 0 2px;
 }
 .card-actions button {
   width: 36px;

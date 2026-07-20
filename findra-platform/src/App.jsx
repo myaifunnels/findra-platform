@@ -252,6 +252,17 @@ function listingCompleteness(listing) {
   return { percent: listing ? Math.round((done / checks.length) * 100) : 0, checks };
 }
 
+// Listing locations are raw Google Places addresses (street level or not), so
+// segment counts vary. The country is always last and the city/area always
+// sits three segments from the end, giving a consistent "City, Country" line.
+function cityAndCountry(location) {
+  const parts = String(location || "").split(",").map((part) => part.trim()).filter(Boolean);
+  if (!parts.length) return "";
+  const country = parts[parts.length - 1];
+  const city = parts.length >= 3 ? parts[parts.length - 3] : parts[0];
+  return city === country ? country : `${city}, ${country}`;
+}
+
 function usePath() {
   const [path, setPath] = useState(window.location.pathname);
   useEffect(() => {
@@ -907,7 +918,7 @@ function ListingCard({ item, go, layout = "list" }) {
         <div className="listing-card-category">{item.category}</div>
         <p className="location">
           <MapPin weight="fill" />
-          {item.location}, Philippines
+          {cityAndCountry(item.location)}
         </p>
         <p className="listing-card-summary">{item.description || `${item.tagline}. Discover services, connect directly, and make your next project easier.`}</p>
         <div className="chips">
@@ -1825,7 +1836,7 @@ function PackagesPage({ go }) {
     <PublicLayout go={go}>
       <InfoPageHero
         title="BUSINESS LISTING PACKAGE"
-        image="/assets/cta-background.png"
+        image="/assets/packages-banner.png"
       />
       <main className="packages-page">
         <section className="packages-intro">
