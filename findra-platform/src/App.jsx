@@ -1013,35 +1013,6 @@ function ListingDetail({ go, item }) {
         <div className="detail-columns">
           <article>
             <div className="detail-sections">
-              <section className="panel detail-section detail-social-card">
-                <h3 className="detail-section-title">Social &amp; online presence</h3>
-                <div className="detail-social">
-                  {item.website ? (
-                    <a href={item.website} target="_blank" rel="noreferrer" aria-label={`${item.name} website`}>
-                      <Globe /> <span>Website</span>
-                    </a>
-                  ) : (
-                    <span className="detail-social-empty">
-                      <Globe /> <span>Website</span>
-                    </span>
-                  )}
-                  {item.facebook && (
-                    <a href={item.facebook} target="_blank" rel="noreferrer" aria-label={`${item.name} Facebook`}>
-                      <FacebookLogo weight="fill" /> <span>Facebook</span>
-                    </a>
-                  )}
-                  {item.instagram && (
-                    <a href={item.instagram} target="_blank" rel="noreferrer" aria-label={`${item.name} Instagram`}>
-                      <InstagramLogo weight="bold" /> <span>Instagram</span>
-                    </a>
-                  )}
-                  {item.linkedin && (
-                    <a href={item.linkedin} target="_blank" rel="noreferrer" aria-label={`${item.name} LinkedIn`}>
-                      <LinkedinLogo weight="fill" /> <span>LinkedIn</span>
-                    </a>
-                  )}
-                </div>
-              </section>
               <section className="panel detail-section">
                 <h3 className="detail-section-title">About us</h3>
                 <p>{about}</p>
@@ -1138,7 +1109,37 @@ function ListingDetail({ go, item }) {
               )}
             </div>
           </article>
-          <aside className="inquiry-card listing-inquiry-card">
+          <div className="detail-sidebar">
+            <section className="panel detail-section detail-social-card">
+              <h3 className="detail-section-title">Social &amp; online presence</h3>
+              <div className="detail-social">
+                {item.website ? (
+                  <a href={item.website} target="_blank" rel="noreferrer" aria-label={`${item.name} website`}>
+                    <Globe /> <span>Website</span>
+                  </a>
+                ) : (
+                  <span className="detail-social-empty">
+                    <Globe /> <span>Website</span>
+                  </span>
+                )}
+                {item.facebook && (
+                  <a href={item.facebook} target="_blank" rel="noreferrer" aria-label={`${item.name} Facebook`}>
+                    <FacebookLogo weight="fill" /> <span>Facebook</span>
+                  </a>
+                )}
+                {item.instagram && (
+                  <a href={item.instagram} target="_blank" rel="noreferrer" aria-label={`${item.name} Instagram`}>
+                    <InstagramLogo weight="bold" /> <span>Instagram</span>
+                  </a>
+                )}
+                {item.linkedin && (
+                  <a href={item.linkedin} target="_blank" rel="noreferrer" aria-label={`${item.name} LinkedIn`}>
+                    <LinkedinLogo weight="fill" /> <span>LinkedIn</span>
+                  </a>
+                )}
+              </div>
+            </section>
+            <aside className="inquiry-card listing-inquiry-card">
             <header className="inquiry-card-header">
               <span>Connect with this business</span>
               <div className="inquiry-card-brand">
@@ -1236,6 +1237,7 @@ function ListingDetail({ go, item }) {
               )}
             </div>
           </aside>
+          </div>
         </div>
       </main>
     </PublicLayout>

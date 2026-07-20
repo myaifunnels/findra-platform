@@ -764,6 +764,15 @@ footer {
   display: grid;
   gap: 20px;
 }
+.detail-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: max-content;
+}
+.detail-sidebar .listing-inquiry-card {
+  position: static;
+}
 .detail-section {
   padding: 26px;
 }
@@ -5257,11 +5266,6 @@ body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .dire
     linear-gradient(145deg, #f4faf6, #edf5f0 55%, #e9f2ed);
   color: var(--surface-text);
 }
-[data-theme="light"] .admin-sidebar {
-  background: linear-gradient(180deg, rgba(243, 250, 246, 0.96), rgba(229, 243, 234, 0.94));
-  border-color: rgba(28, 92, 59, 0.15);
-  color: #214436;
-}
 [data-theme="light"] .admin-topbar {
   background: rgba(251, 255, 252, 0.76);
   border-color: rgba(28, 92, 59, 0.14);
@@ -5347,19 +5351,6 @@ body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .dire
 }
 [data-theme="light"] .management-table td {
   background: rgba(255, 255, 255, 0.42);
-}
-[data-theme="light"] .admin-sidebar :is(a, button) {
-  color: #315646;
-}
-[data-theme="light"] .admin-sidebar :is(a, button):hover {
-  background: rgba(113, 206, 151, 0.17);
-  color: #0b7038;
-}
-[data-theme="light"] .admin-sidebar .active,
-[data-theme="light"] .admin-sidebar [aria-current="page"] {
-  background: linear-gradient(135deg, rgba(151, 238, 185, 0.62), rgba(207, 248, 222, 0.84));
-  color: #075e30;
-  box-shadow: inset 3px 0 #0b9648;
 }
 [data-theme="light"] :is(.status-badge, .management-status, .status-pill) {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
@@ -9553,8 +9544,8 @@ th {
 .auth-shell .auth-card form { padding: 28px 52px 12px; gap: 15px; }
 .auth-shell .auth-card form > label { position: relative; display: grid; grid-template-columns: 20px 1fr; grid-template-rows: auto auto; column-gap: 10px; min-height: 0; padding: 12px 14px; border: 1px solid rgba(185, 230, 201, .2); border-radius: 14px; background: rgba(255,255,255,.055); }
 .auth-shell .auth-card form > label > svg { grid-row: span 2; align-self: center; color: #87dca4; }
-.auth-shell .auth-card form > label > span { color: #a9c5b4; font-size: 12px !important; font-weight: 700; }
-.auth-shell .auth-card form > label input { min-height: 25px !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; color: #fff !important; font-size: 16px !important; }
+.auth-shell .auth-card form > label > span { color: var(--findra-field-placeholder); font-size: 12px !important; font-weight: 700; }
+.auth-shell .auth-card form > label input { min-height: 25px !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; color: var(--findra-field-text) !important; font-size: 16px !important; }
 .auth-shell .auth-card form > label:focus-within { border-color: rgba(204, 242, 217, .35); background: rgba(255,255,255,.075); box-shadow: 0 0 0 4px rgba(232, 255, 240, .045), 0 9px 22px rgba(0,0,0,.14); }
 .auth-shell .auth-options { align-items: flex-start; color: #a8c0b2; font-size: 12px; line-height: 1.45; gap: 12px; }
 .auth-shell .auth-options label { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; color: #d9e9df; font-size: 13px !important; }
@@ -9639,7 +9630,7 @@ th {
 .auth-shell .auth-card form > label > input:-webkit-autofill,
 .auth-shell .auth-card form > label > input:-webkit-autofill:hover,
 .auth-shell .auth-card form > label > input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #fff;
+  -webkit-text-fill-color: var(--findra-field-text);
   -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
   box-shadow: 0 0 0 1000px transparent inset !important;
   transition: background-color 9999s ease-out 0s;
