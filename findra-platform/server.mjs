@@ -11,6 +11,8 @@ import { handlePackagesRequest } from "./server/packages.mjs";
 import { handleNotificationsRequest } from "./server/notifications.mjs";
 import { handleMapsRequest } from "./server/maps.mjs";
 import { handleTextbeeRequest } from "./server/textbee.mjs";
+import { handleUsersRequest } from "./server/users.mjs";
+import { handleInquiriesRequest } from "./server/inquiries.mjs";
 
 const root = fileURLToPath(new URL("./dist/", import.meta.url));
 try {
@@ -47,6 +49,8 @@ createServer(async (request, response) => {
   if (await handlePackagesRequest(request, response)) return;
   if (await handleNotificationsRequest(request, response)) return;
   if (await handleTextbeeRequest(request, response)) return;
+  if (await handleUsersRequest(request, response)) return;
+  if (await handleInquiriesRequest(request, response)) return;
   if (await handleMapsRequest(request, response)) return;
   if (await handleBrevoRequest(request, response)) return;
   if (await handlePayMongoRequest(request, response)) return;

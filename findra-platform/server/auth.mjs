@@ -123,6 +123,7 @@ async function register(request, response) {
   const email = normaliseEmail(body.email);
   const name = String(body.name || "").trim();
   const password = String(body.password || "");
+  const phone = String(body.phone || "").trim().slice(0, 40);
   if (!email.includes("@") || !name)
     return json(response, 400, { error: "Enter your name and a valid email address." });
   const issue = passwordError(password);
@@ -137,14 +138,14 @@ async function register(request, response) {
   );
   const role = bootstrapAdminEmail && email === bootstrapAdminEmail ? "admin" : "user";
   const result = await query(
-    `INSERT INTO users (id, email, display_name, password_hash, role)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO users (id, email, display_name, password_hash, role, phone)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING id, email, display_name, role, email_verified_at, profile_image`,
-    [id, email, name, passwordHash, role],
+    [id, email, name, passwordHash, role, phone || null],
   );
   const user = result.rows[0];
   await createSession(response, user);
-  notify({ userId: user.id, email: user.email, event: "new-user" }).catch(() => {});
+  notify({ userId: user.id, email: user.email, event: "new-user", context: { contactFirstName: name, contactFullName: name, contactPhone: phone } }).catch(() => {});
   return json(response, 201, { user: publicUser(user) });
 }
 

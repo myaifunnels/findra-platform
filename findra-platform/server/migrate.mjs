@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Suspended'));
 
 CREATE TABLE IF NOT EXISTS sessions (
   id UUID PRIMARY KEY,
@@ -56,6 +58,20 @@ CREATE TABLE IF NOT EXISTS listings (
 
 CREATE INDEX IF NOT EXISTS listings_owner_id_idx ON listings(owner_id);
 CREATE INDEX IF NOT EXISTS listings_status_idx ON listings(status);
+
+CREATE TABLE IF NOT EXISTS inquiries (
+  id BIGSERIAL PRIMARY KEY,
+  listing_id BIGINT REFERENCES listings(id) ON DELETE SET NULL,
+  target TEXT NOT NULL DEFAULT 'business' CHECK (target IN ('business', 'admin')),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'New' CHECK (status IN ('New', 'Read', 'Responded')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS inquiries_listing_id_idx ON inquiries(listing_id);
+CREATE INDEX IF NOT EXISTS inquiries_created_at_idx ON inquiries(created_at DESC);
 
 -- Contact details identify a business listing. Keep legacy records intact, but
 -- reject any future create/update that reuses a business email or phone number.

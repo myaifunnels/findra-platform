@@ -1126,6 +1126,82 @@ footer {
   border-radius: 6px;
   font-size: 12px;
 }
+.inquiry-form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(216, 74, 74, 0.14);
+  color: #ff9b9b;
+  font-size: 13px;
+  font-weight: 600;
+}
+.management-table-empty {
+  padding: 34px 20px;
+  text-align: center;
+  color: var(--surface-muted, #8ea49b);
+}
+.inquiries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.inquiry-row {
+  display: grid;
+  gap: 6px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--glass-line, rgba(255, 255, 255, 0.08));
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+.inquiry-row:last-child {
+  border-bottom: 0;
+}
+.inquiry-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.inquiry-row > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.inquiry-row p {
+  margin: 0;
+  color: var(--surface-muted, #8ea49b);
+}
+.inquiry-row time {
+  font-size: 11px;
+  color: var(--surface-muted, #8ea49b);
+}
+.inquiry-row .status-badge {
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.inquiry-row .status-badge.new {
+  color: #087b46;
+  background: #dff8ea;
+}
+.inquiry-row .status-badge.read {
+  color: #46695a;
+  background: rgba(70, 105, 90, 0.16);
+}
+.inquiry-row .status-badge.responded {
+  color: #0c9148;
+  background: rgba(12, 145, 72, 0.16);
+}
+[data-theme="dark"] .inquiry-row .status-badge.new {
+  color: #72e5ac;
+  background: rgba(0, 177, 92, 0.18);
+}
+[data-theme="dark"] .inquiry-row .status-badge.read,
+[data-theme="dark"] .inquiry-row .status-badge.responded {
+  color: #cfe9da;
+  background: rgba(255, 255, 255, 0.08);
+}
 .demo-accounts {
   border-top: 1px solid #e5eae8;
   padding-top: 16px;
@@ -1241,6 +1317,11 @@ footer {
 }
 .admin-sidebar nav button:hover {
   color: white;
+  background: rgba(255, 255, 255, 0.06);
+}
+.signout:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.06);
 }
 .admin-sidebar nav button span {
   margin-left: auto;

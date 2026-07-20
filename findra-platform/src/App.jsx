@@ -294,12 +294,14 @@ function GreenButton({
   onClick,
   type = "button",
   className = "",
+  disabled = false,
 }) {
   return (
     <button
       type={type}
       className={`green-button ${className}`}
       onClick={onClick}
+      disabled={disabled}
     >
       <span>{children}</span>
       {icon}
@@ -955,6 +957,9 @@ function ListingsPage({ go, listings }) {
 
 function ListingDetail({ go, item }) {
   const [sent, setSent] = useState(false);
+  const [inquiryForm, setInquiryForm] = useState({ name: "", email: "", message: "" });
+  const [inquirySending, setInquirySending] = useState(false);
+  const [inquiryError, setInquiryError] = useState("");
   const publicCustomFields = useMemo(
     () => readCustomFields().filter((field) => field.visibility?.publicProfile !== false),
     [],
@@ -1160,30 +1165,59 @@ function ListingDetail({ go, item }) {
               </div>
             ) : (
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  recordNotificationEvent("inquiry-received", { recipient: item.email || item.owner });
-                  setSent(true);
+                  setInquirySending(true);
+                  setInquiryError("");
+                  try {
+                    const response = await fetch("/api/inquiries", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ listingId: item.id, ...inquiryForm }),
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok) throw new Error(payload.error || "Your inquiry could not be sent.");
+                    setSent(true);
+                    setInquiryForm({ name: "", email: "", message: "" });
+                  } catch (error) {
+                    setInquiryError(error.message);
+                  } finally {
+                    setInquirySending(false);
+                  }
                 }}
               >
                 <label>
                   Name
-                  <input required placeholder="First and last name" />
+                  <input
+                    required
+                    value={inquiryForm.name}
+                    onChange={(e) => setInquiryForm((current) => ({ ...current, name: e.target.value }))}
+                    placeholder="First and last name"
+                  />
                 </label>
                 <label>
                   Email
-                  <input required type="email" placeholder="you@example.com" />
+                  <input
+                    required
+                    type="email"
+                    value={inquiryForm.email}
+                    onChange={(e) => setInquiryForm((current) => ({ ...current, email: e.target.value }))}
+                    placeholder="you@example.com"
+                  />
                 </label>
                 <label>
                   Message
                   <textarea
                     required
                     rows="5"
+                    value={inquiryForm.message}
+                    onChange={(e) => setInquiryForm((current) => ({ ...current, message: e.target.value }))}
                     placeholder={`I'm interested in ${item.name}...`}
                   />
                 </label>
-                <GreenButton type="submit" icon={<ArrowRight />}>
-                  Submit
+                {inquiryError && <p className="inquiry-form-error">{inquiryError}</p>}
+                <GreenButton type="submit" icon={<ArrowRight />} disabled={inquirySending}>
+                  {inquirySending ? "Sending…" : "Submit"}
                 </GreenButton>
               </form>
             )}
@@ -1462,6 +1496,10 @@ function AboutPage({ go }) {
 
 function ContactPage({ go }) {
   const [sent, setSent] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const setField = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
   return (
     <PublicLayout go={go}>
       <InfoPageHero title="CONTACT US" image="/assets/contact-banner.jpg" />
@@ -1496,23 +1534,39 @@ function ContactPage({ go }) {
             </div>
           ) : (
             <form
-              onSubmit={(event) => {
+              onSubmit={async (event) => {
                 event.preventDefault();
-                setSent(true);
+                setSending(true);
+                setError("");
+                try {
+                  const response = await fetch("/api/inquiries", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(form),
+                  });
+                  const payload = await response.json().catch(() => ({}));
+                  if (!response.ok) throw new Error(payload.error || "Your message could not be sent.");
+                  setSent(true);
+                  setForm({ name: "", email: "", phone: "", message: "" });
+                } catch (requestError) {
+                  setError(requestError.message);
+                } finally {
+                  setSending(false);
+                }
               }}
             >
               <label>
-                Name *<input required aria-label="Name" />
+                Name *<input required aria-label="Name" value={form.name} onChange={setField("name")} />
               </label>
               <label>
-                Email *<input required type="email" aria-label="Email" />
+                Email *<input required type="email" aria-label="Email" value={form.email} onChange={setField("email")} />
               </label>
               <label>
                 Phone
-                <input type="tel" aria-label="Phone" />
+                <input type="tel" aria-label="Phone" value={form.phone} onChange={setField("phone")} />
               </label>
               <label>
-                Message *<textarea required rows="6" aria-label="Message" />
+                Message *<textarea required rows="6" aria-label="Message" value={form.message} onChange={setField("message")} />
               </label>
               <label className="privacy-check">
                 <input required type="checkbox" />
@@ -1528,7 +1582,8 @@ function ContactPage({ go }) {
                   .
                 </span>
               </label>
-              <GreenButton type="submit">Send</GreenButton>
+              {error && <p className="inquiry-form-error">{error}</p>}
+              <GreenButton type="submit" disabled={sending}>{sending ? "Sending…" : "Send"}</GreenButton>
             </form>
           )}
         </section>
@@ -1772,6 +1827,7 @@ function LegalPage({ go }) {
 function LoginPage({ go, onLogin }) {
   const [tab, setTab] = useState("login");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -1784,7 +1840,7 @@ function LoginPage({ go, onLogin }) {
       const result = await authRequest(
         tab === "register" ? "/api/auth/register" : "/api/auth/login",
         tab === "register"
-          ? { name, email: username, password }
+          ? { name, email: username, password, phone }
           : { email: username, password },
       );
       onLogin(sessionFromUser(result.user));
@@ -1860,6 +1916,19 @@ function LoginPage({ go, onLogin }) {
                 />
               </label>
             )}
+            {tab === "register" && (
+              <label>
+                <Phone />
+                <span>Mobile number</span>
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="+63 917 123 4567"
+                />
+              </label>
+            )}
             <label>
               <EnvelopeSimple />
               <span>Email address</span>
@@ -1908,6 +1977,10 @@ function LoginPage({ go, onLogin }) {
         </section>
       </main>
   );
+}
+
+function sectionLabel(name) {
+  return name === "Overview" ? "Dashboard" : name;
 }
 
 const sideItems = [
@@ -2109,7 +2182,7 @@ function AutomationActionCreator({ channel, templates, actions, onCreate, onRemo
   return <section className="panel automation-actions"><header><span className="section-eyebrow">Additional {channel} actions</span><h3>Add a follow-up action</h3><p>Create optional messages without replacing Findra’s core transactional {channel}.</p></header>{items.length > 0 && <div className="automation-action-list">{items.map((item) => <article key={item.id}><div><strong>{item.name}</strong><small>{templates.find((template) => template.event === item.event)?.name || item.event}</small></div><button type="button" onClick={() => onRemove(item.id)}><Trash /> Remove</button></article>)}</div>}<form onSubmit={save} className="automation-action-form"><label><span>Action name *</span><input required value={draft.name} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} placeholder={`Additional ${channel} action`} /></label><label><span>Run when *</span><select value={draft.event} onChange={(event) => setDraft((value) => ({ ...value, event: event.target.value }))}>{templates.map((template) => <option key={template.event} value={template.event}>{template.name}</option>)}</select></label>{channel === "email" && <label className="management-wide-field"><span>Subject</span><input value={draft.subject} onChange={(event) => setDraft((value) => ({ ...value, subject: event.target.value }))} placeholder="A quick Findra update" /></label>}<label className="management-wide-field"><span>{channel === "sms" ? "SMS message *" : "Email content *"}</span><textarea required value={draft.body} onChange={(event) => setDraft((value) => ({ ...value, body: event.target.value }))} placeholder="Hi {{contactFirstName}}, {{businessName}} has an update." /></label><footer><small>Use <code>{"{{contactFirstName}}"}</code>, <code>{"{{businessName}}"}</code>, and <code>{"{{dashboardUrl}}"}</code>.</small><button type="submit" className="admin-primary"><Plus /> Add action</button></footer></form></section>;
 }
 
-function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
+function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session }) {
   const [section, setSection] = usePersistedDashboardSection("findra-admin-section", "Overview");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
@@ -2255,7 +2328,7 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
               }}
             >
               <Icon />
-              {name}
+              {sectionLabel(name)}
               {name === "Listings" && <span>2</span>}
             </button>
           ))}
@@ -2279,7 +2352,7 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
           </button>
           <div>
             <p>Admin workspace</p>
-            <h1>{section}</h1>
+            <h1>{sectionLabel(section)}</h1>
           </div>
           <div className="admin-actions">
             <label>
@@ -2292,10 +2365,10 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
             </label>
             <ThemeToggle />
             <NotificationInbox />
-            <div className="admin-user">KS</div>
+            <AccountAvatar session={session} className="admin-user" />
             <div className="admin-user-copy">
-              <strong>Katrina S.</strong>
-              <span>Super Admin</span>
+              <strong>{session?.name || "Findra admin"}</strong>
+              <span>Administrator</span>
             </div>
           </div>
         </header>
@@ -2327,6 +2400,8 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify }) {
           <SettingsAdmin onNotify={onNotify} />
         ) : section === "Users" ? (
           <UsersManagement query={query} onNotify={onNotify} />
+        ) : section === "Inquiries" ? (
+          <InquiriesPanel role="admin" query={query} onNotify={onNotify} />
         ) : section === "Subscriptions" ? (
           <SubscriptionsManagement onNotify={onNotify} />
         ) : section === "Automation" ? (
@@ -3231,14 +3306,15 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
   const [mobileSide, setMobileSide] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [inquiryCount, setInquiryCount] = useState(0);
+  useEffect(() => {
+    fetch("/api/inquiries", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => setInquiryCount((payload?.inquiries || []).filter((item) => item.status === "New").length))
+      .catch(() => {});
+  }, [section]);
   const displayName = session?.name || "Business Owner";
   const firstName = displayName.split(" ")[0];
-  const initials = displayName
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
   const current = listing || { ...blankListing, owner: displayName };
   const pendingPayment = useMemo(() => {
     try {
@@ -3288,8 +3364,8 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
               }}
             >
               <Icon />
-              {name}
-              {name === "Inquiries" && <span>3</span>}
+              {sectionLabel(name)}
+              {name === "Inquiries" && inquiryCount > 0 && <span>{inquiryCount}</span>}
             </button>
           ))}
         </nav>
@@ -3322,7 +3398,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
           </button>
           <div>
             <p>Business workspace</p>
-            <h1>{section}</h1>
+            <h1>{sectionLabel(section)}</h1>
           </div>
           <div className="admin-actions">
             <button className="topbar-site-link" onClick={() => go("/")}>
@@ -3330,7 +3406,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
             </button>
             <ThemeToggle />
             <NotificationInbox />
-            <div className="admin-user">{initials}</div>
+            <AccountAvatar session={session} businessLogo={listing?.logo} className="admin-user" />
             <div className="admin-user-copy">
               <strong>{displayName}</strong>
               <span>Business Owner</span>
@@ -3491,7 +3567,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
         ) : section === "Inbox" ? (
           <UserInbox />
         ) : section === "Inquiries" ? (
-          <UserInquiries listing={listing} />
+          <InquiriesPanel role="user" listing={listing} />
         ) : section === "Analytics" ? (
           <UserAnalytics listing={listing} />
         ) : (
@@ -3572,11 +3648,84 @@ function PlanBilling({ listing, resumePayment }) {
   );
 }
 
-function UserInquiries({ listing }) {
-  return <div className="admin-content">
-    <section className="welcome-row"><div><h2>Customer inquiries</h2><p>Messages sent through your public business profile will appear here.</p></div></section>
-    <section className="panel admin-empty"><ChatCircleText size={42} /><h3>No inquiries yet</h3><p>{listing ? "Publish and share your listing to start receiving customer messages." : "Create and complete a paid listing to receive customer inquiries."}</p></section>
-  </div>;
+function InquiriesPanel({ role, listing, query = "", onNotify }) {
+  const [inquiries, setInquiries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const load = () => {
+    setLoading(true);
+    fetch("/api/inquiries", { credentials: "same-origin" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Inquiries could not be loaded.");
+        setInquiries(payload.inquiries || []);
+      })
+      .catch((error) => onNotify?.({ type: "error", title: "Could not load inquiries", message: error.message }))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => {
+    load();
+  }, []);
+  const filtered = useMemo(
+    () =>
+      inquiries.filter((item) =>
+        `${item.name} ${item.email} ${item.message} ${item.listing_name || ""}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+      ),
+    [inquiries, query],
+  );
+  const markRead = (item) => {
+    if (item.status !== "New") return;
+    fetch(`/api/inquiries/${item.id}`, {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "Read" }),
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (payload?.inquiry) setInquiries((current) => current.map((row) => (row.id === item.id ? payload.inquiry : row)));
+      })
+      .catch(() => {});
+  };
+  if (role === "user" && !listing) {
+    return (
+      <div className="admin-content">
+        <section className="welcome-row"><div><h2>Customer inquiries</h2><p>Messages sent through your public business profile will appear here.</p></div></section>
+        <section className="panel admin-empty"><ChatCircleText size={42} /><h3>No inquiries yet</h3><p>Create and complete a paid listing to receive customer inquiries.</p></section>
+      </div>
+    );
+  }
+  return (
+    <div className="admin-content">
+      <section className="welcome-row">
+        <div>
+          <h2>{role === "admin" ? "All inquiries" : "Customer inquiries"}</h2>
+          <p>{role === "admin" ? "Messages sent through business listings and the public contact form." : "Messages customers sent through your public business profile."}</p>
+        </div>
+        <button className="secondary-button" onClick={load}>Refresh</button>
+      </section>
+      {loading ? (
+        <section className="panel admin-empty"><p>Loading…</p></section>
+      ) : filtered.length ? (
+        <section className="panel inquiries-list">
+          {filtered.map((item) => (
+            <article key={item.id} className={`inquiry-row ${item.status.toLowerCase()}`} onClick={() => markRead(item)}>
+              <div>
+                <strong>{item.name}</strong>
+                <span className={`status-badge ${item.status.toLowerCase()}`}>{item.status}</span>
+              </div>
+              <small>{item.email}{item.phone ? ` · ${item.phone}` : ""}{item.listing_name ? ` · ${item.listing_name}` : " · Website contact form"}</small>
+              <p>{item.message}</p>
+              <time>{new Date(item.created_at).toLocaleString()}</time>
+            </article>
+          ))}
+        </section>
+      ) : (
+        <section className="panel admin-empty"><ChatCircleText size={42} /><h3>No inquiries yet</h3><p>{role === "admin" ? "Inquiries from listings and the contact form will show up here." : "Publish and share your listing to start receiving customer messages."}</p></section>
+      )}
+    </div>
+  );
 }
 
 function UserInbox() {
@@ -6404,6 +6553,7 @@ export function App() {
           setListings={setListings}
           onLogout={logout}
           onNotify={setNotice}
+          session={session}
         />
       ) : (
         <LoginPage go={go} onLogin={login} />

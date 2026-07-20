@@ -21,7 +21,6 @@ import {
   X,
 } from "@phosphor-icons/react";
 
-const usersKey = "findra-admin-users-v1";
 const packagesKey = "findra-packages-v2";
 const taxonomyKey = "findra-taxonomy-v1";
 const notificationsKey = "findra-notification-rules-v1";
@@ -29,54 +28,6 @@ const systemMessagesKey = "findra-system-messages-v1";
 const notificationLogsKey = "findra-notification-logs-v1";
 const mailSettingsKey = "findra-mail-settings-v1";
 const customFieldsKey = "findra-custom-fields-v1";
-
-const seedUsers = [
-  {
-    id: 1,
-    name: "Ina de la Cruz",
-    email: "eventsbyina",
-    role: "Business owner",
-    status: "Active",
-    plan: "Business",
-    joined: "Jul 16, 2026",
-  },
-  {
-    id: 2,
-    name: "Rand Macion",
-    email: "rand@aifunnels.ph",
-    role: "Business owner",
-    status: "Active",
-    plan: "Featured",
-    joined: "Jul 15, 2026",
-  },
-  {
-    id: 3,
-    name: "Mara Santos",
-    email: "mara@mnlcraft.ph",
-    role: "Business owner",
-    status: "Pending",
-    plan: "Business",
-    joined: "Jul 18, 2026",
-  },
-  {
-    id: 4,
-    name: "Luis Reyes",
-    email: "luis@northsouth.ph",
-    role: "Member",
-    status: "Active",
-    plan: "Free",
-    joined: "Jul 12, 2026",
-  },
-  {
-    id: 5,
-    name: "Carla Dizon",
-    email: "carla@bayanihan.ph",
-    role: "Business owner",
-    status: "Suspended",
-    plan: "Free",
-    joined: "Jul 9, 2026",
-  },
-];
 
 const seedPackages = [
   {
@@ -352,55 +303,31 @@ function ManagementModal({ title, eyebrow, close, children }) {
 }
 
 function UserEditor({ item, close, save }) {
-  const [form, setForm] = useState(
-    item || {
-      name: "",
-      email: "",
-      password: "",
-      role: "Business owner",
-      status: "Active",
-      plan: "Free",
-    },
-  );
+  const [form, setForm] = useState({ role: item.role, status: item.status });
   const change = (key) => (event) =>
     setForm((current) => ({ ...current, [key]: event.target.value }));
   return (
-    <ManagementModal
-      eyebrow="User management"
-      title={item ? "Edit user" : "Add user"}
-      close={close}
-    >
+    <ManagementModal eyebrow="User management" title="Edit user" close={close}>
       <form
         className="management-editor-form"
         onSubmit={(event) => {
           event.preventDefault();
-          save(form);
+          save({ id: item.id, ...form });
         }}
       >
         <div className="management-form-grid">
           <label>
-            <span>Full name *</span>
-            <input
-              required
-              value={form.name}
-              onChange={change("name")}
-              placeholder="Business owner or member"
-            />
+            <span>Full name</span>
+            <input value={item.name} disabled />
           </label>
           <label>
-            <span>Email or username *</span>
-            <input
-              required
-              value={form.email}
-              onChange={change("email")}
-              placeholder="owner@business.com"
-            />
+            <span>Email</span>
+            <input value={item.email} disabled />
           </label>
           <label>
             <span>Role</span>
             <select value={form.role} onChange={change("role")}>
               <option>Business owner</option>
-              <option>Member</option>
               <option>Administrator</option>
             </select>
           </label>
@@ -408,30 +335,8 @@ function UserEditor({ item, close, save }) {
             <span>Account status</span>
             <select value={form.status} onChange={change("status")}>
               <option>Active</option>
-              <option>Pending</option>
               <option>Suspended</option>
             </select>
-          </label>
-          <label>
-            <span>Subscription package</span>
-            <select value={form.plan} onChange={change("plan")}>
-              <option>Free</option>
-              <option>Business</option>
-              <option>Featured</option>
-            </select>
-          </label>
-          <label>
-            <span>
-              {item ? "Replace password (optional)" : "Temporary password *"}
-            </span>
-            <input
-              required={!item}
-              type="password"
-              value={form.password || ""}
-              onChange={change("password")}
-              placeholder="At least 8 characters"
-              minLength={item ? undefined : 8}
-            />
           </label>
         </div>
         <footer>
@@ -439,7 +344,7 @@ function UserEditor({ item, close, save }) {
             Cancel
           </button>
           <button className="admin-primary" type="submit">
-            <CheckCircle /> {item ? "Save changes" : "Create user"}
+            <CheckCircle /> Save changes
           </button>
         </footer>
       </form>
@@ -448,75 +353,63 @@ function UserEditor({ item, close, save }) {
 }
 
 export function UsersManagement({ query = "", onNotify }) {
-  const [users, setUsers] = useState(() => readStored(usersKey, seedUsers));
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
   const [editing, setEditing] = useState(null);
-  const [creating, setCreating] = useState(false);
+  const load = () => {
+    setLoading(true);
+    fetch("/api/users", { credentials: "same-origin" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Users could not be loaded.");
+        setUsers(payload.users || []);
+      })
+      .catch((error) =>
+        onNotify?.({ type: "error", title: "Could not load users", message: error.message }),
+      )
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => {
+    load();
+  }, []);
   const filtered = useMemo(
     () =>
       users.filter(
         (user) =>
           (filter === "All" || user.status === filter) &&
-          `${user.name} ${user.email} ${user.role} ${user.plan}`
-            .toLowerCase()
-            .includes(query.toLowerCase()),
+          `${user.name} ${user.email} ${user.role}`.toLowerCase().includes(query.toLowerCase()),
       ),
     [filter, query, users],
   );
-  const commit = (next) => {
-    setUsers(next);
-    saveStored(usersKey, next);
+  const save = async (record) => {
+    try {
+      const response = await fetch(`/api/users/${record.id}`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: record.role, status: record.status }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "User could not be updated.");
+      setUsers((current) => current.map((user) => (user.id === record.id ? payload.user : user)));
+      setEditing(null);
+      onNotify?.({ type: "success", title: "User updated", message: `${payload.user.name}'s account details are now up to date.` });
+    } catch (error) {
+      onNotify?.({ type: "error", title: "User could not be updated", message: error.message });
+    }
   };
-  const save = (record) => {
-    const nextRecord = {
-      ...record,
-      id: record.id || Math.max(0, ...users.map((user) => user.id)) + 1,
-      joined:
-        record.joined ||
-        new Date().toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
-    };
-    commit(
-      record.id
-        ? users.map((user) => (user.id === record.id ? nextRecord : user))
-        : [nextRecord, ...users],
-    );
-    const accounts = readStored("findra-custom-accounts", []);
-    const accountRecord = {
-      name: nextRecord.name,
-      username: nextRecord.email.toLowerCase(),
-      password:
-        nextRecord.password ||
-        accounts.find(
-          (account) => account.username === nextRecord.email.toLowerCase(),
-        )?.password ||
-        "",
-      role: nextRecord.role === "Administrator" ? "admin" : "user",
-      status: nextRecord.status,
-    };
-    const otherAccounts = accounts.filter(
-      (account) => account.username !== accountRecord.username,
-    );
-    saveStored("findra-custom-accounts", [...otherAccounts, accountRecord]);
-    setEditing(null);
-    setCreating(false);
-    onNotify?.({
-      type: "success",
-      title: record.id ? "User updated" : "User created",
-      message: `${nextRecord.name}'s account details are now up to date.`,
-    });
-  };
-  const remove = (user) => {
+  const remove = async (user) => {
     if (!window.confirm(`Delete ${user.name}'s account?`)) return;
-    commit(users.filter((item) => item.id !== user.id));
-    onNotify?.({
-      type: "success",
-      title: "User deleted",
-      message: `${user.name} was removed from Findra.`,
-    });
+    try {
+      const response = await fetch(`/api/users/${user.id}`, { method: "DELETE", credentials: "same-origin" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "User could not be deleted.");
+      setUsers((current) => current.filter((item) => item.id !== user.id));
+      onNotify?.({ type: "success", title: "User deleted", message: `${user.name} was removed from Findra.` });
+    } catch (error) {
+      onNotify?.({ type: "error", title: "User could not be deleted", message: error.message });
+    }
   };
   const active = users.filter((user) => user.status === "Active").length;
   const owners = users.filter((user) => user.role === "Business owner").length;
@@ -525,9 +418,9 @@ export function UsersManagement({ query = "", onNotify }) {
       <ModuleHeader
         eyebrow="Accounts & access"
         title="Users management"
-        copy="Create accounts, manage access, assign packages, and review member status."
-        action={() => setCreating(true)}
-        actionLabel="Add user"
+        copy="Every account registered on Findra, pulled live from the database."
+        action={load}
+        actionLabel="Refresh"
       />
       <section className="management-metrics">
         <article>
@@ -556,10 +449,10 @@ export function UsersManagement({ query = "", onNotify }) {
         <header className="management-table-tools">
           <div>
             <h3>All users</h3>
-            <p>{filtered.length} accounts shown</p>
+            <p>{loading ? "Loading…" : `${filtered.length} accounts shown`}</p>
           </div>
           <div className="management-filter-tabs">
-            {["All", "Active", "Pending", "Suspended"].map((status) => (
+            {["All", "Active", "Suspended"].map((status) => (
               <button
                 className={filter === status ? "active" : ""}
                 onClick={() => setFilter(status)}
@@ -576,7 +469,6 @@ export function UsersManagement({ query = "", onNotify }) {
               <tr>
                 <th>User</th>
                 <th>Role</th>
-                <th>Package</th>
                 <th>Status</th>
                 <th>Joined</th>
                 <th />
@@ -602,16 +494,13 @@ export function UsersManagement({ query = "", onNotify }) {
                   </td>
                   <td>{user.role}</td>
                   <td>
-                    <span className="management-plan">{user.plan}</span>
-                  </td>
-                  <td>
                     <span
                       className={`management-status ${user.status.toLowerCase()}`}
                     >
                       {user.status}
                     </span>
                   </td>
-                  <td>{user.joined}</td>
+                  <td>{new Date(user.joined).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
                   <td>
                     <div className="management-row-actions">
                       <button
@@ -630,17 +519,19 @@ export function UsersManagement({ query = "", onNotify }) {
                   </td>
                 </tr>
               ))}
+              {!loading && !filtered.length && (
+                <tr>
+                  <td colSpan={5} className="management-table-empty">No users match this filter yet.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </section>
-      {(creating || editing) && (
+      {editing && (
         <UserEditor
           item={editing}
-          close={() => {
-            setCreating(false);
-            setEditing(null);
-          }}
+          close={() => setEditing(null)}
           save={save}
         />
       )}
