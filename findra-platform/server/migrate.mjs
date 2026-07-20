@@ -144,11 +144,12 @@ SELECT 'Findra Business Listing', 999, 'Yearly', 'Active', TRUE,
   '["Published business listing", "Logo, gallery, video, and attachments", "Customer inquiry and direct contact tools", "Business-owner dashboard access"]'::jsonb
 WHERE NOT EXISTS (SELECT 1 FROM packages);
 
--- Replaced by three billing-cycle tiers of the same ₱799/month listing
--- package (Monthly, 6 Months paying only 5, Annually paying only 10). Any
--- other package - the old ₱999/Yearly default, an ad-hoc ₱499 plan, or one
--- since renamed by hand in the admin panel (e.g. "Basic Plan") - is removed
--- so the Packages page and PayMongo checkout only ever see these three.
+-- Replaced by three billing-cycle tiers of the same listing package, priced
+-- so each longer commitment drops the effective monthly rate by ₱150
+-- (₱799/mo -> ₱649/mo for 6 Months -> ₱499/mo for Annually). Any other
+-- package - the old ₱999/Yearly default, an ad-hoc ₱499 plan, or one since
+-- renamed by hand in the admin panel (e.g. "Basic Plan") - is removed so the
+-- Packages page and PayMongo checkout only ever see these three.
 DELETE FROM packages WHERE name NOT IN ('Monthly', '6 Months', 'Annually');
 
 INSERT INTO packages (name, price, interval, status, featured, features)
@@ -157,14 +158,20 @@ SELECT 'Monthly', 799, 'Monthly', 'Active', FALSE,
 WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = 'Monthly');
 
 INSERT INTO packages (name, price, interval, status, featured, features)
-SELECT '6 Months', 3995, '6 Months', 'Active', FALSE,
+SELECT '6 Months', 3894, '6 Months', 'Active', FALSE,
   '["Complete public business profile", "Categories and multiple services", "Logo, featured image, gallery, and video", "Customer inquiry and direct contact tools", "Business-owner dashboard access"]'::jsonb
 WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = '6 Months');
 
 INSERT INTO packages (name, price, interval, status, featured, features)
-SELECT 'Annually', 7990, 'Annually', 'Active', TRUE,
+SELECT 'Annually', 5988, 'Annually', 'Active', TRUE,
   '["Complete public business profile", "Categories and multiple services", "Logo, featured image, gallery, and video", "Customer inquiry and direct contact tools", "Business-owner dashboard access"]'::jsonb
 WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = 'Annually');
+
+-- Keep the canonical tiers' prices in sync with the ₱150-per-tier pricing
+-- above even if this migration already ran once with the older totals.
+UPDATE packages SET price = 799 WHERE name = 'Monthly';
+UPDATE packages SET price = 3894 WHERE name = '6 Months';
+UPDATE packages SET price = 5988 WHERE name = 'Annually';
 
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGSERIAL PRIMARY KEY, user_id UUID REFERENCES users(id) ON DELETE CASCADE,
