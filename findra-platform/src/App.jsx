@@ -3978,7 +3978,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
             )}
           </div>
         ) : section === "Plan & Billing" ? (
-          <PlanBilling listing={listing} go={go} resumePayment={pendingPayment ? () => go("/add-listing") : null} />
+          <PlanBilling listing={listing} go={go} session={session} onSave={onSave} resumePayment={pendingPayment ? () => go("/add-listing") : null} />
         ) : section === "Inbox" ? (
           <UserInbox />
         ) : section === "Inquiries" ? (
@@ -3998,17 +3998,113 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
   );
 }
 
-function PlanBilling({ listing, go, resumePayment }) {
+const upgradePaymentMethods = [
+  ["gcash", "GCash"],
+  ["paymaya", "Maya"],
+  ["grab_pay", "GrabPay"],
+  ["card", "Card"],
+];
+
+function PlanBilling({ listing, go, session, onSave, resumePayment }) {
   const subscription = listing?.subscription;
   const [packages, setPackages] = useState([]);
+  const [upgradeTarget, setUpgradeTarget] = useState(null);
+  const [method, setMethod] = useState("gcash");
+  const [submitting, setSubmitting] = useState(false);
+  const [upgradeError, setUpgradeError] = useState("");
+  const [status, setStatus] = useState(null);
   useEffect(() => {
     fetch("/api/packages", { credentials: "same-origin" })
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => setPackages(payload?.packages || []))
       .catch(() => {});
   }, []);
+  // Resolve the return trip from PayMongo after an upgrade attempt: apply
+  // the new subscription to the listing once payment is verified.
+  useEffect(() => {
+    const paymentResult = new URLSearchParams(window.location.search).get("payment");
+    if (!paymentResult) return undefined;
+    const pending = (() => {
+      try {
+        return JSON.parse(sessionStorage.getItem("findra-plan-upgrade-pending"));
+      } catch {
+        return null;
+      }
+    })();
+    window.history.replaceState({}, "", "/user");
+    if (!pending) return undefined;
+    if (paymentResult === "cancelled") {
+      sessionStorage.removeItem("findra-plan-upgrade-pending");
+      setStatus({ type: "error", message: "Upgrade payment was cancelled. Your current plan is unchanged." });
+      return undefined;
+    }
+    if (paymentResult !== "success") return undefined;
+    let active = true;
+    fetch(`/api/paymongo/checkout-sessions/${pending.sessionId}`, { headers: { Accept: "application/json" } })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+        if (!result.paid) throw new Error("Payment was not completed.");
+        if (!active) return;
+        const nextSubscription = {
+          plan: pending.plan.name,
+          amount: pending.plan.price,
+          billing: pending.plan.interval,
+          status: "Active",
+          paymentMethod: pending.method,
+          paymentReference: result.referenceNumber,
+          paymentSessionId: pending.sessionId,
+          startDate: new Date().toISOString(),
+        };
+        const saved = await onSave?.({ ...listing, subscription: nextSubscription });
+        if (saved === false) throw new Error("Payment succeeded, but the new plan could not be saved. Please contact Findra support.");
+        setStatus({ type: "success", message: `You're now on the ${pending.plan.name} plan.` });
+      })
+      .catch((error) => setStatus({ type: "error", message: error.message || "We could not verify the upgrade payment." }))
+      .finally(() => sessionStorage.removeItem("findra-plan-upgrade-pending"));
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const startUpgrade = async (item) => {
+    setSubmitting(true);
+    setUpgradeError("");
+    try {
+      const response = await fetch("/api/paymongo/checkout-sessions", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountEmail: session?.email,
+          accountName: session?.name,
+          listingName: listing?.name,
+          method,
+          packageId: item.id,
+          listingId: listing?.id,
+          redirectPath: "/user",
+        }),
+      });
+      const checkout = await response.json();
+      if (!response.ok || !checkout.checkoutUrl) throw new Error(checkout.error || "PayMongo checkout could not be started.");
+      sessionStorage.setItem(
+        "findra-plan-upgrade-pending",
+        JSON.stringify({ sessionId: checkout.id, method, plan: checkout.plan }),
+      );
+      window.location.assign(checkout.checkoutUrl);
+    } catch (error) {
+      setUpgradeError(error.message || "The upgrade could not be started. Please try again.");
+      setSubmitting(false);
+    }
+  };
   return (
     <div className="admin-content">
+      {status && (
+        <div className={`toast ${status.type === "error" ? "toast-warning" : ""}`} role="status">
+          {status.type === "error" ? <WarningCircle weight="fill" /> : <CheckCircle weight="fill" />}
+          {status.message}
+        </div>
+      )}
       <section className="welcome-row">
         <div>
           <h2>Plan & billing</h2>
@@ -4099,8 +4195,44 @@ function PlanBilling({ listing, go, resumePayment }) {
                 <button className="secondary-button" disabled>
                   <CheckCircle weight="fill" /> Current Plan
                 </button>
+              ) : subscription && isUpgrade && upgradeTarget?.id === item.id ? (
+                <div className="plan-upgrade-confirm">
+                  <div className="plan-upgrade-methods">
+                    {upgradePaymentMethods.map(([value, label]) => (
+                      <label key={value} className={method === value ? "selected" : ""}>
+                        <input
+                          type="radio"
+                          name={`upgrade-method-${item.id}`}
+                          value={value}
+                          checked={method === value}
+                          onChange={(event) => setMethod(event.target.value)}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                  {upgradeError && <p className="inquiry-form-error">{upgradeError}</p>}
+                  <div className="plan-upgrade-actions">
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      disabled={submitting}
+                      onClick={() => { setUpgradeTarget(null); setUpgradeError(""); }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-primary"
+                      disabled={submitting}
+                      onClick={() => startUpgrade(item)}
+                    >
+                      {submitting ? "Redirecting…" : "Continue to PayMongo"} <ArrowRight />
+                    </button>
+                  </div>
+                </div>
               ) : subscription && isUpgrade ? (
-                <button className="admin-primary" onClick={() => go?.("/contact")}>
+                <button className="admin-primary" onClick={() => { setUpgradeTarget(item); setUpgradeError(""); }}>
                   Upgrade to this plan <ArrowRight />
                 </button>
               ) : subscription ? (

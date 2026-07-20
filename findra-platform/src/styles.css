@@ -8721,6 +8721,47 @@ th {
   opacity: 0.7;
   cursor: default;
 }
+.plan-upgrade-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.plan-upgrade-methods {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.plan-upgrade-methods label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 10px;
+  border: 1px solid var(--glass-line, #d4e2dc);
+  border-radius: 9px;
+  color: var(--surface-text);
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.plan-upgrade-methods label.selected {
+  border-color: var(--green);
+  background: rgba(11, 145, 71, 0.1);
+  color: var(--green);
+}
+.plan-upgrade-methods input {
+  margin: 0;
+}
+.plan-upgrade-actions {
+  display: flex;
+  gap: 8px;
+}
+.plan-upgrade-actions > button {
+  flex: 1;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 10px;
+  font-weight: 750;
+}
 [data-theme="dark"] .plan-card {
   background: var(--surface-1, #16211e);
   border-color: var(--glass-line, #293a35);

@@ -161,6 +161,10 @@ async function createCheckoutSession(request, response) {
     .slice(0, 120);
   if (!email || !email.includes("@"))
     return json(response, 400, { error: "A valid account email is required." });
+  // New-listing checkout returns to /add-listing; an existing owner upgrading
+  // their plan from the dashboard returns to /user instead.
+  const redirectPath = body.redirectPath === "/user" ? "/user" : "/add-listing";
+  const listingId = body.listingId ? String(body.listingId).slice(0, 20) : "";
 
   const baseUrl = appBaseUrl(request);
   const referenceNumber = `FIN-${Date.now()}-${Math.random()
@@ -173,7 +177,7 @@ async function createCheckoutSession(request, response) {
       data: {
         attributes: {
           billing: { name, email },
-          cancel_url: `${baseUrl}/add-listing?payment=cancelled`,
+          cancel_url: `${baseUrl}${redirectPath}?payment=cancelled`,
           description: `${plan.interval} ${plan.name} for ${listingName}`,
           line_items: [
             {
@@ -188,13 +192,14 @@ async function createCheckoutSession(request, response) {
             account_email: email,
             business_name: listingName,
             package_id: String(plan.id),
+            listing_id: listingId,
           },
           payment_method_types: [method],
           reference_number: referenceNumber,
           send_email_receipt: true,
           show_description: true,
           show_line_items: true,
-          success_url: `${baseUrl}/add-listing?payment=success`,
+          success_url: `${baseUrl}${redirectPath}?payment=success`,
         },
       },
     }),
