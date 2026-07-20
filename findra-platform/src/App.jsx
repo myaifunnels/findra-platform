@@ -853,6 +853,7 @@ function HomePage({ go, listings }) {
 
 function ListingCard({ item, go, layout = "list" }) {
   const cardTitle = item.cardTitle?.trim() || item.name;
+  const isFeatured = Boolean(item.featured) || String(item.subscription?.plan || "").toLowerCase().includes("featured");
   const [saved, toggleSaved] = useSavedListings();
   const isSaved = saved.includes(item.id);
   const [copied, setCopied] = useState(false);
@@ -872,15 +873,25 @@ function ListingCard({ item, go, layout = "list" }) {
     }
   };
   return (
-    <article className={`listing-card ${layout === "grid" ? "listing-card-grid" : ""}`} onClick={() => go(`/listing/${item.id}`)}>
+    <article
+      className={`listing-card ${layout === "grid" ? "listing-card-grid" : ""} ${isFeatured ? "listing-card-featured" : ""}`}
+      onClick={() => go(`/listing/${item.id}`)}
+    >
+      {isFeatured && <span className="listing-card-featured-badge">Featured</span>}
       <div className="listing-image">
         <img src={item.image} alt="" />
-        <span>{item.tagline}</span>
-        {item.logo && <img className="listing-card-logo" src={item.logo} alt={`${cardTitle} logo`} />}
       </div>
       <div className="listing-content">
+        <div className="listing-card-header">
+          {item.logo ? (
+            <img className="listing-card-logo" src={item.logo} alt={`${cardTitle} logo`} />
+          ) : (
+            <span className="listing-card-logo listing-card-logo-fallback"><Storefront weight="duotone" /></span>
+          )}
+          <h3>{cardTitle}</h3>
+        </div>
+        {item.tagline && <p className="listing-card-tagline">{item.tagline}</p>}
         <div className="listing-card-category">{item.category}</div>
-        <h3>{cardTitle}</h3>
         <p className="location">
           <MapPin weight="fill" />
           {item.location}, Philippines
@@ -916,36 +927,6 @@ function ListingCard({ item, go, layout = "list" }) {
   );
 }
 
-const darkMapStyle = [
-  { elementType: "geometry", stylers: [{ color: "#0d1f16" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#0d1f16" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#8ea49b" }] },
-  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#293a35" }] },
-  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#16211e" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#6c9a80" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#12281e" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1c2a26" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#0d1f16" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#25392f" }] },
-  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#16211e" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#082017" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4b6358" }] },
-];
-
-function useSiteTheme() {
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || "light");
-  useEffect(() => {
-    const sync = () => setTheme(document.documentElement.dataset.theme || "light");
-    window.addEventListener("findra-theme-change", sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener("findra-theme-change", sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, []);
-  return theme;
-}
-
 function BusinessesMapView({ listings, go }) {
   const mapRef = useRef(null);
   const mapObjRef = useRef(null);
@@ -953,7 +934,6 @@ function BusinessesMapView({ listings, go }) {
   const markersRef = useRef([]);
   const currentItemRef = useRef(null);
   const [status, setStatus] = useState("loading");
-  const theme = useSiteTheme();
 
   useEffect(() => {
     let active = true;
@@ -970,8 +950,12 @@ function BusinessesMapView({ listings, go }) {
           center: { lat: 12.8797, lng: 121.774 },
           zoom: 6,
           streetViewControl: false,
-          mapTypeControl: false,
-          styles: document.documentElement.dataset.theme === "dark" ? darkMapStyle : [],
+          mapTypeControl: true,
+          mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+            position: google.maps.ControlPosition.TOP_RIGHT,
+            mapTypeIds: ["roadmap", "satellite"],
+          },
         });
         const infoWindow = new google.maps.InfoWindow();
         infoWindow.addListener("domready", () => {
@@ -990,10 +974,6 @@ function BusinessesMapView({ listings, go }) {
       active = false;
     };
   }, [go]);
-
-  useEffect(() => {
-    mapObjRef.current?.setOptions({ styles: theme === "dark" ? darkMapStyle : [] });
-  }, [theme]);
 
   useEffect(() => {
     const google = window.google;
@@ -1149,11 +1129,11 @@ function ListingsPage({ go, listings }) {
             <span>{filtered.length} results</span>
           </div>
           <div className="view-mode-toggle" role="group" aria-label="Change results view">
-            <button className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")}>
-              <List /> List
-            </button>
             <button className={viewMode === "grid" ? "active" : ""} onClick={() => setViewMode("grid")}>
               <SquaresFour /> Grid
+            </button>
+            <button className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")}>
+              <List /> List
             </button>
             <button className={viewMode === "map" ? "active" : ""} onClick={() => setViewMode("map")}>
               <MapPin /> Map
