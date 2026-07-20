@@ -1,6 +1,7 @@
 import { query } from "./db.mjs";
 import { readSession } from "./auth.mjs";
 import { sendSms } from "./textbee.mjs";
+import { encryptText, decryptText } from "./crypto.mjs";
 const copy = {
   "new-user": ["Welcome to Findra PH! 👋", "Your account is active. Complete and submit your Business Details from your dashboard."],
   "listing-submitted": ["We’re Reviewing Your Business Details", "We received your submission and it is now under review. We’ll update you within 3–4 business days."],
@@ -227,20 +228,20 @@ export async function handleNotificationsRequest(req,res) {
         ? await query(`SELECT support_messages.*, users.display_name AS sender_display_name FROM support_messages
             LEFT JOIN users ON users.id = support_messages.user_id ORDER BY support_messages.created_at DESC LIMIT 200`)
         : await query("SELECT * FROM support_messages WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50", [user.id]);
-      return json(res, 200, { messages: result.rows }), true;
+      return json(res, 200, { messages: result.rows.map((row) => ({ ...row, message: decryptText(row.message) })) }), true;
     }
     if(req.method === "POST" && url.pathname === "/api/inbox/messages") {
       const body = await readJson(req); const subject = String(body.subject || "").trim().slice(0, 160); const message = String(body.message || "").trim().slice(0, 5000);
       if (!subject || !message) return json(res, 400, { error: "Add a subject and message for the Findra team." }), true;
-      const created = await query("INSERT INTO support_messages (user_id,sender_email,subject,message) VALUES ($1,$2,$3,$4) RETURNING *", [user.id, user.email, subject, message]);
+      const created = await query("INSERT INTO support_messages (user_id,sender_email,subject,message) VALUES ($1,$2,$3,$4) RETURNING *", [user.id, user.email, subject, encryptText(message)]);
       notifyAdmins("inbox-message-admin", { contactFirstName: user.display_name, contactFullName: user.display_name, contactEmail: user.email, businessName: subject, inquiryMessage: message }).catch(() => {});
-      return json(res, 201, { message: created.rows[0] }), true;
+      return json(res, 201, { message: { ...created.rows[0], message } }), true;
     }
     const findAccessibleMessage = async (id) => {
       const result = user.role === "admin"
         ? await query("SELECT * FROM support_messages WHERE id=$1", [id])
         : await query("SELECT * FROM support_messages WHERE id=$1 AND user_id=$2", [id, user.id]);
-      return result.rows[0] || null;
+      return result.rows[0] ? { ...result.rows[0], message: decryptText(result.rows[0].message) } : null;
     };
     const inboxMatch = url.pathname.match(/^\/api\/inbox\/messages\/(\d+)$/);
     if (inboxMatch && req.method === "PATCH") {
@@ -249,7 +250,7 @@ export async function handleNotificationsRequest(req,res) {
       const body = await readJson(req);
       const status = ["New", "Read", "Responded"].includes(body.status) ? body.status : "Read";
       const result = await query("UPDATE support_messages SET status=$1 WHERE id=$2 RETURNING *", [status, message.id]);
-      return json(res, 200, { message: result.rows[0] }), true;
+      return json(res, 200, { message: { ...result.rows[0], message: message.message } }), true;
     }
     const inboxRepliesMatch = url.pathname.match(/^\/api\/inbox\/messages\/(\d+)\/replies$/);
     if (inboxRepliesMatch) {
@@ -257,7 +258,7 @@ export async function handleNotificationsRequest(req,res) {
       if (!message) return json(res, 404, { error: "Message not found." }), true;
       if (req.method === "GET") {
         const result = await query("SELECT * FROM support_message_replies WHERE message_id=$1 ORDER BY created_at ASC", [message.id]);
-        return json(res, 200, { replies: result.rows }), true;
+        return json(res, 200, { replies: result.rows.map((row) => ({ ...row, message: decryptText(row.message) })) }), true;
       }
       if (req.method === "POST") {
         const body = await readJson(req);
@@ -289,9 +290,9 @@ export async function handleNotificationsRequest(req,res) {
         const created = await query(
           `INSERT INTO support_message_replies (message_id, sender_user_id, sender_name, sender_role, message, email_status)
            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-          [message.id, user.id, senderName, user.role === "admin" ? "admin" : "user", replyText, emailStatus],
+          [message.id, user.id, senderName, user.role === "admin" ? "admin" : "user", encryptText(replyText), emailStatus],
         );
-        return json(res, 201, { reply: created.rows[0] }), true;
+        return json(res, 201, { reply: { ...created.rows[0], message: replyText } }), true;
       }
     }
     if(user.role === "admin" && req.method === "GET" && url.pathname === "/api/automations/templates") {

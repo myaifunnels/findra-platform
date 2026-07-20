@@ -4012,8 +4012,8 @@ function InquiriesPanel({ role, listing, query = "", onNotify }) {
     <div className="admin-content">
       <section className="welcome-row">
         <div>
-          <h2>{role === "admin" ? "All inquiries" : "Customer inquiries"}</h2>
-          <p>{role === "admin" ? "Messages sent through business listings and the public contact form." : "Messages customers sent through your public business profile."}</p>
+          <h2>{role === "admin" ? "Direct inquiries" : "Customer inquiries"}</h2>
+          <p>{role === "admin" ? "Messages sent straight to Findra through the public contact form. Business ↔ customer conversations are private to each business owner." : "Messages customers sent through your public business profile."}</p>
         </div>
         <button className="secondary-button" onClick={load}>Refresh</button>
       </section>

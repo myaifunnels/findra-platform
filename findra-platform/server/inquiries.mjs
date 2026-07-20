@@ -1,6 +1,7 @@
 import { query } from "./db.mjs";
 import { readSession } from "./auth.mjs";
 import { notify, notifyAdmins } from "./notifications.mjs";
+import { encryptText, decryptText } from "./crypto.mjs";
 
 function json(response, status, body) {
   response.statusCode = status;
@@ -45,28 +46,39 @@ async function create(request, response) {
   const created = await query(
     `INSERT INTO inquiries (listing_id, target, name, email, phone, message, sender_user_id)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [listing ? listing.id : null, target, name, email, phone, message, senderUserId],
+    [listing ? listing.id : null, target, name, email, phone, encryptText(message), senderUserId],
   );
 
   const context = { contactFirstName: name, contactFullName: name, contactEmail: email, contactPhone: phone, businessName: listing ? listing.name : "Website contact form", inquiryMessage: message };
   if (listing) {
+    // Business <-> customer inquiries are private to that business; admin is
+    // never notified or given visibility into them.
     notify({ userId: listing.owner_id, email: listing.data?.email, event: "inquiry-received", context }).catch(() => {});
+  } else {
+    notifyAdmins("inbox-message-admin", context).catch(() => {});
   }
-  notifyAdmins("inbox-message-admin", context).catch(() => {});
   notify({ userId: senderUserId, email, event: "inquiry-sent-guest", context }).catch(() => {});
-  return json(response, 201, { inquiry: created.rows[0] });
+  return json(response, 201, { inquiry: { ...created.rows[0], message } });
 }
 
 const listSelect = `SELECT inquiries.*, listings.name AS listing_name,
     users.role AS sender_role, users.display_name AS sender_display_name,
     (inquiries.sender_user_id IS NOT NULL) AS sender_registered`;
 
+function decryptInquiry(row) {
+  return { ...row, message: decryptText(row.message) };
+}
+
 async function list(request, response, user) {
+  // Admin only ever sees inquiries addressed directly to the platform (no
+  // business picked) — business <-> customer conversations are private to
+  // that business owner and are excluded here entirely.
   const result =
     user.role === "admin"
       ? await query(`${listSelect} FROM inquiries
           LEFT JOIN listings ON listings.id = inquiries.listing_id
           LEFT JOIN users ON users.id = inquiries.sender_user_id
+          WHERE inquiries.target = 'admin'
           ORDER BY inquiries.created_at DESC LIMIT 200`)
       : await query(
           `${listSelect} FROM inquiries
@@ -75,20 +87,20 @@ async function list(request, response, user) {
             WHERE listings.owner_id = $1 ORDER BY inquiries.created_at DESC LIMIT 200`,
           [user.id],
         );
-  return json(response, 200, { inquiries: result.rows });
+  return json(response, 200, { inquiries: result.rows.map(decryptInquiry) });
 }
 
 async function findAccessibleInquiry(id, user) {
   const result =
     user.role === "admin"
-      ? await query("SELECT inquiries.*, listings.name AS listing_name FROM inquiries LEFT JOIN listings ON listings.id = inquiries.listing_id WHERE inquiries.id = $1", [id])
+      ? await query("SELECT inquiries.*, listings.name AS listing_name FROM inquiries LEFT JOIN listings ON listings.id = inquiries.listing_id WHERE inquiries.id = $1 AND inquiries.target = 'admin'", [id])
       : await query(
           `SELECT inquiries.*, listings.name AS listing_name FROM inquiries
             JOIN listings ON listings.id = inquiries.listing_id
             WHERE inquiries.id = $1 AND listings.owner_id = $2`,
           [id, user.id],
         );
-  return result.rows[0] || null;
+  return result.rows[0] ? decryptInquiry(result.rows[0]) : null;
 }
 
 async function listReplies(response, inquiry) {
@@ -96,7 +108,7 @@ async function listReplies(response, inquiry) {
     "SELECT * FROM inquiry_replies WHERE inquiry_id = $1 ORDER BY created_at ASC",
     [inquiry.id],
   );
-  return json(response, 200, { replies: result.rows });
+  return json(response, 200, { replies: result.rows.map((row) => ({ ...row, message: decryptText(row.message) })) });
 }
 
 async function createReply(request, response, inquiry, user) {
@@ -122,11 +134,11 @@ async function createReply(request, response, inquiry, user) {
   const created = await query(
     `INSERT INTO inquiry_replies (inquiry_id, sender_user_id, sender_name, message, email_status)
      VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [inquiry.id, user.id, senderName, message, emailStatus],
+    [inquiry.id, user.id, senderName, encryptText(message), emailStatus],
   );
   await query("UPDATE inquiries SET status = 'Responded' WHERE id = $1", [inquiry.id]);
   notify({ userId: user.id, email: user.email, event: "inquiry-reply-sent-owner", context: { ...context, contactFirstName: senderName, contactFullName: senderName } }).catch(() => {});
-  return json(response, 201, { reply: created.rows[0] });
+  return json(response, 201, { reply: { ...created.rows[0], message } });
 }
 
 export async function handleInquiriesRequest(request, response) {
@@ -159,14 +171,14 @@ export async function handleInquiriesRequest(request, response) {
       const status = ["New", "Read", "Responded"].includes(body.status) ? body.status : "Read";
       const result =
         user.role === "admin"
-          ? await query("UPDATE inquiries SET status = $1 WHERE id = $2 RETURNING *", [status, match[1]])
+          ? await query("UPDATE inquiries SET status = $1 WHERE id = $2 AND target = 'admin' RETURNING *", [status, match[1]])
           : await query(
               `UPDATE inquiries SET status = $1 WHERE id = $2
                  AND listing_id IN (SELECT id FROM listings WHERE owner_id = $3) RETURNING *`,
               [status, match[1], user.id],
             );
       if (!result.rows[0]) return json(response, 404, { error: "Inquiry not found." }), true;
-      return json(response, 200, { inquiry: result.rows[0] }), true;
+      return json(response, 200, { inquiry: decryptInquiry(result.rows[0]) }), true;
     }
 
     return json(response, 404, { error: "Inquiry endpoint not found." }), true;
