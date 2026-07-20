@@ -1840,12 +1840,27 @@ const packageTierMonths = { Monthly: 1, "6 Months": 6, Annually: 12 };
 function PackagesPage({ go }) {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [listing, setListing] = useState(null);
   useEffect(() => {
     fetch("/api/packages", { credentials: "same-origin" })
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => setPackages(payload?.packages || []))
       .catch(() => {})
       .finally(() => setLoading(false));
+  }, []);
+  useEffect(() => {
+    // Existing business owners with an active subscription should only ever
+    // be steered toward upgrading, never re-subscribing or downgrading, so
+    // check who's viewing before rendering the tier CTAs.
+    fetch("/api/auth/session", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (payload?.user?.role !== "user") return null;
+        return fetch("/api/listings?mine=true", { credentials: "same-origin" })
+          .then((response) => (response.ok ? response.json() : null))
+          .then((listingsPayload) => setListing(listingsPayload?.listings?.[0] || null));
+      })
+      .catch(() => {});
   }, []);
   const tiers = useMemo(
     () =>
@@ -1855,6 +1870,13 @@ function PackagesPage({ go }) {
     [packages],
   );
   const monthly = tiers.find((item) => item.interval === "Monthly");
+  const subscription = listing?.subscription?.status === "Active" ? listing.subscription : null;
+  const currentTier = subscription && tiers.find((item) => item.name === subscription.plan);
+  const currentMonths = currentTier
+    ? packageTierMonths[currentTier.interval] || 1
+    : subscription
+      ? packageTierMonths[subscription.billing] || null
+      : null;
   const selectPackage = (pkg) => {
     try {
       sessionStorage.setItem("findra-selected-package-id", String(pkg.id));
@@ -1863,6 +1885,14 @@ function PackagesPage({ go }) {
       // checkout flow just falls back to the featured tier in that case.
     }
     go("/add-listing");
+  };
+  const goToBilling = () => {
+    try {
+      localStorage.setItem("findra-user-section", "Plan & Billing");
+    } catch {
+      // ignore
+    }
+    go("/user");
   };
   return (
     <PublicLayout go={go}>
@@ -1879,6 +1909,13 @@ function PackagesPage({ go }) {
             as a guest, complete your business details, then create or sign in
             to your account before secure checkout.
           </p>
+          {subscription && (
+            <p className="packages-current-plan-note">
+              You’re currently on the <strong>{subscription.plan}</strong> plan.
+              Pick a longer billing cycle below to upgrade — downgrades aren’t
+              available online.
+            </p>
+          )}
         </section>
         {loading ? (
           <section className="panel admin-empty"><p>Loading packages…</p></section>
@@ -1891,9 +1928,13 @@ function PackagesPage({ go }) {
               const regularTotal = monthly ? monthly.price * months : null;
               const savings = regularTotal ? Math.round((1 - pkg.price / regularTotal) * 100) : 0;
               const monthlyEquivalent = Math.round(pkg.price / months);
+              const isCurrent = Boolean(subscription) && pkg.name === subscription.plan;
+              const isUpgrade = Boolean(subscription) && !isCurrent && currentMonths != null && months > currentMonths;
+              const isDowngrade = Boolean(subscription) && !isCurrent && currentMonths != null && months < currentMonths;
               return (
-                <article key={pkg.id} className={`package-tier-card ${pkg.featured ? "featured" : ""}`}>
-                  {pkg.featured && <span className="package-tier-badge">Best value</span>}
+                <article key={pkg.id} className={`package-tier-card ${pkg.featured ? "featured" : ""} ${isCurrent ? "current" : ""}`}>
+                  {pkg.featured && !isCurrent && <span className="package-tier-badge">Best value</span>}
+                  {isCurrent && <span className="package-tier-badge current">Current plan</span>}
                   <span className="package-tier-name">{pkg.name}</span>
                   <h2>
                     ₱{pkg.price.toLocaleString()}
@@ -1912,9 +1953,23 @@ function PackagesPage({ go }) {
                       </li>
                     ))}
                   </ul>
-                  <GreenButton onClick={() => selectPackage(pkg)}>
-                    Start your listing
-                  </GreenButton>
+                  {isCurrent ? (
+                    <button className="secondary-button" disabled>
+                      <CheckCircle weight="fill" /> Your current plan
+                    </button>
+                  ) : isUpgrade ? (
+                    <GreenButton onClick={goToBilling}>
+                      Upgrade to {pkg.name} <ArrowRight />
+                    </GreenButton>
+                  ) : isDowngrade ? (
+                    <button className="secondary-button" disabled title="Contact Findra support if you need to downgrade">
+                      Not available
+                    </button>
+                  ) : (
+                    <GreenButton onClick={() => selectPackage(pkg)}>
+                      Start your listing
+                    </GreenButton>
+                  )}
                 </article>
               );
             })}
@@ -4021,9 +4076,13 @@ function PlanBilling({ listing, go, resumePayment }) {
                 <button className="secondary-button" disabled>
                   <CheckCircle weight="fill" /> Active
                 </button>
-              ) : subscription ? (
+              ) : subscription && isUpgrade ? (
                 <button className="admin-primary" onClick={() => go?.("/contact")}>
-                  {isUpgrade ? "Upgrade to this plan" : "Downgrade to this plan"} <ArrowRight />
+                  Upgrade to this plan <ArrowRight />
+                </button>
+              ) : subscription ? (
+                <button className="secondary-button" disabled title="Contact Findra support if you need to downgrade">
+                  Not available
                 </button>
               ) : resumePayment ? (
                 <button className="admin-primary" onClick={resumePayment}>Continue payment <ArrowRight /></button>
