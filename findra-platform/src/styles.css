@@ -431,11 +431,18 @@ a {
 }
 .chips {
   display: flex;
-  gap: 7px;
+  gap: 6px;
   flex-wrap: wrap;
-  padding-right: 80px;
+  margin-top: 8px;
 }
-.chips span,
+.chips span {
+  padding: 1px 10px;
+  background: var(--green);
+  color: white;
+  font-weight: 700;
+  line-height: 1.7;
+  border-radius: 999px;
+}
 .service-tags span {
   font-size: 12px;
   padding: 5px 9px;

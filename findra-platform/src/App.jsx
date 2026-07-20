@@ -879,17 +879,17 @@ function ListingCard({ item, go }) {
       </div>
       <div className="listing-content">
         <div className="listing-card-category">{item.category}</div>
-        <div className="chips">
-          {item.services.map((s) => (
-            <span key={s}>{s}</span>
-          ))}
-        </div>
         <h3>{cardTitle}</h3>
         <p className="location">
           <MapPin weight="fill" />
           {item.location}, Philippines
         </p>
         <p className="listing-card-summary">{item.description || `${item.tagline}. Discover services, connect directly, and make your next project easier.`}</p>
+        <div className="chips">
+          {item.services.map((s) => (
+            <span key={s}>{s}</span>
+          ))}
+        </div>
         <div className="card-actions">
           <button
             className={`save-listing-action ${isSaved ? "saved" : ""}`}
@@ -938,7 +938,7 @@ function ListingsPage({ go, listings }) {
         <ArrowRight /> Search Results
       </div>
       <section className="directory-search-shell">
-        <div className="directory-search-heading"><div><span className="eyebrow">DISCOVER LOCAL BUSINESSES</span><h1>Find the right partner for your next project.</h1></div><span>{filtered.length} matching {filtered.length === 1 ? "business" : "businesses"}</span></div>
+        <div className="directory-search-heading"><div><span className="eyebrow">DISCOVER LOCAL BUSINESSES</span><h1>Find the right partner for<br />your next project.</h1></div><span>{filtered.length} matching {filtered.length === 1 ? "business" : "businesses"}</span></div>
       <div className="listings-search">
         <label>
           <MagnifyingGlass />
