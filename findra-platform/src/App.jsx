@@ -851,7 +851,7 @@ function HomePage({ go, listings }) {
   );
 }
 
-function ListingCard({ item, go }) {
+function ListingCard({ item, go, layout = "list" }) {
   const cardTitle = item.cardTitle?.trim() || item.name;
   const [saved, toggleSaved] = useSavedListings();
   const isSaved = saved.includes(item.id);
@@ -872,7 +872,7 @@ function ListingCard({ item, go }) {
     }
   };
   return (
-    <article className="listing-card" onClick={() => go(`/listing/${item.id}`)}>
+    <article className={`listing-card ${layout === "grid" ? "listing-card-grid" : ""}`} onClick={() => go(`/listing/${item.id}`)}>
       <div className="listing-image">
         <img src={item.image} alt="" />
         <span>{item.tagline}</span>
@@ -915,12 +915,118 @@ function ListingCard({ item, go }) {
   );
 }
 
+function BusinessesMapView({ listings, go }) {
+  const mapRef = useRef(null);
+  const mapObjRef = useRef(null);
+  const infoWindowRef = useRef(null);
+  const markersRef = useRef([]);
+  const currentItemRef = useRef(null);
+  const [status, setStatus] = useState("loading");
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/maps/embed-key", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => loadGoogleMaps(payload?.key || ""))
+      .then((google) => {
+        if (!active) return;
+        if (!google?.maps || !mapRef.current) {
+          setStatus("unavailable");
+          return;
+        }
+        const map = new google.maps.Map(mapRef.current, {
+          center: { lat: 12.8797, lng: 121.774 },
+          zoom: 6,
+          streetViewControl: false,
+          mapTypeControl: false,
+        });
+        const infoWindow = new google.maps.InfoWindow();
+        infoWindow.addListener("domready", () => {
+          const item = currentItemRef.current;
+          if (!item) return;
+          document
+            .getElementById(`map-quickview-btn-${item.id}`)
+            ?.addEventListener("click", () => go(`/listing/${item.id}`));
+        });
+        mapObjRef.current = map;
+        infoWindowRef.current = infoWindow;
+        setStatus("ready");
+      })
+      .catch(() => active && setStatus("unavailable"));
+    return () => {
+      active = false;
+    };
+  }, [go]);
+
+  useEffect(() => {
+    const google = window.google;
+    const map = mapObjRef.current;
+    if (status !== "ready" || !map || !google) return;
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+    const bounds = new google.maps.LatLngBounds();
+    const geocoder = new google.maps.Geocoder();
+
+    const placeMarker = (item, position) => {
+      const marker = new google.maps.Marker({ map, position, title: item.name });
+      markersRef.current.push(marker);
+      bounds.extend(position);
+      map.fitBounds(bounds);
+      const cardTitle = item.cardTitle?.trim() || item.name;
+      const html = `<div class="map-quickview">
+        ${item.image ? `<img src="${item.image}" alt="" />` : ""}
+        <div class="map-quickview-body">
+          <span>${item.category || ""}</span>
+          <h4>${cardTitle}</h4>
+          <p>${item.location || ""}</p>
+          <button id="map-quickview-btn-${item.id}" type="button">View business →</button>
+        </div>
+      </div>`;
+      marker.addListener("mouseover", () => {
+        currentItemRef.current = item;
+        infoWindowRef.current.setContent(html);
+        infoWindowRef.current.open(map, marker);
+      });
+      marker.addListener("mouseout", () => infoWindowRef.current.close());
+      marker.addListener("click", () => go(`/listing/${item.id}`));
+    };
+
+    listings.forEach((item) => {
+      const lat = Number(item.latitude);
+      const lng = Number(item.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)) {
+        placeMarker(item, { lat, lng });
+      } else if (item.location) {
+        geocoder.geocode({ address: `${item.location}, Philippines` }, (results, geoStatus) => {
+          if (geoStatus === "OK" && results[0]) placeMarker(item, results[0].geometry.location);
+        });
+      }
+    });
+  }, [status, listings, go]);
+
+  if (status === "unavailable") {
+    return (
+      <div className="listings-map-empty">
+        <MapPin size={40} />
+        <h3>Map view is unavailable</h3>
+        <p>The Google Maps connection isn’t configured yet. Try List or Grid view instead.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="listings-map-view">
+      <div ref={mapRef} className="listings-map-canvas" />
+    </div>
+  );
+}
+
 function ListingsPage({ go, listings }) {
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("");
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [cat, setCat] = useState("All");
   const [type, setType] = useState("All");
+  const [viewMode, setViewMode] = useState("list");
   const filtered = listings.filter(
     (l) =>
       l.status === "Published" &&
@@ -997,9 +1103,26 @@ function ListingsPage({ go, listings }) {
             </button>
             <span>{filtered.length} results</span>
           </div>
-          {filtered.map((item) => (
-            <ListingCard key={item.id} item={item} go={go} />
-          ))}
+          <div className="view-mode-toggle" role="group" aria-label="Change results view">
+            <button className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")}>
+              <List /> List
+            </button>
+            <button className={viewMode === "grid" ? "active" : ""} onClick={() => setViewMode("grid")}>
+              <SquaresFour /> Grid
+            </button>
+            <button className={viewMode === "map" ? "active" : ""} onClick={() => setViewMode("map")}>
+              <MapPin /> Map
+            </button>
+          </div>
+          {viewMode === "map" ? (
+            <BusinessesMapView listings={filtered} go={go} />
+          ) : (
+            <div className={viewMode === "grid" ? "results-grid" : "results-list"}>
+              {filtered.map((item) => (
+                <ListingCard key={item.id} item={item} go={go} layout={viewMode} />
+              ))}
+            </div>
+          )}
           {!filtered.length && (
             <div className="empty">
               <MagnifyingGlass size={42} />
@@ -1007,9 +1130,11 @@ function ListingsPage({ go, listings }) {
               <p>Try a broader keyword or category.</p>
             </div>
           )}
-          <p className="results-count">
-            Showing 1 to {filtered.length} of {filtered.length} results
-          </p>
+          {viewMode !== "map" && (
+            <p className="results-count">
+              Showing 1 to {filtered.length} of {filtered.length} results
+            </p>
+          )}
         </section>
       </main>
     </PublicLayout>
