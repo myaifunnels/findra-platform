@@ -1936,15 +1936,20 @@ function PackagesPage({ go }) {
                   {pkg.featured && !isCurrent && <span className="package-tier-badge">Best value</span>}
                   {isCurrent && <span className="package-tier-badge current">Current plan</span>}
                   <span className="package-tier-name">{pkg.name}</span>
-                  <h2>
-                    ₱{pkg.price.toLocaleString()}
-                    <small> / {pkg.interval}</small>
-                  </h2>
-                  {months > 1 && (
-                    <p className="package-tier-equivalent">
-                      ≈ ₱{monthlyEquivalent.toLocaleString()} / month
+                  {monthly && monthlyEquivalent < monthly.price && (
+                    <p className="package-tier-was">
+                      <s>₱{monthly.price.toLocaleString()}</s> / month
                     </p>
                   )}
+                  <h2>
+                    ₱{monthlyEquivalent.toLocaleString()}
+                    <small> / month</small>
+                  </h2>
+                  <p className="package-tier-equivalent">
+                    {months > 1
+                      ? `Billed ₱${pkg.price.toLocaleString()} every ${pkg.interval.toLowerCase()}`
+                      : "Billed monthly"}
+                  </p>
                   {savings > 0 && <span className="package-tier-savings">Save {savings}%</span>}
                   <ul>
                     {(pkg.features || []).map((feature) => (
@@ -4016,10 +4021,18 @@ function PlanBilling({ listing, go, resumePayment }) {
           <div>
             <span>CURRENT PLAN</span>
             <h3>{subscription.plan}</h3>
-            <p>
-              ₱{Number(subscription.amount).toLocaleString()} per{" "}
-              {subscription.billing}
-            </p>
+            {(() => {
+              const months = packageTierMonths[subscription.billing] || 1;
+              const monthlyEquivalent = Math.round(Number(subscription.amount) / months);
+              return (
+                <p className="billing-amount">
+                  <strong>₱{monthlyEquivalent.toLocaleString()}</strong> / month
+                  {months > 1 && (
+                    <small> · billed ₱{Number(subscription.amount).toLocaleString()} every {subscription.billing.toLowerCase()}</small>
+                  )}
+                </p>
+              );
+            })()}
           </div>
           <dl>
             <div>
@@ -4059,6 +4072,8 @@ function PlanBilling({ listing, go, resumePayment }) {
           const currentPackage = subscription && packages.find((p) => p.name === subscription.plan);
           const currentPrice = currentPackage?.price ?? subscription?.amount;
           const isUpgrade = subscription && !isCurrent && currentPrice != null && item.price > currentPrice;
+          const months = packageTierMonths[item.interval] || 1;
+          const monthlyEquivalent = Math.round(item.price / months);
           return (
             <article key={item.id} className={`panel plan-card ${item.featured ? "featured" : ""} ${isCurrent ? "current" : ""}`}>
               <div className="plan-card-top">
@@ -4066,7 +4081,12 @@ function PlanBilling({ listing, go, resumePayment }) {
                 {isCurrent && <span className="plan-badge current">Current plan</span>}
                 {!isCurrent && item.featured && <span className="plan-badge">Most popular</span>}
               </div>
-              <p className="plan-price">₱{Number(item.price).toLocaleString()} <small>/ {item.interval}</small></p>
+              <p className="plan-price">
+                ₱{monthlyEquivalent.toLocaleString()} <small>/ month</small>
+              </p>
+              <p className="plan-price-note">
+                {months > 1 ? `Billed ₱${Number(item.price).toLocaleString()} every ${item.interval.toLowerCase()}` : "Billed monthly"}
+              </p>
               <ul className="plan-checklist">
                 {(item.features || []).map((feature) => (
                   <li key={feature}><CheckCircle weight="fill" />{feature}</li>

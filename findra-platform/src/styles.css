@@ -8658,6 +8658,26 @@ th {
   font-weight: 600;
   color: var(--surface-muted);
 }
+.plan-price-note {
+  margin: -10px 0 0;
+  color: var(--surface-muted);
+  font-size: 12px;
+}
+.billing-amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--surface-text) !important;
+}
+.billing-amount strong {
+  font-size: 22px;
+  font-weight: 800;
+}
+.billing-amount small {
+  color: var(--surface-muted);
+  font-size: 12px;
+}
 .plan-checklist {
   display: grid;
   gap: 11px;
@@ -9769,48 +9789,88 @@ th {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 34px 28px;
+  padding: 38px 30px;
   border: 1px solid #cddbd5;
-  border-radius: 20px;
+  border-radius: 22px;
   background: #fff;
   box-shadow: 0 14px 40px rgba(17, 62, 45, 0.08);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.package-tier-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 50px rgba(17, 62, 45, 0.14);
 }
 .package-tier-card.featured {
   color: #fff;
   border-color: transparent;
   background:
-    radial-gradient(circle at 15% 10%, rgba(78, 223, 142, 0.3), transparent 38%),
+    radial-gradient(circle at 15% 10%, rgba(78, 223, 142, 0.32), transparent 42%),
     #0b3828;
-  box-shadow: 0 24px 60px rgba(11, 56, 40, 0.28);
+  box-shadow: 0 26px 64px rgba(11, 56, 40, 0.32);
+}
+@media (min-width: 901px) {
+  .package-tier-card.featured {
+    transform: scale(1.045);
+    z-index: 1;
+  }
+  .package-tier-card.featured:hover {
+    transform: scale(1.045) translateY(-4px);
+  }
+}
+.package-tier-card.current {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green), 0 22px 50px rgba(11, 145, 71, 0.16);
 }
 .package-tier-badge {
   position: absolute;
-  top: -13px;
+  top: -14px;
   right: 24px;
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #f0c14b, #d99a1c);
+  background: linear-gradient(135deg, #f7d374, #d99a1c);
   color: #3a2a05;
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  font-weight: 850;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 16px rgba(217, 154, 28, 0.4);
+}
+.package-tier-badge.current {
+  background: var(--green);
+  color: white;
+  box-shadow: 0 6px 16px rgba(11, 145, 71, 0.35);
 }
 .package-tier-name {
   color: var(--green);
   font-size: 12px;
   font-weight: 850;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 .package-tier-card.featured .package-tier-name {
   color: #a7f0c7;
 }
+.package-tier-was {
+  margin: 12px 0 0;
+  color: #9aaba4;
+  font-size: 14px;
+  font-weight: 650;
+}
+.package-tier-was s {
+  text-decoration-color: #c0574c;
+  text-decoration-thickness: 2px;
+}
+.package-tier-card.featured .package-tier-was {
+  color: #7fa192;
+}
 .package-tier-card h2 {
-  margin: 10px 0 2px;
+  margin: 4px 0 2px;
   color: #16261f;
-  font: 750 34px/1.05 "Lexend Deca", sans-serif;
+  font: 800 40px/1.1 "Lexend Deca", sans-serif;
+  letter-spacing: -0.02em;
+}
+.package-tier-was + h2 {
+  margin-top: 0;
 }
 .package-tier-card.featured h2 {
   color: #fff;
@@ -9835,15 +9895,16 @@ th {
   display: inline-flex;
   align-self: flex-start;
   margin-bottom: 14px;
-  padding: 3px 10px;
+  padding: 4px 11px;
   border-radius: 999px;
   background: #e7fff0;
   color: #0c9148;
   font-size: 11.5px;
-  font-weight: 800;
+  font-weight: 850;
+  letter-spacing: 0.01em;
 }
 .package-tier-card.featured .package-tier-savings {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.16);
   color: #a7f0c7;
 }
 .package-tier-card ul {
