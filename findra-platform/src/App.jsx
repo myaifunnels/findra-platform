@@ -2588,14 +2588,9 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
   const [status, setStatus] = useState("All");
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(null);
-  const [editingStep, setEditingStep] = useState(0);
   const [confirmation, setConfirmation] = useState(null);
   const [toast, setToast] = useState("");
   const [mobileSide, setMobileSide] = useState(false);
-  const manageMedia = (item) => {
-    setEditingStep(2);
-    setEditing(item);
-  };
   const notify = (message) => {
     setToast(message);
     setTimeout(() => setToast(""), 2400);
@@ -2795,7 +2790,6 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
             setStatus={setStatus}
             setSelected={setSelected}
             setEditing={setEditing}
-            manageMedia={manageMedia}
             update={(id, next) => {
               const item = listings.find((listing) => listing.id === id);
               if (item && next === "Published") setConfirmation({ type: "publish", item });
@@ -2837,11 +2831,7 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
       {editing && (
         <ListingEditor
           item={editing}
-          initialStep={editingStep}
-          close={() => {
-            setEditing(null);
-            setEditingStep(0);
-          }}
+          close={() => setEditing(null)}
           save={saveListing}
           remove={editing.id ? () => setConfirmation({ type: "delete", item: editing }) : null}
         />
@@ -3009,7 +2999,7 @@ function StatusPill({ status }) {
   );
 }
 
-function ListingTable({ rows, setSelected, setEditing, manageMedia, update, remove }) {
+function ListingTable({ rows, setSelected, setEditing, update, remove }) {
   return (
     <div className="table-wrap">
       <table>
@@ -3065,15 +3055,6 @@ function ListingTable({ rows, setSelected, setEditing, manageMedia, update, remo
                       <PencilSimple />
                     </button>
                   )}
-                  {manageMedia && (
-                    <button
-                      title="Manage media"
-                      aria-label={`Manage media for ${item.name}`}
-                      onClick={() => manageMedia(item)}
-                    >
-                      <ImageSquare />
-                    </button>
-                  )}
                   {update && item.status !== "Published" && (
                     <button
                       title="Publish listing"
@@ -3119,7 +3100,6 @@ function ListingsAdmin({
   setStatus,
   setSelected,
   setEditing,
-  manageMedia,
   update,
   remove,
 }) {
@@ -3191,7 +3171,6 @@ function ListingsAdmin({
           rows={rows}
           setSelected={setSelected}
           setEditing={setEditing}
-          manageMedia={manageMedia}
           update={update}
           remove={remove}
         />
