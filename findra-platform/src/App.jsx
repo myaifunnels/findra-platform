@@ -131,7 +131,7 @@ function AccountAvatar({ session, businessLogo = "", className = "" }) {
 
 function ThemeToggle() {
   const [theme, setTheme] = useState(
-    () => localStorage.getItem("findra-theme") || "light",
+    () => localStorage.getItem("findra-theme") || "dark",
   );
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -139,7 +139,7 @@ function ThemeToggle() {
   }, [theme]);
   useEffect(() => {
     const syncTheme = (event) =>
-      setTheme(event.detail || localStorage.getItem("findra-theme") || "light");
+      setTheme(event.detail || localStorage.getItem("findra-theme") || "dark");
     window.addEventListener("findra-theme-change", syncTheme);
     window.addEventListener("storage", syncTheme);
     return () => {
@@ -5816,6 +5816,7 @@ function UploadBox({
   wide = false,
   multiple = false,
   accept = "image/*",
+  hint,
   onFiles,
   files = [],
   onRemove,
@@ -5831,6 +5832,7 @@ function UploadBox({
       <label className="upload-title" htmlFor={inputId}>
         {title}
       </label>
+      {hint && <p className="upload-hint">{hint}</p>}
       <label
         className={`drop-zone ${dragging ? "dragging" : ""}`}
         htmlFor={inputId}
@@ -6184,6 +6186,10 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
         body: file,
       });
       const payload = await response.json().catch(() => ({}));
+      if (response.status === 401)
+        throw new Error(
+          "Create a free account or sign in to upload media — your business details are already saved as a draft, so you won't lose anything.",
+        );
       if (!response.ok) throw new Error(payload.error || `Could not upload ${file.name}.`);
       return { name: payload.name || file.name, type: payload.type || file.type || "Selected file", url: payload.url, data: payload.url, key: payload.key };
     }));
@@ -6396,8 +6402,10 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
           <div className="guest-plan-notice">
             <div>
               <span>YOUR LISTING PACKAGE</span>
-              <strong>Findra Business Listing · ₱999 / year</strong>
-              <small>No account is required until your listing is ready for checkout.</small>
+              <strong>
+                Findra Business Listing · {plan.name} · ₱{Number(plan.amount).toLocaleString()} / {String(plan.billing || plan.name).toLowerCase()}
+              </strong>
+              <small>You can browse and fill in your listing as a guest, but creating an account is required before you can upload media.</small>
             </div>
             <button type="button" onClick={onViewPackage}>View package details</button>
           </div>
@@ -6714,6 +6722,7 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
                   <div className="media-grid">
                     <UploadBox
                       title="Business Logo"
+                      hint="Square JPG, PNG, or WebP, up to 12 MB. 500×500px or larger looks best."
                       files={uploads.logo}
                       onFiles={setFiles("logo")}
                       onRemove={removeUpload("logo")}
@@ -6721,6 +6730,7 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
                     />
                     <UploadBox
                       title="Business Featured Image *"
+                      hint="Landscape JPG, PNG, or WebP, up to 12 MB. 1200×630px or larger recommended."
                       files={uploads.featured}
                       onFiles={setFeatured}
                       onRemove={removeFeatured}
@@ -6728,6 +6738,7 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
                     />
                     <UploadBox
                       title="Business Gallery"
+                      hint="JPG, PNG, WebP, or GIF, up to 12 MB each. Add as many photos as you like."
                       wide
                       multiple
                       files={uploads.gallery}
@@ -6772,11 +6783,16 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
                 </section>
                 <section className="form-block attachments-block">
                   <SectionLabel>Attachments</SectionLabel>
+                  <p className="media-guidance">
+                    Optional supporting documents for your listing, such as a
+                    business permit, menu, or brochure.
+                  </p>
                   <UploadBox
                     title="Attachments"
+                    hint="PDF, JPG, or PNG, up to 12 MB each. Word docs (.doc/.docx) are not accepted for upload yet."
                     wide
                     multiple
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    accept=".pdf,.jpg,.jpeg,.png"
                     files={uploads.attachments}
                     onFiles={setFiles("attachments", true)}
                     onRemove={removeUpload("attachments")}
@@ -7413,7 +7429,7 @@ export function App() {
   }, []);
   useEffect(() => {
     document.documentElement.dataset.theme =
-      localStorage.getItem("findra-theme") || "light";
+      localStorage.getItem("findra-theme") || "dark";
   }, []);
   useEffect(() => {
     let active = true;
