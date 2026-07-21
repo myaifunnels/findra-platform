@@ -855,7 +855,7 @@ function HomePage({ go, listings }) {
           {listings
             .filter((l) => l.status === "Published")
             .map((item) => (
-              <ListingCard key={item.id} item={item} go={go} />
+              <ListingCard key={item.id} item={item} go={go} layout="grid" />
             ))}
         </div>
       </section>

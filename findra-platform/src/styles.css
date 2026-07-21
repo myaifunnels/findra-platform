@@ -385,8 +385,9 @@ a {
 .featured-grid {
   grid-column: 1/-1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 22px;
+  align-items: stretch;
 }
 .listing-card {
   display: grid;
