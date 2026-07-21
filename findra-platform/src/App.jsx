@@ -765,6 +765,7 @@ function PublicLayout({ go, children }) {
 function HomePage({ go, listings }) {
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState("");
+  const [featuredView, setFeaturedView] = useState("grid");
   const search = () => go(`/listings${keyword || category ? "?search=1" : ""}`);
   return (
     <PublicLayout go={go}>
@@ -848,14 +849,24 @@ function HomePage({ go, listings }) {
           <div className="eyebrow">BUSINESSES</div>
           <h2>Featured Businesses</h2>
         </div>
-        <button className="text-link" onClick={() => go("/listings")}>
-          View all <ArrowRight />
-        </button>
-        <div className="featured-grid">
+        <div className="featured-section-actions">
+          <div className="view-mode-toggle" role="group" aria-label="Change featured businesses view">
+            <button className={featuredView === "grid" ? "active" : ""} onClick={() => setFeaturedView("grid")}>
+              <SquaresFour /> Grid
+            </button>
+            <button className={featuredView === "list" ? "active" : ""} onClick={() => setFeaturedView("list")}>
+              <List /> List
+            </button>
+          </div>
+          <button className="text-link" onClick={() => go("/listings")}>
+            View all <ArrowRight />
+          </button>
+        </div>
+        <div className={featuredView === "grid" ? "featured-grid" : "featured-list"}>
           {listings
             .filter((l) => l.status === "Published")
             .map((item) => (
-              <ListingCard key={item.id} item={item} go={go} layout="grid" />
+              <ListingCard key={item.id} item={item} go={go} layout={featuredView} />
             ))}
         </div>
       </section>

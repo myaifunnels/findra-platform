@@ -373,6 +373,11 @@ a {
 .featured-section .eyebrow {
   margin-bottom: 12px;
 }
+.featured-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
 .text-link {
   border: 0;
   background: transparent;
@@ -385,9 +390,23 @@ a {
 .featured-grid {
   grid-column: 1/-1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 22px;
   align-items: stretch;
+}
+@media (max-width: 1050px) {
+  .featured-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.featured-list {
+  grid-column: 1/-1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.featured-list .listing-card {
+  grid-template-columns: 42% 1fr;
 }
 .listing-card {
   display: grid;
@@ -3827,9 +3846,15 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
   .featured-section .text-link {
     justify-self: start;
   }
+  .featured-section-actions {
+    justify-content: space-between;
+  }
   .featured-grid {
     grid-column: 1;
     grid-template-columns: 1fr;
+  }
+  .featured-list {
+    grid-column: 1;
   }
   .listing-card,
   .results .listing-card {
