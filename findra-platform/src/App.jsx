@@ -55,6 +55,7 @@ import {
   ArrowsOutSimple,
   ArrowsClockwise,
   ImageSquare,
+  Lock,
 } from "@phosphor-icons/react";
 import {
   readCustomFields,
@@ -1882,21 +1883,6 @@ function PackagesPage({ go }) {
   );
   const monthly = tiers.find((item) => item.interval === "Monthly");
   const subscription = listing?.subscription?.status === "Active" ? listing.subscription : null;
-  const currentTier = subscription && tiers.find((item) => item.name === subscription.plan);
-  const currentMonths = currentTier
-    ? packageTierMonths[currentTier.interval] || 1
-    : subscription
-      ? packageTierMonths[subscription.billing] || null
-      : null;
-  const selectPackage = (pkg) => {
-    try {
-      sessionStorage.setItem("findra-selected-package-id", String(pkg.id));
-    } catch {
-      // sessionStorage can be unavailable in private-browsing edge cases; the
-      // checkout flow just falls back to the featured tier in that case.
-    }
-    go("/add-listing");
-  };
   const goToBilling = () => {
     try {
       localStorage.setItem("findra-user-section", "Plan & Billing");
@@ -1904,6 +1890,17 @@ function PackagesPage({ go }) {
       // ignore
     }
     go("/user");
+  };
+  const startListing = () => {
+    try {
+      // Duration (3/6/12 months) is no longer picked here — it's chosen as
+      // the final step of the listing flow, right before payment, so clear
+      // any leftover selection from an older session.
+      sessionStorage.removeItem("findra-selected-package-id");
+    } catch {
+      // ignore
+    }
+    go("/add-listing");
   };
   return (
     <PublicLayout go={go}>
@@ -1914,11 +1911,11 @@ function PackagesPage({ go }) {
       <main className="packages-page">
         <section className="packages-intro">
           <span className="info-kicker">Simple, transparent pricing</span>
-          <h2>One plan. Pick the billing cycle that saves you the most.</h2>
+          <h2>Choose the plan that fits your business.</h2>
           <p>
-            You do not need an account to review pricing or inclusions. Start
-            as a guest, complete your business details, then create or sign in
-            to your account before secure checkout.
+            You do not need an account to start. Complete your business
+            details first, then pick your billing duration and create or sign
+            in to your account right before secure checkout.
           </p>
         </section>
         {subscription && (
@@ -1926,82 +1923,89 @@ function PackagesPage({ go }) {
             <CheckCircle weight="fill" />
             <p>
               You’re currently on the <strong>{subscription.plan}</strong> plan.
-              Pick a longer billing cycle below to upgrade — downgrades aren’t
-              available online.
+              Manage your billing duration from your account instead.
             </p>
           </section>
         )}
         {loading ? (
           <section className="panel admin-empty"><p>Loading packages…</p></section>
-        ) : !tiers.length ? (
-          <section className="panel admin-empty"><p>Packages are being updated. Please check back shortly.</p></section>
         ) : (
-          <section className="package-tier-grid">
-            {tiers.map((pkg) => {
-              const months = packageTierMonths[pkg.interval] || 1;
-              const regularTotal = monthly ? monthly.price * months : null;
-              const savings = regularTotal ? Math.round((1 - pkg.price / regularTotal) * 100) : 0;
-              const monthlyEquivalent = Math.round(pkg.price / months);
-              const isCurrent = Boolean(subscription) && pkg.name === subscription.plan;
-              const isUpgrade = Boolean(subscription) && !isCurrent && currentMonths != null && months > currentMonths;
-              const isDowngrade = Boolean(subscription) && !isCurrent && currentMonths != null && months < currentMonths;
-              return (
-                <article key={pkg.id} className={`package-tier-card ${pkg.featured ? "featured" : ""} ${isCurrent ? "current" : ""}`}>
-                  {pkg.featured && !isCurrent && <span className="package-tier-badge">Best value</span>}
-                  {isCurrent && <span className="package-tier-badge current">Current plan</span>}
-                  <span className="package-tier-name">{pkg.name}</span>
-                  {monthly && monthlyEquivalent < monthly.price && (
-                    <p className="package-tier-was">
-                      <s>₱{monthly.price.toLocaleString()}</s> / month
-                    </p>
-                  )}
-                  <h2>
-                    ₱{monthlyEquivalent.toLocaleString()}
-                    <small> / month</small>
-                  </h2>
-                  <p className="package-tier-equivalent">
-                    {months > 1
-                      ? `Billed ₱${pkg.price.toLocaleString()} every ${pkg.interval.toLowerCase()}`
-                      : "Billed monthly"}
-                  </p>
-                  {savings > 0 && <span className="package-tier-savings">Save {savings}%</span>}
-                  <ul className="package-tier-features">
-                    {(pkg.features || []).map((feature) => (
-                      <li key={feature}>
-                        <CheckCircle weight="fill" /> {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  {isCurrent ? (
-                    <button className="secondary-button" disabled>
-                      <CheckCircle weight="fill" /> Current Plan
-                    </button>
-                  ) : isUpgrade ? (
-                    <GreenButton onClick={goToBilling}>
-                      Upgrade to {pkg.name} <ArrowRight />
-                    </GreenButton>
-                  ) : isDowngrade ? (
-                    <button className="secondary-button" disabled title="Contact Findra support if you need to downgrade">
-                      Not available
-                    </button>
-                  ) : (
-                    <GreenButton onClick={() => selectPackage(pkg)}>
-                      Start your listing
-                    </GreenButton>
-                  )}
-                </article>
-              );
-            })}
+          <section className="package-tier-grid two-tier">
+            <article className="package-tier-card featured">
+              <span className="package-tier-badge">Available now</span>
+              <span className="package-tier-name">Basic</span>
+              {/* TODO(findra): Basic plan pricing and inclusions are
+                  placeholder copy pending final content from the client.
+                  Replace the text below once real pricing/features are
+                  confirmed. Billing duration (from the real Monthly/6
+                  Months/Annually packages) is chosen later, as the last
+                  step of the listing flow, right before payment. */}
+              <p className="package-tier-was">Pricing: TBD</p>
+              <h2>
+                TBD
+                <small> / month</small>
+              </h2>
+              <p className="package-tier-equivalent">
+                Final pricing and billing duration are confirmed in the last
+                step of your listing, right before payment.
+              </p>
+              <ul className="package-tier-features">
+                {(monthly?.features?.length ? monthly.features : [
+                  "Business listing on the Findra directory",
+                  "Logo, featured image, and gallery photos",
+                  "Inquiry inbox for customer messages",
+                ]).map((feature) => (
+                  <li key={feature}>
+                    <CheckCircle weight="fill" /> {feature}
+                  </li>
+                ))}
+              </ul>
+              {subscription ? (
+                <GreenButton onClick={goToBilling}>
+                  Manage in Billing <ArrowRight />
+                </GreenButton>
+              ) : (
+                <GreenButton onClick={startListing}>
+                  Start your listing
+                </GreenButton>
+              )}
+            </article>
+            <article className="package-tier-card package-tier-locked" aria-disabled="true">
+              <div className="package-tier-locked-overlay">
+                <Lock weight="fill" />
+                <strong>Coming Soon</strong>
+              </div>
+              <div className="package-tier-locked-content" inert>
+                <span className="package-tier-name">Premium</span>
+                <h2>
+                  TBD
+                  <small> / month</small>
+                </h2>
+                <p className="package-tier-equivalent">
+                  Premium placement, priority support, and more — details
+                  coming soon.
+                </p>
+                <ul className="package-tier-features">
+                  <li><CheckCircle weight="fill" /> Everything in Basic</li>
+                  <li><CheckCircle weight="fill" /> Featured placement</li>
+                  <li><CheckCircle weight="fill" /> Priority support</li>
+                </ul>
+                <button className="secondary-button" disabled>
+                  Not available yet
+                </button>
+              </div>
+            </article>
           </section>
         )}
         <section className="package-clarity-row">
-          <article><ShieldCheck /><div><strong>See the price first</strong><p>Review everything before entering business or account details.</p></div></article>
-          <article><CreditCard /><div><strong>Secure PayMongo checkout</strong><p>Payment happens only after your listing and account are ready.</p></div></article>
+          <article><ShieldCheck /><div><strong>Fill in your details first</strong><p>Your business details come first — no account needed to start.</p></div></article>
+          <article><CreditCard /><div><strong>Secure PayMongo checkout</strong><p>Choose your billing duration and pay only once your listing is ready.</p></div></article>
           <article><CheckCircle /><div><strong>Reviewed before publishing</strong><p>Your paid listing enters Findra’s approval workflow before going live.</p></div></article>
         </section>
         <p className="packages-footnote">
-          No registration required to begin. Account creation happens before
-          checkout so your draft stays protected.
+          No registration required to begin. Account creation and billing
+          duration selection happen right before checkout so your draft stays
+          protected.
         </p>
       </main>
     </PublicLayout>
@@ -6069,7 +6073,7 @@ function CustomListingFields({ fields, values = {}, onChange }) {
   );
 }
 
-function ListingEditor({ item, close, save, remove, planNotice, plan = findraPlan, onViewPackage, initialStep = 0 }) {
+function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, initialStep = 0 }) {
   const managedTaxonomy = useMemo(readManagedTaxonomy, []);
   const managedCustomFields = useMemo(readCustomFields, []);
   const draftKey = `findra-listing-draft-${item.id || "new"}`;
@@ -6413,10 +6417,8 @@ function ListingEditor({ item, close, save, remove, planNotice, plan = findraPla
           <div className="guest-plan-notice">
             <div>
               <span>YOUR LISTING PACKAGE</span>
-              <strong>
-                Findra Business Listing · {plan.name} · ₱{Number(plan.amount).toLocaleString()} / {String(plan.billing || plan.name).toLowerCase()}
-              </strong>
-              <small>You can browse and fill in your listing as a guest, but creating an account is required before you can upload media.</small>
+              <strong>Findra Basic Listing</strong>
+              <small>You can browse and fill in your listing as a guest. You'll pick your billing duration as the last step, and creating an account is required before you can upload media.</small>
             </div>
             <button type="button" onClick={onViewPackage}>View package details</button>
           </div>
@@ -7355,9 +7357,13 @@ function GuestListingPage({ go, session, complete, createAccount }) {
   }, []);
   const [draft, setDraft] = useState(pendingCheckout?.draft || null);
   const [plan, setPlan] = useState(() => pendingCheckout?.plan || findraPlan);
+  const [planTiers, setPlanTiers] = useState([]);
   const [account, setAccount] = useState(
     session?.role === "user" ? session : pendingCheckout?.account || null,
   );
+  // Duration (3/6/12 months) is chosen in its own "plan" stage, as the last
+  // step of the flow, right before account creation and checkout — not
+  // up front on the Packages page.
   const [stage, setStage] = useState(pendingCheckout ? "checkout" : "listing");
   useEffect(() => {
     // A resumed checkout already has its billing cycle locked in from when it
@@ -7368,16 +7374,8 @@ function GuestListingPage({ go, session, complete, createAccount }) {
       .then((payload) => {
         const packages = payload?.packages || [];
         if (!packages.length) return;
-        let selectedId = null;
-        try {
-          selectedId = sessionStorage.getItem("findra-selected-package-id");
-        } catch {
-          // ignore
-        }
-        const active =
-          packages.find((item) => String(item.id) === selectedId) ||
-          packages.find((item) => item.featured) ||
-          packages[0];
+        setPlanTiers(packages);
+        const active = packages.find((item) => item.featured) || packages[0];
         const nextPlan = { ...active, amount: active.price, billing: active.interval };
         Object.assign(findraPlan, nextPlan);
         setPlan(nextPlan);
@@ -7386,8 +7384,21 @@ function GuestListingPage({ go, session, complete, createAccount }) {
   }, []);
   const submit = (record) => {
     setDraft(record);
-    setStage(account ? "checkout" : "account");
+    setStage("plan");
   };
+  if (draft && stage === "plan")
+    return (
+      <PlanDurationStep
+        tiers={planTiers}
+        plan={plan}
+        onBack={() => setStage("listing")}
+        onContinue={(nextPlan) => {
+          Object.assign(findraPlan, nextPlan);
+          setPlan(nextPlan);
+          setStage(account ? "checkout" : "account");
+        }}
+      />
+    );
   if (draft && stage === "account")
     return (
       <GuestAccountGate
@@ -7405,7 +7416,7 @@ function GuestListingPage({ go, session, complete, createAccount }) {
       <PayMongoCheckout
         draft={draft}
         account={account}
-        back={() => setStage(session?.role === "user" ? "listing" : "account")}
+        back={() => setStage(session?.role === "user" ? "plan" : "account")}
         complete={complete}
         plan={plan}
       />
@@ -7416,9 +7427,106 @@ function GuestListingPage({ go, session, complete, createAccount }) {
       close={() => go("/")}
       save={submit}
       planNotice
-      plan={plan}
       onViewPackage={() => go("/packages")}
     />
+  );
+}
+
+// Final step of the guest listing flow: pick a billing duration (the real
+// Monthly/6 Months/Annually packages) right before account creation and
+// checkout. Kept separate from the Packages page, which now only presents
+// the Basic vs. Premium plan choice.
+function PlanDurationStep({ tiers, plan, onBack, onContinue }) {
+  const sorted = useMemo(
+    () =>
+      [...tiers].sort(
+        (a, b) => packageTierOrder.indexOf(a.interval) - packageTierOrder.indexOf(b.interval),
+      ),
+    [tiers],
+  );
+  const monthly = sorted.find((item) => item.interval === "Monthly");
+  const [selectedId, setSelectedId] = useState(plan?.id ?? null);
+  const selected = sorted.find((item) => item.id === selectedId) || sorted[0];
+  return (
+    <div className="listing-editor-screen" role="dialog" aria-modal="true" aria-label="Choose your billing duration">
+      <header className="listing-editor-top">
+        <div>
+          <span>Business listings</span>
+          <h1>Choose your billing duration</h1>
+        </div>
+        <div className="listing-editor-actions">
+          <ThemeToggle />
+          <button type="button" onClick={onBack}>
+            <ArrowLeft /> Back to listing
+          </button>
+        </div>
+      </header>
+      <main className="packages-page plan-duration-step">
+        <section className="packages-intro">
+          <span className="info-kicker">Last step before payment</span>
+          <h2>Your business details are saved. Pick a duration to continue.</h2>
+          <p>You'll create or sign in to your account next, then pay securely through PayMongo.</p>
+        </section>
+        {!sorted.length ? (
+          <section className="panel admin-empty"><p>Packages are being updated. Please check back shortly.</p></section>
+        ) : (
+          <section className="package-tier-grid">
+            {sorted.map((pkg) => {
+              const months = packageTierMonths[pkg.interval] || 1;
+              const regularTotal = monthly ? monthly.price * months : null;
+              const savings = regularTotal ? Math.round((1 - pkg.price / regularTotal) * 100) : 0;
+              const monthlyEquivalent = Math.round(pkg.price / months);
+              const isSelected = selected?.id === pkg.id;
+              return (
+                <article
+                  key={pkg.id}
+                  className={`package-tier-card ${pkg.featured ? "featured" : ""} ${isSelected ? "current" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedId(pkg.id)}
+                  onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && setSelectedId(pkg.id)}
+                >
+                  {pkg.featured && <span className="package-tier-badge">Best value</span>}
+                  {isSelected && <span className="package-tier-badge current">Selected</span>}
+                  <span className="package-tier-name">{pkg.name}</span>
+                  {monthly && monthlyEquivalent < monthly.price && (
+                    <p className="package-tier-was">
+                      <s>₱{monthly.price.toLocaleString()}</s> / month
+                    </p>
+                  )}
+                  <h2>
+                    ₱{monthlyEquivalent.toLocaleString()}
+                    <small> / month</small>
+                  </h2>
+                  <p className="package-tier-equivalent">
+                    {months > 1
+                      ? `Billed ₱${pkg.price.toLocaleString()} every ${pkg.interval.toLowerCase()}`
+                      : "Billed monthly"}
+                  </p>
+                  {savings > 0 && <span className="package-tier-savings">Save {savings}%</span>}
+                  <ul className="package-tier-features">
+                    {(pkg.features || []).map((feature) => (
+                      <li key={feature}>
+                        <CheckCircle weight="fill" /> {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              );
+            })}
+          </section>
+        )}
+        <GreenButton
+          disabled={!selected}
+          onClick={() =>
+            selected &&
+            onContinue({ ...selected, amount: selected.price, billing: selected.interval })
+          }
+        >
+          Continue with {selected?.name || "this plan"} <ArrowRight />
+        </GreenButton>
+      </main>
+    </div>
   );
 }
 

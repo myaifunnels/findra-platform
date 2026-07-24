@@ -9879,6 +9879,57 @@ th {
   align-items: stretch;
   margin-bottom: 26px;
 }
+.package-tier-grid.two-tier {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 780px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.package-tier-locked {
+  position: relative;
+  overflow: hidden;
+}
+.package-tier-locked-content {
+  filter: blur(3px);
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+}
+.package-tier-locked-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.35);
+}
+.package-tier-locked-overlay svg {
+  width: 30px;
+  height: 30px;
+  color: var(--green);
+}
+.package-tier-locked-overlay strong {
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: var(--green);
+  color: white;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 24px rgba(11, 145, 71, 0.35);
+}
+[data-theme="dark"] .package-tier-locked-overlay {
+  background: rgba(13, 21, 19, 0.45);
+}
+@media (max-width: 900px) {
+  .package-tier-grid.two-tier {
+    grid-template-columns: 1fr;
+  }
+}
 .package-tier-card {
   position: relative;
   display: flex;
