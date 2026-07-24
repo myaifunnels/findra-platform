@@ -1858,10 +1858,13 @@ footer {
 .dashboard-account-trigger .admin-user-copy { text-align: left; }
 .dashboard-account-trigger > svg { color: var(--surface-muted, #8b9a96); flex: 0 0 auto; }
 .dashboard-account-menu .header-account-dropdown {
-  border-color: var(--glass-line);
-  background: var(--surface-bg);
+  border-color: var(--glass-line, #e3e8e6);
+  background: white;
   box-shadow: 0 20px 55px rgba(4, 22, 14, 0.26);
   backdrop-filter: none;
+}
+[data-theme="dark"] .dashboard-account-menu .header-account-dropdown {
+  background: #16211e;
 }
 .dashboard-account-menu .header-account-dropdown > div { border-color: var(--glass-line); }
 .dashboard-account-menu .header-account-dropdown strong,
