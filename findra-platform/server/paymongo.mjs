@@ -3,7 +3,12 @@ import { query } from "./db.mjs";
 import { notify } from "./notifications.mjs";
 import { readSession } from "./auth.mjs";
 const PAYMONGO_API = "https://api.paymongo.com/v1";
-const ALLOWED_METHODS = new Set(["card", "gcash", "grab_pay", "paymaya"]);
+// Keep in sync with the payment channels actually Active in the PayMongo
+// dashboard (Settings > Payment Methods). Inactive channels (GrabPay, Maya,
+// ShopeePay, Google Pay, BillEase, and the Brankas-only banks) are left out
+// since PayMongo checkout rejects sessions for a payment method the account
+// hasn't been enabled for.
+const ALLOWED_METHODS = new Set(["card", "gcash", "qrph", "dob"]);
 let runtimeEnabled = null;
 let runtimeConnectedAt = "";
 let runtimePaymentMethods = [];

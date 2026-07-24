@@ -4011,9 +4011,9 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
 
 const upgradePaymentMethods = [
   ["gcash", "GCash"],
-  ["paymaya", "Maya"],
-  ["grab_pay", "GrabPay"],
   ["card", "Card"],
+  ["qrph", "QRPh"],
+  ["dob", "Online banking"],
 ];
 
 function PlanBilling({ listing, go, session, onSave, resumePayment }) {
@@ -5067,7 +5067,7 @@ function IntegrationsAdmin({ onNotify, embedded = false }) {
             <div>
               <span>PAYMENT GATEWAY</span>
               <h3>PayMongo</h3>
-              <p>Cards, GCash, Maya, GrabPay, and other enabled methods.</p>
+              <p>Cards, GCash, QRPh, and online banking (BPI, UnionBank).</p>
             </div>
             <button
               type="button"
@@ -7090,9 +7090,9 @@ function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan })
   const [testMode, setTestMode] = useState(false);
   const methods = [
     ["gcash", "GCash", "Mobile wallet"],
-    ["paymaya", "Maya", "Mobile wallet"],
-    ["grab_pay", "GrabPay", "Mobile wallet"],
     ["card", "Credit / debit card", "Visa or Mastercard"],
+    ["qrph", "QRPh", "Scan to pay with any QR Ph app"],
+    ["dob", "Online banking", "BPI or UnionBank"],
   ];
   useEffect(() => {
     fetch("/api/paymongo/integration", { credentials: "same-origin" })
