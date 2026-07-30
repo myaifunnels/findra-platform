@@ -3499,6 +3499,19 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
   background: #121c19 !important;
   border-color: #344740 !important;
 }
+[data-theme="dark"] .filters .directory-location-input {
+  background: #17221f;
+  border-color: #385048;
+}
+[data-theme="dark"] .filters .directory-location-input input {
+  background: transparent !important;
+}
+[data-theme="dark"] .filters .directory-location-input input:disabled {
+  color: #5f6f6a;
+}
+[data-theme="dark"] .filter-hint {
+  color: #8ba099;
+}
 [data-theme="dark"] input::placeholder,
 [data-theme="dark"] textarea::placeholder {
   color: #7e918a;

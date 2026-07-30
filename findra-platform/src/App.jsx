@@ -1131,17 +1131,15 @@ function ListingsPage({ go, listings }) {
       search.trim() ||
       serviceQuery.trim(),
   );
-  const filtered = !hasSelection
-    ? []
-    : listings.filter(
-        (l) =>
-          l.status === "Published" &&
-          (cat === "All" || l.category === cat) &&
-          (subCat === "All" || l.additionalCategories?.includes(subCat)) &&
-          `${l.name} ${l.cardTitle || ""} ${l.category} ${l.services?.join(" ")} ${l.description || ""} ${l.location}`.toLowerCase().includes(search.toLowerCase()) &&
-          `${l.services?.join(" ") || ""} ${l.tagline || ""} ${l.description || ""}`.toLowerCase().includes(serviceQuery.toLowerCase()) &&
-          locationMatches(l.location, location),
-      );
+  const filtered = listings.filter(
+    (l) =>
+      l.status === "Published" &&
+      (cat === "All" || l.category === cat) &&
+      (subCat === "All" || l.additionalCategories?.includes(subCat)) &&
+      `${l.name} ${l.cardTitle || ""} ${l.category} ${l.services?.join(" ")} ${l.description || ""} ${l.location}`.toLowerCase().includes(search.toLowerCase()) &&
+      `${l.services?.join(" ") || ""} ${l.tagline || ""} ${l.description || ""}`.toLowerCase().includes(serviceQuery.toLowerCase()) &&
+      (!hasSelection || locationMatches(l.location, location)),
+  );
   return (
     <PublicLayout go={go}>
       <div className="breadcrumb">
@@ -1219,13 +1217,7 @@ function ListingsPage({ go, listings }) {
               <MapPin /> Map
             </button>
           </div>
-          {!hasSelection ? (
-            <div className="empty">
-              <MagnifyingGlass size={42} />
-              <h3>Tell us what you're looking for</h3>
-              <p>Pick a category, sub-category, or search for a service to see matching businesses.</p>
-            </div>
-          ) : viewMode === "map" ? (
+          {viewMode === "map" ? (
             <BusinessesMapView listings={filtered} go={go} />
           ) : (
             <div className={viewMode === "grid" ? "results-grid" : "results-list"}>
@@ -1234,14 +1226,14 @@ function ListingsPage({ go, listings }) {
               ))}
             </div>
           )}
-          {hasSelection && !filtered.length && (
+          {!filtered.length && (
             <div className="empty">
               <MagnifyingGlass size={42} />
               <h3>No businesses found</h3>
               <p>Try a broader keyword or category.</p>
             </div>
           )}
-          {hasSelection && viewMode !== "map" && (
+          {viewMode !== "map" && (
             <p className="results-count">
               Showing 1 to {filtered.length} of {filtered.length} results
             </p>
