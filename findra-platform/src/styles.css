@@ -697,7 +697,9 @@ footer {
 }
 .listings-search {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
+  max-width: 600px;
+  margin: 0 auto;
   gap: 30px;
   padding: 16px max(5vw, 64px);
   background: #94c7ba;
@@ -750,6 +752,50 @@ footer {
   border-radius: 5px;
   padding: 0 12px;
   background: white;
+}
+.filters .directory-location-input {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #e0e5e4;
+  border-radius: 5px;
+  padding: 0 12px;
+  background: white;
+}
+.filters .directory-location-input svg {
+  flex: 0 0 auto;
+  color: var(--green);
+}
+.filters .directory-location-input input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+.filters .directory-location-input input:disabled {
+  cursor: not-allowed;
+  color: #9aa6a3;
+}
+.filter-hint {
+  margin: -4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #7c8985;
+}
+.filters .directory-search-active {
+  width: auto;
+  margin: 0;
+  flex-wrap: wrap;
+  color: #0f5132;
+  font-size: 12px;
+}
+.filters .directory-search-active svg {
+  color: var(--green);
+}
+.filters .directory-search-active button {
+  color: #078844;
 }
 .results {
   display: flex;

@@ -419,7 +419,7 @@ function loadGoogleMaps(key) {
   return googleMapsLoader;
 }
 
-function GoogleAddressInput({ value, onChange, onSelect, required = true, showStatus = true, placeholder = "Start typing an address in the Philippines" }) {
+function GoogleAddressInput({ value, onChange, onSelect, required = true, showStatus = true, placeholder = "Start typing an address in the Philippines", disabled = false }) {
   const inputRef = useRef(null);
   const [state, setState] = useState("loading");
 
@@ -474,6 +474,7 @@ function GoogleAddressInput({ value, onChange, onSelect, required = true, showSt
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       autoComplete="street-address"
+      disabled={disabled}
     />
     {showStatus && <small className={`address-autocomplete-status ${state}`}>
       {state === "ready" ? "Type to search, then use ↓ and Enter or click a suggestion to pin the exact location." : "Enter the full address manually while Google address suggestions are unavailable."}
@@ -1106,6 +1107,12 @@ function BusinessesMapView({ listings, go }) {
   );
 }
 
+function locationMatches(listingLocation, searchLocation) {
+  const primary = String(searchLocation || "").split(",")[0]?.trim().toLowerCase();
+  if (!primary) return true;
+  return String(listingLocation || "").toLowerCase().includes(primary);
+}
+
 function ListingsPage({ go, listings }) {
   const initialParams = useMemo(
     () => new URLSearchParams(window.location.search),
@@ -1115,23 +1122,33 @@ function ListingsPage({ go, listings }) {
   const [location, setLocation] = useState("");
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [cat, setCat] = useState(initialParams.get("category") || "All");
-  const [type, setType] = useState("All");
+  const [subCat, setSubCat] = useState("All");
+  const [serviceQuery, setServiceQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const filtered = listings.filter(
-    (l) =>
-      l.status === "Published" &&
-      (cat === "All" || l.category === cat) &&
-      (type === "All" || l.type === type) &&
-      `${l.name} ${l.cardTitle || ""} ${l.category} ${l.type} ${l.services?.join(" ")} ${l.description || ""} ${l.location}`.toLowerCase().includes(search.toLowerCase()) &&
-      (!location || String(l.location || "").toLowerCase().split(/[ ,]+/).some((term) => term.length > 3 && location.toLowerCase().includes(term))),
+  const hasSelection = Boolean(
+    (cat !== "All") ||
+      (subCat !== "All") ||
+      search.trim() ||
+      serviceQuery.trim(),
   );
+  const filtered = !hasSelection
+    ? []
+    : listings.filter(
+        (l) =>
+          l.status === "Published" &&
+          (cat === "All" || l.category === cat) &&
+          (subCat === "All" || l.additionalCategories?.includes(subCat)) &&
+          `${l.name} ${l.cardTitle || ""} ${l.category} ${l.services?.join(" ")} ${l.description || ""} ${l.location}`.toLowerCase().includes(search.toLowerCase()) &&
+          `${l.services?.join(" ") || ""} ${l.tagline || ""} ${l.description || ""}`.toLowerCase().includes(serviceQuery.toLowerCase()) &&
+          locationMatches(l.location, location),
+      );
   return (
     <PublicLayout go={go}>
       <div className="breadcrumb">
         <Link to="/" go={go}>
           Home
         </Link>
-        <ArrowRight /> Search Results
+        <ArrowRight /> Businesses
       </div>
       <section className="directory-search-shell">
         <div className="directory-search-heading"><div><span className="eyebrow">DISCOVER LOCAL BUSINESSES</span><h1>Find the right partner for<br />your next project.</h1></div><span>{filtered.length} matching {filtered.length === 1 ? "business" : "businesses"}</span></div>
@@ -1144,26 +1161,10 @@ function ListingsPage({ go, listings }) {
             placeholder="Keyword"
           />
         </label>
-        <label className="directory-location-input">
-          <MapPin weight="fill" />
-          <GoogleAddressInput value={location} onChange={(value) => { setLocation(value); setSelectedPlace(null); }} onSelect={(place) => { setLocation(place.address); setSelectedPlace(place); }} required={false} showStatus={false} placeholder="Search by city, address, or area" />
-        </label>
       </div>
-      {location && <div className="directory-search-active"><MapPin weight="fill" /> Searching near <strong>{location}</strong><button onClick={() => { setLocation(""); setSelectedPlace(null); }}>Clear</button></div>}
       </section>
       <main className="listings-layout">
         <aside className="filters">
-          <h3>Business Type</h3>
-          {["All", "Business / Company", "Freelancer / Creative"].map((x) => (
-            <label key={x}>
-              <input
-                type="radio"
-                checked={type === x}
-                onChange={() => setType(x)}
-              />
-              {x}
-            </label>
-          ))}
           <h3>Business Category</h3>
           <select value={cat} onChange={(e) => setCat(e.target.value)}>
             <option>All</option>
@@ -1171,20 +1172,34 @@ function ListingsPage({ go, listings }) {
               <option key={c.name}>{c.name}</option>
             ))}
           </select>
-          <h3>Business Services</h3>
-          <input className="filter-search" placeholder="Search" />
-          {[
-            "Any",
-            "Full Coordination",
-            "Graphic Design",
-            "Software Development",
-            "Web & App Development",
-          ].map((x, i) => (
-            <label key={x}>
-              <input type="radio" defaultChecked={i === 0} />
-              {x}
-            </label>
-          ))}
+          <h3>Sub-Category</h3>
+          <select value={subCat} onChange={(e) => setSubCat(e.target.value)}>
+            <option>All</option>
+            {categories.map((c) => (
+              <option key={c.name}>{c.name}</option>
+            ))}
+          </select>
+          <h3>Find a Service</h3>
+          <input
+            className="filter-search"
+            placeholder="Search"
+            value={serviceQuery}
+            onChange={(e) => setServiceQuery(e.target.value)}
+          />
+          <h3>Location</h3>
+          <label className="directory-location-input">
+            <MapPin weight="fill" />
+            <GoogleAddressInput value={location} onChange={(value) => { setLocation(value); setSelectedPlace(null); }} onSelect={(place) => { setLocation(place.address); setSelectedPlace(place); }} required={false} showStatus={false} placeholder="Search by city, address, or area" disabled={!hasSelection} />
+          </label>
+          {!hasSelection && (
+            <p className="filter-hint">Choose a category, sub-category, or service first to search by location.</p>
+          )}
+          {location && (
+            <div className="directory-search-active">
+              <MapPin weight="fill" /> Searching near <strong>{location}</strong>
+              <button onClick={() => { setLocation(""); setSelectedPlace(null); }}>Clear</button>
+            </div>
+          )}
         </aside>
         <section className="results">
           <div className="mobile-filter-row">
@@ -1204,7 +1219,13 @@ function ListingsPage({ go, listings }) {
               <MapPin /> Map
             </button>
           </div>
-          {viewMode === "map" ? (
+          {!hasSelection ? (
+            <div className="empty">
+              <MagnifyingGlass size={42} />
+              <h3>Tell us what you're looking for</h3>
+              <p>Pick a category, sub-category, or search for a service to see matching businesses.</p>
+            </div>
+          ) : viewMode === "map" ? (
             <BusinessesMapView listings={filtered} go={go} />
           ) : (
             <div className={viewMode === "grid" ? "results-grid" : "results-list"}>
@@ -1213,14 +1234,14 @@ function ListingsPage({ go, listings }) {
               ))}
             </div>
           )}
-          {!filtered.length && (
+          {hasSelection && !filtered.length && (
             <div className="empty">
               <MagnifyingGlass size={42} />
               <h3>No businesses found</h3>
               <p>Try a broader keyword or category.</p>
             </div>
           )}
-          {viewMode !== "map" && (
+          {hasSelection && viewMode !== "map" && (
             <p className="results-count">
               Showing 1 to {filtered.length} of {filtered.length} results
             </p>
