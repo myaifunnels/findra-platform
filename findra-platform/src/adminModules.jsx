@@ -265,9 +265,11 @@ function ModuleHeader({ eyebrow, title, copy, action, actionLabel }) {
         <h2>{title}</h2>
         <p>{copy}</p>
       </div>
-      <button className="admin-primary" onClick={action}>
-        <Plus /> {actionLabel}
-      </button>
+      {action && (
+        <button className="admin-primary" onClick={action}>
+          <Plus /> {actionLabel}
+        </button>
+      )}
     </section>
   );
 }
@@ -953,9 +955,13 @@ export function TaxonomyManagement({ query = "", onNotify }) {
       <ModuleHeader
         eyebrow="Directory taxonomy"
         title="Categories & services"
-        copy="Control the options businesses can select when creating or editing a listing."
-        action={() => setCreating(true)}
-        actionLabel={type === "categories" ? "Add category" : "Add service"}
+        copy={
+          type === "categories"
+            ? "The 5 main business categories are fixed and cannot be added to — edit their names or descriptions below."
+            : "Control the options businesses can select when creating or editing a listing."
+        }
+        action={type === "categories" ? null : () => setCreating(true)}
+        actionLabel="Add service"
       />
       <section className="management-metrics">
         <article>
@@ -1026,12 +1032,14 @@ export function TaxonomyManagement({ query = "", onNotify }) {
                 >
                   <PencilSimple />
                 </button>
-                <button
-                  aria-label={`Delete ${item.name}`}
-                  onClick={() => remove(item)}
-                >
-                  <Trash />
-                </button>
+                {type !== "categories" && (
+                  <button
+                    aria-label={`Delete ${item.name}`}
+                    onClick={() => remove(item)}
+                  >
+                    <Trash />
+                  </button>
+                )}
               </div>
             </article>
           ))}

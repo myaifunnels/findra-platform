@@ -745,10 +745,7 @@ function Footer({ go }) {
           FAQ
         </Link>
       </div>
-      <div className="copyright">
-        © 2026 Findra. All rights reserved.{" "}
-        <button onClick={() => go("/login")}>Account Login</button>
-      </div>
+      <div className="copyright">© 2026 Findra. All rights reserved.</div>
     </footer>
   );
 }
@@ -767,7 +764,13 @@ function HomePage({ go, listings }) {
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState("");
   const [featuredView, setFeaturedView] = useState("grid");
-  const search = () => go(`/listings${keyword || category ? "?search=1" : ""}`);
+  const search = () => {
+    const params = new URLSearchParams();
+    if (keyword.trim()) params.set("search", keyword.trim());
+    if (category) params.set("category", category);
+    const query = params.toString();
+    go(`/listings${query ? `?${query}` : ""}`);
+  };
   return (
     <PublicLayout go={go}>
       <section className="hero">
@@ -838,7 +841,11 @@ function HomePage({ go, listings }) {
               <img src={c.image} alt="" />
               <h3>{c.name}</h3>
               <p>{c.description}</p>
-              <GreenButton onClick={() => go("/listings")}>
+              <GreenButton
+                onClick={() =>
+                  go(`/listings?category=${encodeURIComponent(c.name)}`)
+                }
+              >
                 See More
               </GreenButton>
             </article>
@@ -875,8 +882,9 @@ function HomePage({ go, listings }) {
         <div className="discover-cta">
           <h2>Be Discovered</h2>
           <p>
-            When visibility means growth, we make sure your business gets
-            noticed by the people who matter.
+            When visibility means growth,
+            <br />
+            we make sure your business gets noticed by the people who matter.
           </p>
           <GreenButton onClick={() => go("/packages")}>
             Showcase Your Business
@@ -887,8 +895,25 @@ function HomePage({ go, listings }) {
   );
 }
 
+const LISTING_SUMMARY_CHAR_LIMIT = 120;
+
+function truncateSummary(text, limit = LISTING_SUMMARY_CHAR_LIMIT) {
+  const clean = (text || "").trim();
+  if (clean.length <= limit) return clean;
+  const truncated = clean.slice(0, limit);
+  const lastSpace = truncated.lastIndexOf(" ");
+  return `${(lastSpace > 40 ? truncated.slice(0, lastSpace) : truncated).trimEnd()}…`;
+}
+
 function ListingCard({ item, go, layout = "list" }) {
   const cardTitle = item.cardTitle?.trim() || item.name;
+  const mainCategory = categories.some((c) => c.name === item.category)
+    ? item.category
+    : "";
+  const summaryText = truncateSummary(
+    item.description ||
+      `${item.tagline}. Discover services, connect directly, and make your next project easier.`,
+  );
   const isFeatured = Boolean(item.featured) || String(item.subscription?.plan || "").toLowerCase().includes("featured");
   const [saved, toggleSaved] = useSavedListings();
   const isSaved = saved.includes(item.id);
@@ -927,12 +952,12 @@ function ListingCard({ item, go, layout = "list" }) {
           <h3>{cardTitle}</h3>
         </div>
         {item.tagline && <p className="listing-card-tagline">{item.tagline}</p>}
-        <div className="listing-card-category">{item.category}</div>
+        {mainCategory && <div className="listing-card-category">{mainCategory}</div>}
         <p className="location">
           <MapPin weight="fill" />
           {cityAndCountry(item.location)}
         </p>
-        <p className="listing-card-summary">{item.description || `${item.tagline}. Discover services, connect directly, and make your next project easier.`}</p>
+        <p className="listing-card-summary">{summaryText}</p>
         <div className="chips">
           {item.services.map((s) => (
             <span key={s}>{s}</span>
@@ -1082,10 +1107,14 @@ function BusinessesMapView({ listings, go }) {
 }
 
 function ListingsPage({ go, listings }) {
-  const [search, setSearch] = useState("");
+  const initialParams = useMemo(
+    () => new URLSearchParams(window.location.search),
+    [],
+  );
+  const [search, setSearch] = useState(initialParams.get("search") || "");
   const [location, setLocation] = useState("");
   const [selectedPlace, setSelectedPlace] = useState(null);
-  const [cat, setCat] = useState("All");
+  const [cat, setCat] = useState(initialParams.get("category") || "All");
   const [type, setType] = useState("All");
   const [viewMode, setViewMode] = useState("grid");
   const filtered = listings.filter(

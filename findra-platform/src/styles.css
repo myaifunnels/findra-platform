@@ -623,8 +623,10 @@ footer {
   padding: 40px max(5vw, 60px);
 }
 .footer-brand {
-  width: 82px;
+  width: 128px;
   background: white;
+  border-radius: 8px;
+  padding: 6px 10px;
 }
 .footer-main h4 {
   font-size: 18px;
@@ -647,9 +649,9 @@ footer {
   width: 38px;
   height: 38px;
   padding: 8px;
-  background: #475bb2;
+  background: #1877f2;
 }
-.socials svg:last-child {
+.socials a:last-child svg {
   background: #df3177;
 }
 .footer-links {
@@ -6154,7 +6156,7 @@ body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .dire
 .directory-search-active button { margin-left: 5px; border: 0; background: transparent; color: #95f3b8; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
 .listing-card { border-color: rgba(113, 163, 139, .26); border-radius: 18px; box-shadow: 0 12px 28px rgba(0,0,0,.12); }
 .listing-card-category { display: inline-flex; max-width: calc(100% - 112px); margin-bottom: 10px; color: #119a50; font-size: 12px !important; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
-.listing-card-summary { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.listing-card-summary { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; text-align: left; }
 .listing-card-detail { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; padding: 0; border: 0; background: transparent; color: #078844; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
 .listing-card-detail:hover { color: #006d35; text-decoration: underline; }
 [data-theme="dark"] .directory-search-shell { background: radial-gradient(circle at 15% 0, rgba(34, 132, 82, .26), transparent 43%), linear-gradient(135deg, #071a12, #102c21); }
@@ -10587,8 +10589,10 @@ th {
   display: block !important;
 }
 .footer-brand {
-  width: 64px;
-  background: transparent;
+  width: 128px;
+  background: white;
+  border-radius: 8px;
+  padding: 6px 10px;
 }
 
 [data-theme="dark"] .contact-page,
