@@ -6454,6 +6454,14 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
       <form
         className="long-listing-form multi-step-listing-form"
         onSubmit={submit}
+        onKeyDown={(event) => {
+          // Selecting a Google Places suggestion (or just pressing Enter in
+          // an address/text field) must not submit the whole wizard early —
+          // only the explicit Continue/Save buttons should advance steps.
+          if (event.key === "Enter" && event.target.tagName === "INPUT") {
+            event.preventDefault();
+          }
+        }}
       >
         {planNotice && (
           <div className="guest-plan-notice">
