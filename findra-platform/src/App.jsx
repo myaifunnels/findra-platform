@@ -6152,6 +6152,11 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
   const [direction, setDirection] = useState("forward");
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [stepError, setStepError] = useState("");
+  // Guards against a fast double-click/double-tap landing on the submit
+  // button that slides into the same footer position right after the
+  // "Continue" button advances the step — without this, a quick second
+  // click can save the listing before the user ever reaches Media & review.
+  const advancingRef = useRef(false);
   const [draftStatus, setDraftStatus] = useState(
     restored ? "Draft restored" : "Draft ready",
   );
@@ -6357,11 +6362,16 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
   };
   const submit = async (event) => {
     event.preventDefault();
+    if (advancingRef.current) return;
     if (step < 2) {
       if (!event.currentTarget.reportValidity()) {
         setStepError("Complete the required fields above before continuing.");
         return;
       }
+      advancingRef.current = true;
+      window.setTimeout(() => {
+        advancingRef.current = false;
+      }, 400);
       setStepError("");
       setDirection("forward");
       setMobilePreviewOpen(false);
@@ -6416,10 +6426,15 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
   const completion = Math.round((completedRequired / totalRequired) * 100);
   const videoEmbedUrl = getYouTubeEmbedUrl(form.video);
   const moveToStep = (next, event) => {
+    if (advancingRef.current) return;
     if (next > step && !event.currentTarget.form?.reportValidity()) {
       setStepError("Complete the required fields above before continuing.");
       return;
     }
+    advancingRef.current = true;
+    window.setTimeout(() => {
+      advancingRef.current = false;
+    }, 400);
     setStepError("");
     setDirection(next > step ? "forward" : "backward");
     setMobilePreviewOpen(false);
