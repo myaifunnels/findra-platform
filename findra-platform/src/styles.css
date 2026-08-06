@@ -285,6 +285,87 @@ a {
   color: #33454a;
   background: transparent;
 }
+.hero-keyword-field {
+  position: relative;
+}
+.hero-keyword-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  background: white;
+  border: 1px solid #c7ded5;
+  border-radius: 12px;
+  box-shadow: 0 16px 36px rgba(15, 40, 30, 0.18);
+  max-height: 340px;
+  overflow-y: auto;
+}
+.hero-keyword-suggestions li {
+  margin: 0;
+}
+.hero-keyword-suggestions li + li {
+  margin-top: 2px;
+}
+.hero-keyword-suggestions button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: #24353a;
+}
+.hero-keyword-suggestions button:hover {
+  background: #eef6f1;
+}
+.hero-keyword-suggestions img,
+.hero-suggestion-fallback {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+  background: #e7f4ed;
+}
+.hero-suggestion-fallback {
+  display: grid;
+  place-items: center;
+  color: var(--green);
+  font-size: 16px;
+}
+.hero-keyword-suggestions strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+}
+.hero-keyword-suggestions small {
+  display: block;
+  font-size: 11.5px;
+  color: #6d7f77;
+  margin-top: 1px;
+}
+.hero-suggestion-all {
+  border-top: 1px solid #e9eee6;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+.hero-suggestion-all button {
+  color: var(--green);
+  font-weight: 700;
+  font-size: 12.5px;
+  gap: 8px;
+}
+.hero-suggestion-all svg {
+  flex: 0 0 auto;
+}
 .green-button {
   font-family: "Lexend Deca", sans-serif;
   font-size: 16px;

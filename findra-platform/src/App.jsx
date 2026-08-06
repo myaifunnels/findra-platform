@@ -768,6 +768,7 @@ function HomePage({ go, listings }) {
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState("");
   const [featuredView, setFeaturedView] = useState("grid");
+  const [keywordFocused, setKeywordFocused] = useState(false);
   const search = () => {
     const params = new URLSearchParams();
     if (keyword.trim()) params.set("search", keyword.trim());
@@ -775,6 +776,19 @@ function HomePage({ go, listings }) {
     const query = params.toString();
     go(`/listings${query ? `?${query}` : ""}`);
   };
+  const trimmedKeyword = keyword.trim().toLowerCase();
+  const suggestions = useMemo(() => {
+    if (!trimmedKeyword) return [];
+    return listings
+      .filter((l) => l.status === "Published")
+      .filter((l) =>
+        `${l.name} ${l.cardTitle || ""} ${l.tagline || ""} ${l.category} ${(l.services || []).join(" ")} ${l.location}`
+          .toLowerCase()
+          .includes(trimmedKeyword),
+      )
+      .slice(0, 6);
+  }, [listings, trimmedKeyword]);
+  const showSuggestions = keywordFocused && trimmedKeyword.length > 0 && suggestions.length > 0;
   return (
     <PublicLayout go={go}>
       <section className="hero">
@@ -807,13 +821,53 @@ function HomePage({ go, listings }) {
             </span>
           </p>
           <div className="hero-search">
-            <label>
+            <label className="hero-keyword-field">
               <MapPin />
               <input
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
+                onFocus={() => setKeywordFocused(true)}
+                onBlur={() => setKeywordFocused(false)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") search();
+                  if (event.key === "Escape") setKeywordFocused(false);
+                }}
                 placeholder="Keyword"
+                role="combobox"
+                aria-expanded={showSuggestions}
+                aria-autocomplete="list"
+                autoComplete="off"
               />
+              {showSuggestions && (
+                <ul className="hero-keyword-suggestions" role="listbox">
+                  {suggestions.map((item) => (
+                    <li key={item.id} role="option">
+                      <button
+                        type="button"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          go(`/listing/${item.id}`);
+                        }}
+                      >
+                        {item.logo ? (
+                          <img src={item.logo} alt="" />
+                        ) : (
+                          <span className="hero-suggestion-fallback"><Storefront weight="duotone" /></span>
+                        )}
+                        <span>
+                          <strong>{item.cardTitle?.trim() || item.name}</strong>
+                          <small>{item.category}{item.location ? ` · ${cityAndCountry(item.location)}` : ""}</small>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                  <li role="option" className="hero-suggestion-all">
+                    <button type="button" onMouseDown={(event) => { event.preventDefault(); search(); }}>
+                      <MagnifyingGlass /> See all results for "{keyword.trim()}"
+                    </button>
+                  </li>
+                </ul>
+              )}
             </label>
             <label>
               <SquaresFour />
