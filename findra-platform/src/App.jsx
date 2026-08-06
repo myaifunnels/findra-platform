@@ -206,6 +206,7 @@ const blankListing = {
   type: "Business / Company",
   category: categories[0].name,
   location: "",
+  operatingHours: "",
   status: "Draft",
   owner: "",
   image: "/assets/products-suppliers.jpg",
@@ -226,8 +227,10 @@ const blankListing = {
   additionalCategories: [],
   additionalServices: [],
   video: "",
+  videoFileName: "",
   logo: "",
   galleryImages: [],
+  galleryCaptions: [],
   attachments: [],
   customValues: {},
 };
@@ -1125,6 +1128,15 @@ function ListingsPage({ go, listings }) {
   const [subCat, setSubCat] = useState("All");
   const [serviceQuery, setServiceQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
+  const subCategoryOptions = useMemo(() => {
+    const scoped = listings.filter(
+      (l) => l.status === "Published" && (cat === "All" || l.category === cat),
+    );
+    return [...new Set(scoped.flatMap((l) => l.additionalCategories || []))].sort();
+  }, [listings, cat]);
+  useEffect(() => {
+    if (subCat !== "All" && !subCategoryOptions.includes(subCat)) setSubCat("All");
+  }, [subCategoryOptions, subCat]);
   const hasSelection = Boolean(
     (cat !== "All") ||
       (subCat !== "All") ||
@@ -1149,7 +1161,7 @@ function ListingsPage({ go, listings }) {
         <ArrowRight /> Businesses
       </div>
       <section className="directory-search-shell">
-        <div className="directory-search-heading"><div><span className="eyebrow">DISCOVER LOCAL BUSINESSES</span><h1>Find the right partner for<br />your next project.</h1></div><span>{filtered.length} matching {filtered.length === 1 ? "business" : "businesses"}</span></div>
+        <div className="directory-search-heading"><div><span className="eyebrow">DISCOVER LOCAL BUSINESSES</span><h1>Find the right partner for<br />your next project.</h1></div>{hasSelection && <span>{filtered.length} matching {filtered.length === 1 ? "business" : "businesses"}</span>}</div>
       <div className="listings-search">
         <label>
           <MagnifyingGlass />
@@ -1171,10 +1183,14 @@ function ListingsPage({ go, listings }) {
             ))}
           </select>
           <h3>Sub-Category</h3>
-          <select value={subCat} onChange={(e) => setSubCat(e.target.value)}>
+          <select
+            value={subCat}
+            onChange={(e) => setSubCat(e.target.value)}
+            disabled={!subCategoryOptions.length}
+          >
             <option>All</option>
-            {categories.map((c) => (
-              <option key={c.name}>{c.name}</option>
+            {subCategoryOptions.map((name) => (
+              <option key={name}>{name}</option>
             ))}
           </select>
           <h3>Find a Service</h3>
@@ -1204,7 +1220,7 @@ function ListingsPage({ go, listings }) {
             <button>
               <Funnel /> Filters
             </button>
-            <span>{filtered.length} results</span>
+            <span>{hasSelection ? `${filtered.length} results` : "Filter to see results"}</span>
           </div>
           <div className="view-mode-toggle" role="group" aria-label="Change results view">
             <button className={viewMode === "grid" ? "active" : ""} onClick={() => setViewMode("grid")}>
@@ -1217,26 +1233,36 @@ function ListingsPage({ go, listings }) {
               <MapPin /> Map
             </button>
           </div>
-          {viewMode === "map" ? (
-            <BusinessesMapView listings={filtered} go={go} />
-          ) : (
-            <div className={viewMode === "grid" ? "results-grid" : "results-list"}>
-              {filtered.map((item) => (
-                <ListingCard key={item.id} item={item} go={go} layout={viewMode} />
-              ))}
-            </div>
-          )}
-          {!filtered.length && (
+          {!hasSelection ? (
             <div className="empty">
               <MagnifyingGlass size={42} />
-              <h3>No businesses found</h3>
-              <p>Try a broader keyword or category.</p>
+              <h3>Choose a category or search to see businesses</h3>
+              <p>Pick a category, sub-category, service, or keyword above to find matching businesses.</p>
             </div>
-          )}
-          {viewMode !== "map" && (
-            <p className="results-count">
-              Showing 1 to {filtered.length} of {filtered.length} results
-            </p>
+          ) : (
+            <>
+              {viewMode === "map" ? (
+                <BusinessesMapView listings={filtered} go={go} />
+              ) : (
+                <div className={viewMode === "grid" ? "results-grid" : "results-list"}>
+                  {filtered.map((item) => (
+                    <ListingCard key={item.id} item={item} go={go} layout={viewMode} />
+                  ))}
+                </div>
+              )}
+              {!filtered.length && (
+                <div className="empty">
+                  <MagnifyingGlass size={42} />
+                  <h3>No businesses found</h3>
+                  <p>Try a broader keyword or category.</p>
+                </div>
+              )}
+              {viewMode !== "map" && (
+                <p className="results-count">
+                  Showing 1 to {filtered.length} of {filtered.length} results
+                </p>
+              )}
+            </>
           )}
         </section>
       </main>
@@ -1249,6 +1275,7 @@ function ListingDetail({ go, item }) {
   const [inquiryForm, setInquiryForm] = useState({ name: "", email: "", message: "" });
   const [inquirySending, setInquirySending] = useState(false);
   const [inquiryError, setInquiryError] = useState("");
+  const [galleryLightbox, setGalleryLightbox] = useState(null);
   const publicCustomFields = useMemo(
     () => readCustomFields().filter((field) => field.visibility?.publicProfile !== false),
     [],
@@ -1293,12 +1320,21 @@ function ListingDetail({ go, item }) {
         </div>
         <div className="detail-meta">
           <div>
-            <strong>Business Type:</strong>
-            <span>{item.type}</span>
-            <strong>Business Category:</strong>
-            <span>{(item.categories || [item.category]).join(", ")}</span>
+            <strong>Category:</strong>
+            <span>
+              {item.category}
+              {item.additionalCategories?.length
+                ? ` / ${item.additionalCategories.join(", ")}`
+                : ""}
+            </span>
             <strong>Business Address:</strong>
             <span>{item.location || "Not provided"}</span>
+            {item.operatingHours && (
+              <>
+                <strong>Operating Hours:</strong>
+                <span>{item.operatingHours}</span>
+              </>
+            )}
           </div>
           <div className={`detail-logo ${item.logo ? "has-image" : ""}`}>
             {item.logo ? (
@@ -1326,7 +1362,7 @@ function ListingDetail({ go, item }) {
               {item.location && (
                 <section className="panel detail-section listing-location-map">
                   <div className="listing-location-map-heading">
-                    <h3 className="detail-section-title">Business location</h3>
+                    <h3 className="detail-section-title">Business Pin Location</h3>
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.latitude !== "" && item.latitude !== undefined && item.longitude !== "" && item.longitude !== undefined ? `${item.latitude},${item.longitude}` : item.location)}`}
                       target="_blank"
@@ -1359,14 +1395,57 @@ function ListingDetail({ go, item }) {
                   <h3 className="detail-section-title">Gallery</h3>
                   <div className="project-grid">
                     {gallery.map((source, index) => (
-                      <img
-                        src={source}
-                        alt={`${item.name} gallery ${index + 1}`}
+                      <button
+                        type="button"
+                        className="gallery-photo-button"
                         key={`${source.slice(0, 45)}-${index}`}
-                      />
+                        onClick={() => setGalleryLightbox(index)}
+                        aria-label={`View gallery photo ${index + 1}${item.galleryCaptions?.[index] ? `: ${item.galleryCaptions[index]}` : ""}`}
+                      >
+                        <img src={source} alt={`${item.name} gallery ${index + 1}`} />
+                      </button>
                     ))}
                   </div>
                 </section>
+              )}
+              {galleryLightbox !== null && (
+                <div
+                  className="gallery-lightbox"
+                  role="dialog"
+                  aria-modal="true"
+                  onClick={() => setGalleryLightbox(null)}
+                >
+                  <div className="gallery-lightbox-inner" onClick={(event) => event.stopPropagation()}>
+                    <button
+                      type="button"
+                      className="gallery-lightbox-close"
+                      aria-label="Close gallery photo"
+                      onClick={() => setGalleryLightbox(null)}
+                    >
+                      <X />
+                    </button>
+                    <img src={gallery[galleryLightbox]} alt={`${item.name} gallery ${galleryLightbox + 1}`} />
+                    {item.galleryCaptions?.[galleryLightbox] && (
+                      <p className="gallery-lightbox-caption">{item.galleryCaptions[galleryLightbox]}</p>
+                    )}
+                    <div className="gallery-lightbox-nav">
+                      <button
+                        type="button"
+                        disabled={galleryLightbox === 0}
+                        onClick={() => setGalleryLightbox((current) => Math.max(0, current - 1))}
+                      >
+                        <ArrowLeft /> Previous
+                      </button>
+                      <button
+                        type="button"
+                        disabled={galleryLightbox === gallery.length - 1}
+                        onClick={() => setGalleryLightbox((current) => Math.min(gallery.length - 1, current + 1))}
+                      >
+                        Next <ArrowRight />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
               {item.video && (
                 <section className="panel detail-section listing-video">
@@ -1377,6 +1456,13 @@ function ListingDetail({ go, item }) {
                       src={detailVideoEmbed}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
+                    />
+                  ) : item.video.startsWith("/api/media/") ? (
+                    <video
+                      src={item.video}
+                      controls
+                      preload="metadata"
+                      aria-label={`${item.name} featured video`}
                     />
                   ) : (
                     <a href={item.video} target="_blank" rel="noreferrer">
@@ -1515,32 +1601,20 @@ function ListingDetail({ go, item }) {
               </form>
             )}
             <div className="contact-actions" aria-label="Business contact options">
-              {item.phone ? (
+              {item.phone && (
                 <a href={`tel:${item.phone}`}>
                   <Phone /> Call
                 </a>
-              ) : (
-                <span>
-                  <Phone /> Call
-                </span>
               )}
-              {item.email ? (
+              {item.email && (
                 <a href={`mailto:${item.email}`}>
                   <EnvelopeSimple /> Email
                 </a>
-              ) : (
-                <span>
-                  <EnvelopeSimple /> Email
-                </span>
               )}
-              {item.website ? (
+              {item.website && (
                 <a href={item.website} target="_blank" rel="noreferrer">
                   <Globe /> Website
                 </a>
-              ) : (
-                <span>
-                  <Globe /> Website
-                </span>
               )}
               {item.whatsapp && (
                 <a
@@ -1556,7 +1630,7 @@ function ListingDetail({ go, item }) {
               {item.viber && (
                 <a
                   className="contact-action-viber"
-                  href={`viber://chat?number=${encodeURIComponent(item.viber.replace(/\D/g, ""))}`}
+                  href={`viber://chat?number=${encodeURIComponent(`+${item.viber.replace(/\D/g, "")}`)}`}
                   aria-label={`Chat with ${item.name} on Viber`}
                 >
                   <ChatCircleText weight="fill" /> Viber
@@ -5878,6 +5952,9 @@ function UploadBox({
   files = [],
   onRemove,
   onReplace,
+  captions,
+  onCaptionChange,
+  captionMaxLength,
 }) {
   const inputId = `upload-${title.toLowerCase().replace(/[^a-z]+/g, "-")}`;
   const [dragging, setDragging] = useState(false);
@@ -5942,6 +6019,20 @@ function UploadBox({
                 <strong>{file.name}</strong>
                 <small>{file.type || "Selected file"}</small>
               </span>
+              {onCaptionChange && (
+                <label className="upload-preview-caption">
+                  <span>Caption</span>
+                  <input
+                    value={captions?.[index] || ""}
+                    maxLength={captionMaxLength}
+                    placeholder="Optional caption for this photo"
+                    onChange={(event) => onCaptionChange(index, event.target.value)}
+                  />
+                  {captionMaxLength && (
+                    <small>{(captions?.[index] || "").length}/{captionMaxLength}</small>
+                  )}
+                </label>
+              )}
               <div className="upload-preview-actions">
                 <label
                   htmlFor={`${inputId}-replace-${index}`}
@@ -5986,46 +6077,57 @@ function MultiOptionField({
   onChange,
   placeholder,
   customPlaceholder,
+  required = true,
+  maxValues,
+  maxLength,
 }) {
   const [customMode, setCustomMode] = useState(false);
   const [draft, setDraft] = useState("");
+  const atMax = Boolean(maxValues) && values.length >= maxValues;
   const addCustomValues = () => {
     const additions = draft
       .split(",")
-      .map((value) => value.trim())
+      .map((value) => value.trim().slice(0, maxLength || undefined))
       .filter(Boolean);
     if (!additions.length) return;
-    onChange([...new Set([...values, ...additions])]);
+    const room = maxValues ? Math.max(0, maxValues - values.length) : additions.length;
+    onChange([...new Set([...values, ...additions.slice(0, room)])]);
     setDraft("");
     setCustomMode(false);
   };
   return (
     <div className="multi-option-field">
-      <FieldLabel required>{label}</FieldLabel>
-      <select
-        aria-label={label}
-        required={!values.length}
-        value=""
-        onChange={(event) => {
-          if (event.target.value === "__custom__") {
-            setCustomMode(true);
-            return;
-          }
-          if (event.target.value)
-            onChange([...new Set([...values, event.target.value])]);
-        }}
-      >
-        <option value="">
-          {values.length ? `Add another ${label.toLowerCase()}` : placeholder}
-        </option>
-        {options
-          .filter((option) => !values.includes(option))
-          .map((option) => (
-            <option key={option}>{option}</option>
-          ))}
-        <option value="__custom__">＋ Add your own</option>
-      </select>
-      {customMode && (
+      <FieldLabel required={required}>{label}</FieldLabel>
+      {atMax ? (
+        <small>
+          Maximum of {maxValues} {maxValues === 1 ? "entry" : "entries"} reached. Remove one to add another.
+        </small>
+      ) : (
+        <select
+          aria-label={label}
+          required={required && !values.length}
+          value=""
+          onChange={(event) => {
+            if (event.target.value === "__custom__") {
+              setCustomMode(true);
+              return;
+            }
+            if (event.target.value)
+              onChange([...new Set([...values, event.target.value])]);
+          }}
+        >
+          <option value="">
+            {values.length ? `Add another ${label.toLowerCase()}` : placeholder}
+          </option>
+          {options
+            .filter((option) => !values.includes(option))
+            .map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          <option value="__custom__">＋ Add your own</option>
+        </select>
+      )}
+      {customMode && !atMax && (
         <div className="multi-option-custom">
           <input
             autoFocus
@@ -6064,7 +6166,9 @@ function MultiOptionField({
         </div>
       )}
       <small>
-        Select as many as needed. Choose “Add your own” for an unlisted value.
+        {maxValues
+          ? `Up to ${maxValues} ${maxValues === 1 ? "entry" : "entries"}${maxLength ? `, ${maxLength} characters max each` : ""}. Choose "Add your own" for an unlisted value.`
+          : 'Select as many as needed. Choose "Add your own" for an unlisted value.'}
       </small>
       {values.length > 0 && (
         <div className="multi-value-tags" aria-live="polite">
@@ -6173,6 +6277,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
       : initialServices.slice(1),
     logoName: startingItem.logoName || "",
     galleryName: startingItem.galleryName || "",
+    galleryCaptions: startingItem.galleryCaptions || [],
     attachmentName: startingItem.attachmentName || "",
   });
   const [uploads, setUploads] = useState(() => ({
@@ -6240,7 +6345,9 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
   };
   const uploadFiles = async (files) => {
     const uploaded = await Promise.all(files.map(async (file) => {
-      if (file.size > 12 * 1024 * 1024) throw new Error(`${file.name} is larger than the 12 MB upload limit.`);
+      const isVideo = file.type === "video/mp4" || file.type === "video/webm";
+      const limitBytes = (isVideo ? 50 : 12) * 1024 * 1024;
+      if (file.size > limitBytes) throw new Error(`${file.name} is larger than the ${isVideo ? 50 : 12} MB upload limit.`);
       const response = await fetch("/api/media/upload", {
         method: "POST",
         credentials: "same-origin",
@@ -6290,12 +6397,23 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
       [bucket]: current[bucket].filter((_, itemIndex) => itemIndex !== index),
     }));
     syncUploadFields(bucket, next);
+    if (bucket === "gallery") {
+      setForm((current) => ({
+        ...current,
+        galleryCaptions: (current.galleryCaptions || []).filter((_, i) => i !== index),
+      }));
+    }
   };
   const setFiles =
-    (bucket, multiple = false) =>
+    (bucket, multiple = false, max) =>
     async (files) => {
       try {
-      const added = await uploadFiles(files);
+      const room = max ? Math.max(0, max - uploads[bucket].length) : files.length;
+      if (max && room <= 0) {
+        setStepError(`You can only add up to ${max} ${max === 1 ? "photo" : "photos"} here. Remove one to add another.`);
+        return;
+      }
+      const added = await uploadFiles(files.slice(0, multiple ? room : 1));
       const next = multiple
         ? [...uploads[bucket], ...added]
         : added.slice(0, 1);
@@ -6425,6 +6543,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
   const totalRequired = stepCompletion.flat().length;
   const completion = Math.round((completedRequired / totalRequired) * 100);
   const videoEmbedUrl = getYouTubeEmbedUrl(form.video);
+  const isUploadedVideo = Boolean(form.video) && !videoEmbedUrl && form.video.startsWith("/api/media/");
   const moveToStep = (next, event) => {
     if (advancingRef.current) return;
     if (next > step && !event.currentTarget.form?.reportValidity()) {
@@ -6640,11 +6759,13 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                     <textarea
                       required
                       rows="7"
+                      maxLength={200}
                       value={form.description}
                       onChange={change("description")}
                       placeholder="Describe what your business offers, who you serve, and what makes you different"
                     />
                   </div>
+                  <small>{form.description.length}/200 characters</small>
                 </section>
                 <section className="form-block classification-block">
                   <SectionLabel>Business Classification</SectionLabel>
@@ -6660,22 +6781,39 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                         <option>Freelancer / Creative</option>
                       </select>
                     </label>
+                    <label>
+                      <FieldLabel required>Business Category</FieldLabel>
+                      <select
+                        required
+                        value={form.category}
+                        onChange={change("category")}
+                      >
+                        <option value="" disabled>
+                          Choose a business category
+                        </option>
+                        {managedTaxonomy.categories.map((category) => (
+                          <option key={category.name} value={category.name}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                      <small>
+                        Findra's 5 main categories only — this keeps every
+                        listing consistent and searchable across the
+                        directory.
+                      </small>
+                    </label>
                     <MultiOptionField
-                      label="Business Categories"
-                      placeholder="Choose a business category"
-                      customPlaceholder="Type one or more categories, separated by commas"
-                      options={managedTaxonomy.categories.map(
-                        (category) => category.name,
-                      )}
-                      values={[
-                        form.category,
-                        ...(form.additionalCategories || []),
-                      ].filter(Boolean)}
+                      label="Sub-Category"
+                      placeholder="Add a sub-category (optional)"
+                      customPlaceholder="Type one or more sub-categories, separated by commas"
+                      options={[]}
+                      required={false}
+                      values={form.additionalCategories || []}
                       onChange={(values) =>
                         setForm((current) => ({
                           ...current,
-                          category: values[0] || "",
-                          additionalCategories: values.slice(1),
+                          additionalCategories: values,
                         }))
                       }
                     />
@@ -6683,6 +6821,8 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                       label="Business Services"
                       placeholder="Choose a business service"
                       customPlaceholder="Type one or more services, separated by commas"
+                      maxValues={3}
+                      maxLength={25}
                       options={managedTaxonomy.services.map(
                         (service) => service.name,
                       )}
@@ -6780,6 +6920,14 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                     latitude={form.latitude}
                     longitude={form.longitude}
                   />
+                  <label>
+                    <FieldLabel>Operating Hours</FieldLabel>
+                    <input
+                      value={form.operatingHours || ""}
+                      onChange={change("operatingHours")}
+                      placeholder="e.g. Mon–Fri 9:00 AM–6:00 PM, Sat 9:00 AM–1:00 PM"
+                    />
+                  </label>
                 </section>
                 <CustomListingFields
                   fields={managedCustomFields.filter((field) => field.section === "Contact & location")}
@@ -6816,25 +6964,79 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                     />
                     <UploadBox
                       title="Business Gallery"
-                      hint="JPG, PNG, WebP, or GIF, up to 12 MB each. Add as many photos as you like."
+                      hint="Up to 6 photos — JPG, PNG, WebP, or GIF, up to 12 MB each."
                       wide
                       multiple
                       files={uploads.gallery}
-                      onFiles={setFiles("gallery", true)}
+                      onFiles={setFiles("gallery", true, 6)}
                       onRemove={removeUpload("gallery")}
                       onReplace={replaceUpload("gallery")}
+                      captions={form.galleryCaptions}
+                      onCaptionChange={(index, caption) =>
+                        setForm((current) => {
+                          const next = [...(current.galleryCaptions || [])];
+                          next[index] = caption.slice(0, 30);
+                          return { ...current, galleryCaptions: next };
+                        })
+                      }
+                      captionMaxLength={30}
                     />
                   </div>
                   <label className="video-field">
-                    <FieldLabel>Featured Video</FieldLabel>
-                    <span>Paste a public YouTube URL to preview it below</span>
+                    <FieldLabel>Featured Video (1 max)</FieldLabel>
+                    <span>Paste a public YouTube URL, or upload a video file directly (MP4/WebM, up to 50 MB)</span>
                     <input
                       type="url"
-                      value={form.video}
+                      value={isUploadedVideo ? "" : form.video}
                       onChange={change("video")}
                       placeholder="https://youtube.com/watch?v=..."
+                      disabled={isUploadedVideo}
                     />
                   </label>
+                  {isUploadedVideo ? (
+                    <div className="upload-preview video-file-preview">
+                      <div className="file-preview-icon">
+                        <FileText />
+                      </div>
+                      <span>
+                        <strong>{form.videoFileName || "Uploaded video"}</strong>
+                        <small>Video file</small>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm((current) => ({ ...current, video: "", videoFileName: "" }))
+                        }
+                      >
+                        <X /> Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="video-upload-alt" htmlFor="featured-video-file">
+                      <UploadSimple /> Or upload a video file
+                      <input
+                        id="featured-video-file"
+                        type="file"
+                        accept="video/mp4,video/webm"
+                        onChange={async (event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+                          if (!file) return;
+                          setStepError("");
+                          try {
+                            const [uploaded] = await uploadFiles([file]);
+                            setForm((current) => ({
+                              ...current,
+                              video: uploaded.url,
+                              videoFileName: uploaded.name,
+                            }));
+                          } catch (error) {
+                            setStepError(error.message || "Could not upload this video. Please try again.");
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
                   {videoEmbedUrl && (
                     <div className="video-preview-card" aria-live="polite">
                       <div>
@@ -6852,7 +7054,16 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                       />
                     </div>
                   )}
-                  {form.video && !videoEmbedUrl && (
+                  {isUploadedVideo && (
+                    <div className="video-preview-card" aria-live="polite">
+                      <div>
+                        <span>VIDEO PREVIEW</span>
+                        <strong>Your featured video is ready</strong>
+                      </div>
+                      <video src={form.video} controls preload="metadata" />
+                    </div>
+                  )}
+                  {form.video && !videoEmbedUrl && !isUploadedVideo && (
                     <p className="video-preview-help" role="status">
                       <WarningCircle /> Enter a valid YouTube watch, Shorts,
                       Live, or youtu.be URL to display the preview.
@@ -6867,12 +7078,11 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                   </p>
                   <UploadBox
                     title="Attachments"
-                    hint="PDF, JPG, or PNG, up to 12 MB each. Word docs (.doc/.docx) are not accepted for upload yet."
+                    hint="1 file only — PDF, JPG, or PNG, up to 12 MB. Suggested: your company profile or brochure. Word docs (.doc/.docx) are not accepted for upload yet."
                     wide
-                    multiple
                     accept=".pdf,.jpg,.jpeg,.png"
-                    files={uploads.attachments}
-                    onFiles={setFiles("attachments", true)}
+                    files={uploads.attachments.slice(0, 1)}
+                    onFiles={setFiles("attachments")}
                     onRemove={removeUpload("attachments")}
                     onReplace={replaceUpload("attachments")}
                   />
@@ -6963,6 +7173,11 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
+                </div>
+              )}
+              {isUploadedVideo && (
+                <div className="listing-preview-video">
+                  <video src={form.video} controls preload="metadata" />
                 </div>
               )}
             </section>

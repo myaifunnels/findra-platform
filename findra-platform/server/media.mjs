@@ -3,8 +3,10 @@ import { randomUUID } from "node:crypto";
 import { readSession } from "./auth.mjs";
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
+const MAX_VIDEO_UPLOAD_BYTES = 50 * 1024 * 1024;
 const imageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-const fileTypes = new Set([...imageTypes, "application/pdf"]);
+const videoTypes = new Set(["video/mp4", "video/webm"]);
+const fileTypes = new Set([...imageTypes, "application/pdf", ...videoTypes]);
 
 function json(response, status, body) {
   response.statusCode = status;
@@ -34,13 +36,13 @@ function safeName(value = "file") {
   return value.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-").slice(-100) || "file";
 }
 
-async function readBuffer(request) {
+async function readBuffer(request, maxBytes) {
   const chunks = [];
   let total = 0;
   for await (const chunk of request) {
     total += chunk.length;
-    if (total > MAX_UPLOAD_BYTES) {
-      const error = new Error("Each file must be 12 MB or smaller.");
+    if (total > maxBytes) {
+      const error = new Error(`Each file must be ${Math.round(maxBytes / (1024 * 1024))} MB or smaller.`);
       error.status = 413;
       throw error;
     }
@@ -53,8 +55,9 @@ async function upload(request, response) {
   const user = await readSession(request);
   if (!user) return json(response, 401, { error: "Please sign in before uploading media." });
   const contentType = String(request.headers["content-type"] || "").split(";")[0].toLowerCase();
-  if (!fileTypes.has(contentType)) return json(response, 415, { error: "Only JPG, PNG, WebP, GIF, and PDF files are supported." });
-  const buffer = await readBuffer(request);
+  if (!fileTypes.has(contentType)) return json(response, 415, { error: "Only JPG, PNG, WebP, GIF, PDF, MP4, and WebM files are supported." });
+  const maxBytes = videoTypes.has(contentType) ? MAX_VIDEO_UPLOAD_BYTES : MAX_UPLOAD_BYTES;
+  const buffer = await readBuffer(request, maxBytes);
   if (!buffer.length) return json(response, 400, { error: "Choose a file to upload." });
   const filename = safeName(decodeURIComponent(String(request.headers["x-file-name"] || "file")));
   const key = `listings/${user.id}/${randomUUID()}-${filename}`;

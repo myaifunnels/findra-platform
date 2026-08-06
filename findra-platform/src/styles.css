@@ -1145,6 +1145,80 @@ footer {
   object-fit: cover;
   border-radius: 9px;
 }
+.gallery-photo-button {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: block;
+}
+.gallery-photo-button:hover img {
+  opacity: 0.88;
+}
+.gallery-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 12, 9, 0.86);
+  padding: 24px;
+}
+.gallery-lightbox-inner {
+  position: relative;
+  max-width: min(90vw, 720px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.gallery-lightbox-inner img {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 10px;
+}
+.gallery-lightbox-caption {
+  color: #fff;
+  font-size: 14px;
+  text-align: center;
+  margin: 0;
+}
+.gallery-lightbox-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: #16211e;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.gallery-lightbox-nav {
+  display: flex;
+  gap: 10px;
+}
+.gallery-lightbox-nav button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+.gallery-lightbox-nav button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
 .listing-video > a {
   width: max-content;
   max-width: 100%;
@@ -1157,12 +1231,14 @@ footer {
   color: #087d3c;
   font-weight: 750;
 }
-.listing-video > iframe {
+.listing-video > iframe,
+.listing-video > video {
   width: 100%;
   aspect-ratio: 16/9;
   display: block;
   border: 0;
   border-radius: 14px;
+  background: #0d1713;
   background: #07110e;
   box-shadow: 0 14px 32px rgba(5, 32, 23, 0.16);
 }
@@ -2800,6 +2876,31 @@ td {
   color: #6d7f77;
   font-size: 9px;
   font-weight: 500;
+}
+.upload-preview-caption {
+  display: grid;
+  gap: 2px;
+  grid-column: 1 / -1;
+  margin: 2px 0 4px;
+}
+.upload-preview-caption span {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6d7f77;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.upload-preview-caption input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid #d7e0dc;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.upload-preview-caption small {
+  justify-self: end;
+  font-size: 9px;
+  color: #8b9a95;
 }
 .upload-preview-actions {
   display: flex;
@@ -6911,12 +7012,33 @@ th {
 .listing-preview-video {
   padding: 0 22px 22px;
 }
-.listing-preview-video iframe {
+.listing-preview-video iframe,
+.listing-preview-video video {
   width: 100%;
   aspect-ratio: 16/9;
   border: 0;
   border-radius: 12px;
   background: #07110e;
+}
+.video-upload-alt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  margin-top: 8px;
+  padding: 8px 14px;
+  border: 1px dashed #7a948c;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2d453b;
+  cursor: pointer;
+}
+.video-upload-alt input {
+  display: none;
+}
+.video-file-preview {
+  margin-top: 10px;
 }
 .multi-step-actions {
   position: sticky;
@@ -6979,7 +7101,8 @@ th {
   font-size: 10px;
   font-weight: 800;
 }
-.video-preview-card iframe {
+.video-preview-card iframe,
+.video-preview-card video {
   width: 100%;
   aspect-ratio: 16/9;
   border: 0;
