@@ -292,7 +292,8 @@ a {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  right: 0;
+  width: calc(200% + 14px);
+  max-width: calc(200% + 14px);
   z-index: 30;
   margin: 0;
   padding: 8px;
@@ -3675,6 +3676,27 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
   border-color: #385048;
   color: #e4eee9;
 }
+[data-theme="dark"] .hero-keyword-suggestions {
+  background: #17221f;
+  border-color: #385048;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+}
+[data-theme="dark"] .hero-keyword-suggestions button {
+  color: #e4eee9;
+}
+[data-theme="dark"] .hero-keyword-suggestions button:hover {
+  background: #1f2e29;
+}
+[data-theme="dark"] .hero-keyword-suggestions small {
+  color: #9eb0a9;
+}
+[data-theme="dark"] .hero-keyword-suggestions img,
+[data-theme="dark"] .hero-suggestion-fallback {
+  background: #223530;
+}
+[data-theme="dark"] .hero-suggestion-all {
+  border-top-color: #2c3b36;
+}
 [data-theme="dark"] input,
 [data-theme="dark"] select,
 [data-theme="dark"] textarea {
@@ -4062,6 +4084,10 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
     align-self: center;
     min-width: 175px;
     min-height: 51px;
+  }
+  .hero-keyword-suggestions {
+    width: 100%;
+    max-width: 100%;
   }
   .section {
     width: calc(100% - 32px);
