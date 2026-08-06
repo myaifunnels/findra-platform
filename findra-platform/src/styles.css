@@ -687,6 +687,7 @@ a {
     500 17px/1.7 "Lexend Deca",
     sans-serif;
   margin: 26px auto 34px;
+  text-wrap: pretty;
 }
 .discover-cta .green-button {
   min-width: 310px;

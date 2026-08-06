@@ -940,9 +940,8 @@ function HomePage({ go, listings }) {
         <div className="discover-cta">
           <h2>Be Discovered</h2>
           <p>
-            When visibility means growth,
-            <br />
-            we make sure your business gets noticed by the people who matter.
+            When visibility means growth, we make sure your business gets
+            noticed by the people who matter.
           </p>
           <GreenButton onClick={() => go("/packages")}>
             Showcase Your Business
