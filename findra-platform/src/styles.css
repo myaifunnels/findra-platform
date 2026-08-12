@@ -706,10 +706,10 @@ footer {
   padding: 40px max(5vw, 60px);
 }
 .footer-brand {
-  width: 128px;
-  background: white;
-  border-radius: 8px;
-  padding: 6px 10px;
+  width: 150px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
 }
 .footer-main h4 {
   font-size: 18px;
@@ -3629,7 +3629,7 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
   display: block !important;
 }
 [data-theme="dark"] .footer-brand {
-  background: #07110f;
+  background: transparent;
 }
 [data-theme="dark"] .category-section,
 [data-theme="dark"] .featured-section,
@@ -10879,10 +10879,10 @@ th {
   display: block !important;
 }
 .footer-brand {
-  width: 128px;
-  background: white;
-  border-radius: 8px;
-  padding: 6px 10px;
+  width: 150px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
 }
 
 [data-theme="dark"] .contact-page,

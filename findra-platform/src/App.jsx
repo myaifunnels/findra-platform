@@ -223,6 +223,7 @@ const blankListing = {
   whatsapp: "",
   viber: "",
   additionalCategory: "",
+  subCategories: [],
   categories: [],
   additionalCategories: [],
   additionalServices: [],
@@ -768,7 +769,6 @@ function HomePage({ go, listings }) {
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState("");
   const [featuredView, setFeaturedView] = useState("grid");
-  const [keywordFocused, setKeywordFocused] = useState(false);
   const search = () => {
     const params = new URLSearchParams();
     if (keyword.trim()) params.set("search", keyword.trim());
@@ -776,19 +776,9 @@ function HomePage({ go, listings }) {
     const query = params.toString();
     go(`/listings${query ? `?${query}` : ""}`);
   };
-  const trimmedKeyword = keyword.trim().toLowerCase();
-  const suggestions = useMemo(() => {
-    if (!trimmedKeyword) return [];
-    return listings
-      .filter((l) => l.status === "Published")
-      .filter((l) =>
-        `${l.name} ${l.cardTitle || ""} ${l.tagline || ""} ${l.category} ${(l.services || []).join(" ")} ${l.location}`
-          .toLowerCase()
-          .includes(trimmedKeyword),
-      )
-      .slice(0, 6);
-  }, [listings, trimmedKeyword]);
-  const showSuggestions = keywordFocused && trimmedKeyword.length > 0 && suggestions.length > 0;
+  // Home keyword search is intentionally submit-only: it must not suggest listings while typing.
+  const showSuggestions = false;
+  const suggestions = [];
   return (
     <PublicLayout go={go}>
       <section className="hero">
@@ -822,23 +812,17 @@ function HomePage({ go, listings }) {
           </p>
           <div className="hero-search">
             <label className="hero-keyword-field">
-              <MapPin />
+              <MagnifyingGlass />
               <input
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
-                onFocus={() => setKeywordFocused(true)}
-                onBlur={() => setKeywordFocused(false)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") search();
-                  if (event.key === "Escape") setKeywordFocused(false);
                 }}
                 placeholder="Keyword"
-                role="combobox"
-                aria-expanded={showSuggestions}
-                aria-autocomplete="list"
                 autoComplete="off"
               />
-              {showSuggestions && (
+              {false && showSuggestions && (
                 <ul className="hero-keyword-suggestions" role="listbox">
                   {suggestions.map((item) => (
                     <li key={item.id} role="option">
@@ -940,8 +924,8 @@ function HomePage({ go, listings }) {
         <div className="discover-cta">
           <h2>Be Discovered</h2>
           <p>
-            When visibility means growth, we make sure your business gets
-            noticed by the people who matter.
+            When visibility means growth,<br />
+            we make sure your business gets noticed by the people who matter.
           </p>
           <GreenButton onClick={() => go("/packages")}>
             Showcase Your Business
@@ -1185,7 +1169,7 @@ function ListingsPage({ go, listings }) {
     const scoped = listings.filter(
       (l) => l.status === "Published" && (cat === "All" || l.category === cat),
     );
-    return [...new Set(scoped.flatMap((l) => l.additionalCategories || []))].sort();
+    return [...new Set(scoped.flatMap((l) => l.subCategories || l.additionalCategories || []))].sort();
   }, [listings, cat]);
   useEffect(() => {
     if (subCat !== "All" && !subCategoryOptions.includes(subCat)) setSubCat("All");
@@ -1200,7 +1184,7 @@ function ListingsPage({ go, listings }) {
     (l) =>
       l.status === "Published" &&
       (cat === "All" || l.category === cat) &&
-      (subCat === "All" || l.additionalCategories?.includes(subCat)) &&
+      (subCat === "All" || (l.subCategories || l.additionalCategories || []).includes(subCat)) &&
       `${l.name} ${l.cardTitle || ""} ${l.category} ${l.services?.join(" ")} ${l.description || ""} ${l.location}`.toLowerCase().includes(search.toLowerCase()) &&
       `${l.services?.join(" ") || ""} ${l.tagline || ""} ${l.description || ""}`.toLowerCase().includes(serviceQuery.toLowerCase()) &&
       (!hasSelection || locationMatches(l.location, location)),
@@ -1376,8 +1360,8 @@ function ListingDetail({ go, item }) {
             <strong>Category:</strong>
             <span>
               {item.category}
-              {item.additionalCategories?.length
-                ? ` / ${item.additionalCategories.join(", ")}`
+              {(item.subCategories || item.additionalCategories)?.length
+                ? ` / ${(item.subCategories || item.additionalCategories).join(", ")}`
                 : ""}
             </span>
             <strong>Business Address:</strong>
@@ -1528,7 +1512,7 @@ function ListingDetail({ go, item }) {
                 <section className="panel detail-section listing-attachments">
                   <h3 className="detail-section-title">Attachments</h3>
                   <div className="listing-attachments-grid">
-                    {item.attachments.map((file, index) => (
+                    {item.attachments.slice(0, 1).map((file, index) => (
                       <a
                         href={file.data || file.url || "#"}
                         download={file.name}
@@ -1802,25 +1786,25 @@ function AboutPage({ go }) {
     [UsersThree, "Credibility", "Complete and trustworthy profiles."],
   ];
   const seekerSteps = [
-    [MagnifyingGlass, "Search", "Choose category and location."],
-    [ChartLineUp, "Compare", "View services and key details clearly."],
+    [MagnifyingGlass, "Search", "Find businesses that match your needs."],
+    [ChartLineUp, "Evaluate", "Review services and key details to make an informed choice."],
     [ChatCircleText, "Connect", "Connect to businesses that match your needs."],
   ];
   const businessSteps = [
     [
       FileText,
-      "Create Your Listing",
-      "Add your business profile, services, and key details.",
+      "Build Your Profile",
+      "Add your business, services, and key details.",
     ],
     [
       CheckCircle,
-      "Get Discovered",
-      "Your business appears when people search by category and location.",
+      "Discovery",
+      "Your business is found by people based on what you offer and what they’re looking for.",
     ],
     [
       ChatCircleText,
-      "Receive Inquiries",
-      "Connect with people who are actively looking for what you offer.",
+      "Connect",
+      "Make it easy for people to get in touch with your business.",
     ],
   ];
   return (
@@ -1845,12 +1829,9 @@ function AboutPage({ go }) {
         </section>
         <section className="about-image-card mission-card">
           <div>
-            <span className="info-kicker">MISSION</span>
-            <h2>Why the platform exists</h2>
-            <p>
-              To make the discovery and showcasing of businesses in the
-              Philippines effortless and noise-free.
-            </p>
+            <span className="info-kicker">CORE PURPOSE</span>
+            <h2>Why Findra exists</h2>
+            <p>To create a simpler, more effective way to discover and showcase businesses in the Philippines.</p>
             <FeatureRows items={aboutMission} />
           </div>
         </section>
@@ -1908,6 +1889,7 @@ function AboutPage({ go }) {
             </button>
           </form>
           {newsletterStatus && <p className={`newsletter-status ${newsletterStatus.type}`} role="status">{newsletterStatus.message}</p>}
+          <p className="newsletter-privacy">Your email is stored securely for Findra updates only. You can unsubscribe anytime.</p>
         </section>
       </main>
     </PublicLayout>
@@ -1925,18 +1907,12 @@ function ContactPage({ go }) {
       <InfoPageHero title="CONTACT US" image="/assets/contact-banner.jpg" />
       <main className="contact-page">
         <section className="contact-intro">
-          <span className="info-kicker muted">How Can We Help?</span>
           <h2>
-            Questions, feedback,
-            <br />
-            support - we're ready to help
+            We’re here to help.
           </h2>
           <p>
-            Have a question about Findra, your business listing, or how the
-            platform works? Our team is here to help. Reach out anytime and
-            we’ll get back to you as soon as possible.
+            Reach out anytime and we’ll get back to you as soon as possible.
           </p>
-          <GreenButton onClick={() => go("/faq")}>Read our FAQs</GreenButton>
         </section>
         <section className="contact-form-card">
           <h3>Send a message</h3>
@@ -2043,14 +2019,13 @@ function PackagesPage({ go }) {
       })
       .catch(() => {});
   }, []);
-  const tiers = useMemo(
-    () =>
-      [...packages].sort(
-        (a, b) => packageTierOrder.indexOf(a.interval) - packageTierOrder.indexOf(b.interval),
-      ),
-    [packages],
-  );
-  const monthly = tiers.find((item) => item.interval === "Monthly");
+  const tiers = useMemo(() => {
+    const active = packages.filter((item) => item.status === "Active");
+    const preferred = ["Early Bird", "Basic"]
+      .map((name) => active.find((item) => item.name === name))
+      .filter(Boolean);
+    return preferred.length ? preferred : active.slice(0, 2);
+  }, [packages]);
   const subscription = listing?.subscription?.status === "Active" ? listing.subscription : null;
   const goToBilling = () => {
     try {
@@ -2060,12 +2035,15 @@ function PackagesPage({ go }) {
     }
     go("/user");
   };
-  const startListing = () => {
+  const startListing = (selectedPackage) => {
     try {
-      // Duration (3/6/12 months) is no longer picked here — it's chosen as
-      // the final step of the listing flow, right before payment, so clear
-      // any leftover selection from an older session.
-      sessionStorage.removeItem("findra-selected-package-id");
+      // Keep the visitor's package selection through the listing flow so the
+      // checkout always mirrors the current admin-managed package settings.
+      if (selectedPackage?.id) {
+        sessionStorage.setItem("findra-selected-package-id", String(selectedPackage.id));
+      } else {
+        sessionStorage.removeItem("findra-selected-package-id");
+      }
     } catch {
       // ignore
     }
@@ -2102,27 +2080,22 @@ function PackagesPage({ go }) {
           <section className="package-tier-grid two-tier">
             <article className="package-tier-card featured">
               <span className="package-tier-badge">Available now</span>
-              <span className="package-tier-name">Basic</span>
-              {/* TODO(findra): Basic plan pricing and inclusions are
-                  placeholder copy pending final content from the client.
-                  Replace the text below once real pricing/features are
-                  confirmed. Billing duration (from the real Monthly/6
-                  Months/Annually packages) is chosen later, as the last
-                  step of the listing flow, right before payment. */}
-              <p className="package-tier-was">Pricing: TBD</p>
+              <span className="package-tier-name">{tiers.find((item) => item.name === "Basic")?.name || "Basic"}</span>
               <h2>
-                TBD
-                <small> / month</small>
+                ₱{Number(tiers.find((item) => item.name === "Basic")?.price || 0).toLocaleString()}
+                <small> / {String(tiers.find((item) => item.name === "Basic")?.interval || "Yearly").toLowerCase()}</small>
               </h2>
               <p className="package-tier-equivalent">
-                Final pricing and billing duration are confirmed in the last
-                step of your listing, right before payment.
+                A complete Findra presence for customers who are ready to discover and contact your business.
               </p>
               <ul className="package-tier-features">
-                {(monthly?.features?.length ? monthly.features : [
-                  "Business listing on the Findra directory",
-                  "Logo, featured image, and gallery photos",
-                  "Inquiry inbox for customer messages",
+                {(tiers.find((item) => item.name === "Basic")?.features?.length ? tiers.find((item) => item.name === "Basic").features : [
+                  "Dedicated Business Profile",
+                  "Secure Business Dashboard",
+                  "SEO-Optimized Business Page",
+                  "Built-in Inquiry Form and Direct Contact Tools",
+                  "Location-Based Search",
+                  "Relevant Category Listing",
                 ]).map((feature) => (
                   <li key={feature}>
                     <CheckCircle weight="fill" /> {feature}
@@ -2134,34 +2107,27 @@ function PackagesPage({ go }) {
                   Manage in Billing <ArrowRight />
                 </GreenButton>
               ) : (
-                <GreenButton onClick={startListing}>
+                <GreenButton onClick={() => startListing(tiers.find((item) => item.name === "Basic"))}>
                   Start your listing
                 </GreenButton>
               )}
             </article>
-            <article className="package-tier-card package-tier-locked" aria-disabled="true">
-              <div className="package-tier-locked-overlay">
-                <Lock weight="fill" />
-                <strong>Coming Soon</strong>
-              </div>
-              <div className="package-tier-locked-content" inert>
-                <span className="package-tier-name">Premium</span>
+            <article className="package-tier-card">
+              <div>
+                <span className="package-tier-badge">Available now</span>
+                <span className="package-tier-name">{tiers.find((item) => item.name === "Early Bird")?.name || "Early Bird"}</span>
                 <h2>
-                  TBD
-                  <small> / month</small>
+                  ₱{Number(tiers.find((item) => item.name === "Early Bird")?.price || 0).toLocaleString()}
+                  <small> / {String(tiers.find((item) => item.name === "Early Bird")?.interval || "Yearly").toLowerCase()}</small>
                 </h2>
                 <p className="package-tier-equivalent">
                   Premium placement, priority support, and more — details
                   coming soon.
                 </p>
                 <ul className="package-tier-features">
-                  <li><CheckCircle weight="fill" /> Everything in Basic</li>
-                  <li><CheckCircle weight="fill" /> Featured placement</li>
-                  <li><CheckCircle weight="fill" /> Priority support</li>
+                  {(tiers.find((item) => item.name === "Early Bird")?.features?.length ? tiers.find((item) => item.name === "Early Bird").features : ["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]).map((feature) => <li key={feature}><CheckCircle weight="fill" /> {feature}</li>)}
                 </ul>
-                <button className="secondary-button" disabled>
-                  Not available yet
-                </button>
+                {subscription ? <GreenButton onClick={goToBilling}>Manage in Billing <ArrowRight /></GreenButton> : <GreenButton onClick={() => startListing(tiers.find((item) => item.name === "Early Bird"))}>Choose Early Bird</GreenButton>}
               </div>
             </article>
           </section>
@@ -6322,6 +6288,11 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
     ...startingItem,
     category: initialCategory,
     service: initialService,
+    subCategories: startingItem.subCategories?.length
+      ? startingItem.subCategories
+      : (startingItem.additionalCategories?.length
+        ? startingItem.additionalCategories
+        : initialCategories.slice(1)),
     additionalCategories: startingItem.additionalCategories?.length
       ? startingItem.additionalCategories
       : initialCategories.slice(1),
@@ -6398,7 +6369,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
   };
   const uploadFiles = async (files) => {
     const uploaded = await Promise.all(files.map(async (file) => {
-      const isVideo = file.type === "video/mp4" || file.type === "video/webm";
+      const isVideo = file.type === "video/mp4" || file.name.toLowerCase().endsWith(".mp4");
       const limitBytes = (isVideo ? 50 : 12) * 1024 * 1024;
       if (file.size > limitBytes) throw new Error(`${file.name} is larger than the ${isVideo ? 50 : 12} MB upload limit.`);
       const response = await fetch("/api/media/upload", {
@@ -6461,6 +6432,12 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
     (bucket, multiple = false, max) =>
     async (files) => {
       try {
+      if (bucket === "attachments") {
+        const invalid = files.find((file) => file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf"));
+        const oversized = files.find((file) => file.size > 10 * 1024 * 1024);
+        if (invalid) throw new Error("Attachments must be a PDF company profile or brochure.");
+        if (oversized) throw new Error("Attachments must be 10 MB or smaller.");
+      }
       const room = max ? Math.max(0, max - uploads[bucket].length) : files.length;
       if (max && room <= 0) {
         setStepError(`You can only add up to ${max} ${max === 1 ? "photo" : "photos"} here. Remove one to add another.`);
@@ -6560,7 +6537,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
     const services = [form.service, ...(form.additionalServices || [])]
       .map((value) => value.trim())
       .filter((value, index, list) => value && list.indexOf(value) === index);
-    const categoryValues = [form.category, ...(form.additionalCategories || [])]
+    const categoryValues = [form.category, ...(form.subCategories || [])]
       .map((value) => value.trim())
       .filter((value, index, list) => value && list.indexOf(value) === index);
     const { service, additionalCategory, additionalService, ...record } = form;
@@ -6568,6 +6545,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
       ...record,
       category: categoryValues[0],
       categories: categoryValues,
+      subCategories: categoryValues.slice(1),
       additionalCategories: categoryValues.slice(1),
       services,
       additionalServices: services.slice(1),
@@ -6824,17 +6802,6 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                   <SectionLabel>Business Classification</SectionLabel>
                   <div className="form-grid classification-fields">
                     <label>
-                      <FieldLabel required>Business Type</FieldLabel>
-                      <select
-                        required
-                        value={form.type}
-                        onChange={change("type")}
-                      >
-                        <option>Business / Company</option>
-                        <option>Freelancer / Creative</option>
-                      </select>
-                    </label>
-                    <label>
                       <FieldLabel required>Business Category</FieldLabel>
                       <select
                         required
@@ -6862,10 +6829,11 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                       customPlaceholder="Type one or more sub-categories, separated by commas"
                       options={[]}
                       required={false}
-                      values={form.additionalCategories || []}
+                      values={form.subCategories || []}
                       onChange={(values) =>
                         setForm((current) => ({
                           ...current,
+                          subCategories: values,
                           additionalCategories: values,
                         }))
                       }
@@ -7037,11 +7005,18 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                   </div>
                   <label className="video-field">
                     <FieldLabel>Featured Video (1 max)</FieldLabel>
-                    <span>Paste a public YouTube URL, or upload a video file directly (MP4/WebM, up to 50 MB)</span>
+                    <span>Paste a public YouTube URL, or upload one MP4 (H.264 recommended, up to 50 MB; 720p recommended).</span>
                     <input
                       type="url"
                       value={isUploadedVideo ? "" : form.video}
-                      onChange={change("video")}
+                      onChange={(event) => {
+                        setStepError("");
+                        setForm((current) => ({
+                          ...current,
+                          video: event.target.value,
+                          videoFileName: "",
+                        }));
+                      }}
                       placeholder="https://youtube.com/watch?v=..."
                       disabled={isUploadedVideo}
                     />
@@ -7070,7 +7045,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                       <input
                         id="featured-video-file"
                         type="file"
-                        accept="video/mp4,video/webm"
+                        accept="video/mp4"
                         onChange={async (event) => {
                           const file = event.target.files?.[0];
                           event.target.value = "";
@@ -7126,16 +7101,15 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                 <section className="form-block attachments-block">
                   <SectionLabel>Attachments</SectionLabel>
                   <p className="media-guidance">
-                    Optional supporting documents for your listing, such as a
-                    business permit, menu, or brochure.
+                    Add one company brochure or profile as a PDF (up to 10 MB).
                   </p>
                   <UploadBox
                     title="Attachments"
                     hint="1 file only — PDF, JPG, or PNG, up to 12 MB. Suggested: your company profile or brochure. Word docs (.doc/.docx) are not accepted for upload yet."
                     wide
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,application/pdf"
                     files={uploads.attachments.slice(0, 1)}
-                    onFiles={setFiles("attachments")}
+                    onFiles={setFiles("attachments", false, 1)}
                     onRemove={removeUpload("attachments")}
                     onReplace={replaceUpload("attachments")}
                   />
@@ -7621,7 +7595,7 @@ function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan })
             >
               {processing
                 ? "Connecting to PayMongo..."
-                : `Pay ₱${findraPlan.amount.toLocaleString()}`}{" "}
+                : `Pay ₱${Number(plan.amount || plan.price || 0).toLocaleString()}`}{" "}
               <ArrowRight />
             </button>
             <small className="checkout-terms">
@@ -7643,23 +7617,19 @@ function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan })
           </div>
           <h2>{plan.name}</h2>
           <ul>
-            <li>
-              <Check /> Complete public business profile
-            </li>
-            <li>
-              <Check /> Customer inquiries and direct contact
-            </li>
-            <li>
-              <Check /> Logo, gallery, video, and attachments
-            </li>
-            <li>
-              <Check /> Business-owner dashboard access
-            </li>
+            {(plan.features?.length ? plan.features : [
+              "Dedicated Business Profile",
+              "Secure Business Dashboard",
+              "SEO-Optimized Business Page",
+              "Built-in Inquiry Form and Direct Contact Tools",
+              "Location-Based Search",
+              "Relevant Category Listing",
+            ]).map((feature) => <li key={feature}><Check /> {feature}</li>)}
           </ul>
           <dl>
             <div>
-              <dt>Annual listing</dt>
-              <dd>₱{findraPlan.amount.toLocaleString()}</dd>
+              <dt>{plan.billing || plan.interval || "Subscription"} listing</dt>
+              <dd>₱{Number(plan.amount || plan.price || 0).toLocaleString()}</dd>
             </div>
             <div>
               <dt>Processing fee</dt>
@@ -7667,12 +7637,11 @@ function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan })
             </div>
             <div>
               <dt>Total due today</dt>
-              <dd>₱{findraPlan.amount.toLocaleString()}</dd>
+              <dd>₱{Number(plan.amount || plan.price || 0).toLocaleString()}</dd>
             </div>
           </dl>
           <small>
-            Renews every year. You can manage your subscription from your
-            account.
+            Renews every {String(plan.billing || plan.interval || "year").toLowerCase()}. You can manage your subscription from your account.
           </small>
         </aside>
       </main>
@@ -7708,7 +7677,10 @@ function GuestListingPage({ go, session, complete, createAccount }) {
         const packages = payload?.packages || [];
         if (!packages.length) return;
         setPlanTiers(packages);
-        const active = packages.find((item) => item.featured) || packages[0];
+        const selectedId = Number(sessionStorage.getItem("findra-selected-package-id"));
+        const active = packages.find((item) => item.id === selectedId)
+          || packages.find((item) => item.featured)
+          || packages[0];
         const nextPlan = { ...active, amount: active.price, billing: active.interval };
         Object.assign(findraPlan, nextPlan);
         setPlan(nextPlan);
@@ -7717,7 +7689,7 @@ function GuestListingPage({ go, session, complete, createAccount }) {
   }, []);
   const submit = (record) => {
     setDraft(record);
-    setStage("plan");
+    setStage(account ? "checkout" : "account");
   };
   if (draft && stage === "plan")
     return (
@@ -7749,7 +7721,7 @@ function GuestListingPage({ go, session, complete, createAccount }) {
       <PayMongoCheckout
         draft={draft}
         account={account}
-        back={() => setStage(session?.role === "user" ? "plan" : "account")}
+        back={() => setStage("account")}
         complete={complete}
         plan={plan}
       />

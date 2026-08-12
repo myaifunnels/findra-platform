@@ -150,6 +150,8 @@ WHERE NOT EXISTS (SELECT 1 FROM packages);
 -- package - the old ₱999/Yearly default, an ad-hoc ₱499 plan, or one since
 -- renamed by hand in the admin panel (e.g. "Basic Plan") - is removed so the
 -- Packages page and PayMongo checkout only ever see these three.
+/* Do not delete admin-configured packages. Historical migration steps below are intentionally disabled. */
+/*
 DELETE FROM packages WHERE name NOT IN ('Monthly', '6 Months', 'Annually');
 
 INSERT INTO packages (name, price, interval, status, featured, features)
@@ -187,6 +189,20 @@ SET data = jsonb_set(
 )
 WHERE data->'subscription'->>'status' = 'Active'
   AND data->'subscription'->>'plan' NOT IN ('Monthly', '6 Months', 'Annually');
+
+*/
+
+-- Seed the two public options without changing plans, prices, or subscriptions
+-- that the Findra administrator has already configured.
+INSERT INTO packages (name, price, interval, status, featured, features)
+SELECT 'Early Bird', COALESCE((SELECT price FROM packages ORDER BY id LIMIT 1), 999), 'Yearly', 'Active', TRUE,
+  '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = 'Early Bird');
+
+INSERT INTO packages (name, price, interval, status, featured, features)
+SELECT 'Basic', COALESCE((SELECT price FROM packages WHERE name = 'Early Bird' LIMIT 1), 999), 'Yearly', 'Active', FALSE,
+  '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = 'Basic');
 
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGSERIAL PRIMARY KEY, user_id UUID REFERENCES users(id) ON DELETE CASCADE,
