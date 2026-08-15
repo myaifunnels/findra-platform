@@ -143,10 +143,10 @@ test("product checks on live homepage and packages", async ({ page }, testInfo) 
   });
 
   await page.goto("/packages", { waitUntil: "domcontentloaded" });
-  await page.waitForFunction(
-    () => /Early Bird|Basic|799|999|being updated|Loading packages/i.test(document.body.innerText),
-    { timeout: 10_000 },
-  ).catch(() => {});
+  await page
+    .getByText("Loading packages", { exact: false })
+    .waitFor({ state: "hidden", timeout: 10_000 })
+    .catch(() => {});
   const body = (await page.locator("body").innerText()).replace(/\s+/g, " ");
   const packagesReady = /Early Bird|Basic|799|999/i.test(body);
   extras.checks.push({
