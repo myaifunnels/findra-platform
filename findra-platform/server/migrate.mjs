@@ -313,9 +313,16 @@ CREATE TABLE IF NOT EXISTS integration_settings (
 );
 `;
 
-try {
+export async function runMigrations() {
   await query(migration);
-  console.log("Findra database migrations completed.");
-} finally {
-  await closeDatabase();
+}
+
+const launchedDirectly = String(process.argv[1] || "").includes("migrate.mjs");
+if (launchedDirectly) {
+  try {
+    await runMigrations();
+    console.log("Findra database migrations completed.");
+  } finally {
+    await closeDatabase();
+  }
 }
