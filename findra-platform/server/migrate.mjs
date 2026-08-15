@@ -192,17 +192,44 @@ WHERE data->'subscription'->>'status' = 'Active'
 
 */
 
--- Seed the two public options without changing plans, prices, or subscriptions
--- that the Findra administrator has already configured.
-INSERT INTO packages (name, price, interval, status, featured, features)
-SELECT 'Early Bird', COALESCE((SELECT price FROM packages ORDER BY id LIMIT 1), 999), 'Yearly', 'Active', TRUE,
-  '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb
+ALTER TABLE packages ADD COLUMN IF NOT EXISTS slot_limit INTEGER CHECK (slot_limit IS NULL OR slot_limit >= 0);
+
+-- Public Packages page: Early Bird (₱799/month, 30 slots) beside Basic
+-- regular pricing (₱999/month). Both are a 6-month prepaid commitment.
+-- Totals charged at checkout are ₱4,794 and ₱5,994.
+UPDATE packages
+SET price = 4794, interval = '6 Months', status = 'Active', featured = TRUE, slot_limit = 30,
+  features = '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb,
+  updated_at = NOW()
+WHERE name = 'Early Bird';
+
+INSERT INTO packages (name, price, interval, status, featured, features, slot_limit)
+SELECT 'Early Bird', 4794, '6 Months', 'Active', TRUE,
+  '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb,
+  30
 WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = 'Early Bird');
 
-INSERT INTO packages (name, price, interval, status, featured, features)
-SELECT 'Basic', COALESCE((SELECT price FROM packages WHERE name = 'Early Bird' LIMIT 1), 999), 'Yearly', 'Active', FALSE,
-  '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb
+UPDATE packages
+SET price = 5994, interval = '6 Months', status = 'Active', featured = FALSE, slot_limit = NULL,
+  features = '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb,
+  updated_at = NOW()
+WHERE name = 'Basic';
+
+INSERT INTO packages (name, price, interval, status, featured, features, slot_limit)
+SELECT 'Basic', 5994, '6 Months', 'Active', FALSE,
+  '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb,
+  NULL
 WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = 'Basic');
+
+UPDATE packages SET featured = FALSE, updated_at = NOW()
+WHERE name NOT IN ('Early Bird') AND featured IS TRUE;
+
+UPDATE packages SET featured = TRUE, updated_at = NOW() WHERE name = 'Early Bird';
+
+-- Keep older billing-cycle SKUs off the public Packages page. Existing
+-- subscriptions still store their original plan name on the listing record.
+UPDATE packages SET status = 'Archived', featured = FALSE, updated_at = NOW()
+WHERE name IN ('Monthly', '6 Months', 'Annually', 'Findra Business Listing');
 
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGSERIAL PRIMARY KEY, user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -286,9 +313,16 @@ CREATE TABLE IF NOT EXISTS integration_settings (
 );
 `;
 
-try {
+export async function runMigrations() {
   await query(migration);
-  console.log("Findra database migrations completed.");
-} finally {
-  await closeDatabase();
+}
+
+const launchedDirectly = String(process.argv[1] || "").includes("migrate.mjs");
+if (launchedDirectly) {
+  try {
+    await runMigrations();
+    console.log("Findra database migrations completed.");
+  } finally {
+    await closeDatabase();
+  }
 }

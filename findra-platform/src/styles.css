@@ -6622,6 +6622,13 @@ body :is(.hero-search, .listings-search, .manager-toolbar, .admin-actions, .dire
   box-shadow: 0 12px 26px rgba(21, 132, 69, 0.28);
   filter: saturate(1.05);
 }
+.green-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
 .admin-primary:active,
 .green-button:active,
 .discover-link:active {
@@ -10220,9 +10227,33 @@ th {
     text-align: center;
   }
 }
-.package-tier-badge.current {
-  background: var(--green);
-  color: white;
+.package-tier-badge.sold-out {
+  background: #cfd8d3;
+  color: #3d4a44;
+  box-shadow: none;
+}
+.package-tier-lock-in {
+  display: inline-flex;
+  margin: 8px 0 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(11, 56, 40, 0.08);
+  color: #1c3b2e;
+  font-size: 13px;
+  font-weight: 750;
+}
+.package-tier-card.featured .package-tier-lock-in {
+  background: rgba(0, 0, 0, 0.22);
+  color: #e8f7ef;
+}
+.package-tier-slots {
+  margin: 8px 0 0;
+  color: #b8860b;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+.package-tier-card.featured .package-tier-slots {
+  color: #f7d374;
 }
 .package-tier-card.featured .secondary-button {
   border-color: rgba(255, 255, 255, 0.3);
@@ -10515,6 +10546,10 @@ th {
 }
 [data-theme="dark"] .package-tier-card:not(.featured) .package-tier-equivalent {
   color: var(--surface-muted);
+}
+[data-theme="dark"] .package-tier-card:not(.featured) .package-tier-lock-in {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--surface-text);
 }
 
 @media (max-width: 900px) {

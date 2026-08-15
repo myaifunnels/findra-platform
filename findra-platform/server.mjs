@@ -14,6 +14,7 @@ import { handleTextbeeRequest } from "./server/textbee.mjs";
 import { handleUsersRequest } from "./server/users.mjs";
 import { handleInquiriesRequest } from "./server/inquiries.mjs";
 import { databaseConfigured } from "./server/db.mjs";
+import { runMigrations } from "./server/migrate.mjs";
 import { runSubscriptionReminders } from "./server/reminders.mjs";
 
 const root = fileURLToPath(new URL("./dist/", import.meta.url));
@@ -43,6 +44,15 @@ const types = {
   ".svg": "image/svg+xml",
   ".webp": "image/webp",
 };
+
+if (databaseConfigured()) {
+  try {
+    await runMigrations();
+    console.log("Findra database migrations completed.");
+  } catch (error) {
+    console.error("Findra database migrations failed:", error.message);
+  }
+}
 
 createServer(async (request, response) => {
   if (await handleAuthRequest(request, response)) return;
