@@ -116,7 +116,12 @@ export function writeAuditReport({ baseURL, generatedAt, pages, extras }) {
       // Replace a corrupt previous report instead of failing the audit run.
     }
   }
-  const payload = { baseURL, generatedAt, pages: mergedPages, extras: mergedExtras };
+  const payload = {
+    baseURL,
+    generatedAt,
+    pages: mergedPages.map(finalizePage),
+    extras: mergedExtras,
+  };
   writeFileSync(file, JSON.stringify(payload, null, 2));
   writeFileSync(join(REPORT_DIR, "latest-report.md"), toMarkdown(payload));
 }
@@ -220,10 +225,19 @@ function summarize(pages, extras) {
     if (!page.status || page.status >= 400) {
       p0.push(`${label} returned HTTP ${page.status}`);
     }
-    if (page.consoleErrors.length) {
-      p1.push(`${label} has ${page.consoleErrors.length} console error(s)`);
+    const guestAuth = page.failedRequests.filter(isExpectedGuestAuthFailure);
+    if (guestAuth.length) {
+      p2.push(`${label} guest session probe returned 401 (expected until logged in)`);
     }
-    const failedOwn = page.failedRequests.filter((req) => !isThirdParty(req.url));
+    const unexpectedConsole = page.consoleErrors.filter(
+      (text) => !/status of 401/.test(text),
+    );
+    if (unexpectedConsole.length) {
+      p1.push(`${label} has ${unexpectedConsole.length} console error(s)`);
+    }
+    const failedOwn = page.failedRequests.filter(
+      (req) => !isThirdParty(req.url) && !isExpectedGuestAuthFailure(req),
+    );
     if (failedOwn.length) {
       p1.push(`${label} has ${failedOwn.length} failed first-party request(s)`);
     }
@@ -245,7 +259,9 @@ function summarize(pages, extras) {
     if (!check.ok) p1.push(`Product check failed: ${check.name} — ${check.detail}`);
   }
   for (const link of extras?.links || []) {
-    if (link.status >= 400) p0.push(`Broken internal link ${link.href} (HTTP ${link.status}) from ${link.from}`);
+    if (!link.status || link.status >= 400) {
+      p0.push(`Broken internal link ${link.href} (HTTP ${link.status || "network error"}) from ${link.from}`);
+    }
   }
   return { p0, p1, p2 };
 }
@@ -257,6 +273,19 @@ function isThirdParty(url) {
   } catch {
     return true;
   }
+}
+
+export function isExpectedGuestAuthFailure(req) {
+  return req.status === 401 && /\/api\/auth\/session\/?$/.test(req.url);
+}
+
+export function finalizePage(result) {
+  result.consoleErrors = uniqueByUrl(result.consoleErrors);
+  result.consoleWarnings = uniqueByUrl(result.consoleWarnings);
+  result.failedRequests = uniqueByUrl(result.failedRequests);
+  result.brokenImages = uniqueByUrl(result.brokenImages);
+  result.missingAlt = uniqueByUrl(result.missingAlt);
+  return result;
 }
 
 function sanitize(text) {

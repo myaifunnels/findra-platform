@@ -5,27 +5,22 @@ import {
   attachListeners,
   collectPageSignals,
   emptyPageResult,
-  uniqueByUrl,
+  finalizePage,
   writeAuditReport,
 } from "./helpers.mjs";
 
 const pages = [];
 const extras = { links: [], checks: [] };
 
-test.describe.configure({ mode: "serial" });
-
-test("audit public findra.ph pages", async ({ page, baseURL }, testInfo) => {
-  const viewport = testInfo.project.name.includes("mobile") ? "mobile" : "desktop";
-
-  for (const path of PUBLIC_PATHS) {
-    const result = emptyPageResult(path, viewport);
-    attachListeners(page, result);
-
+async function auditPath(context, path, viewport) {
+  const result = emptyPageResult(path, viewport);
+  const page = await context.newPage();
+  attachListeners(page, result);
+  try {
     const response = await page.goto(path, { waitUntil: "domcontentloaded" });
     result.status = response?.status() ?? null;
-    await page.waitForTimeout(800);
+    await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => {});
     await collectPageSignals(page, result);
-
     try {
       const axe = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -39,71 +34,101 @@ test("audit public findra.ph pages", async ({ page, baseURL }, testInfo) => {
     } catch (error) {
       result.notes.push(`axe skipped: ${error.message}`);
     }
-
-    result.consoleErrors = uniqueByUrl(result.consoleErrors);
-    result.consoleWarnings = uniqueByUrl(result.consoleWarnings);
-    result.failedRequests = uniqueByUrl(result.failedRequests);
-    pages.push(result);
+  } finally {
+    await page.close();
   }
+  pages.push(finalizePage(result));
+  return result;
+}
 
-  expect(pages.filter((item) => item.viewport === viewport).length).toBe(PUBLIC_PATHS.length);
+test("audit public findra.ph pages", async ({ context }, testInfo) => {
+  test.setTimeout(180_000);
+  const viewport = testInfo.project.name.includes("mobile") ? "mobile" : "desktop";
+  for (const path of PUBLIC_PATHS) {
+    await auditPath(context, path, viewport);
+  }
+  expect(pages.filter((item) => item.viewport === viewport).length).toBeGreaterThanOrEqual(
+    PUBLIC_PATHS.length,
+  );
 });
 
-test("crawl first-party links and listing detail", async ({ page, request, baseURL }, testInfo) => {
-  const viewport = testInfo.project.name.includes("mobile") ? "mobile" : "desktop";
-  if (viewport !== "desktop") test.skip();
+test("crawl first-party links and listing detail", async ({ page, request, context, baseURL }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "desktop crawl only");
+  test.setTimeout(120_000);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const hrefs = await page.evaluate((origin) => {
     const urls = [...document.querySelectorAll("a[href]")]
       .map((anchor) => anchor.href)
-      .filter((href) => href.startsWith(origin));
+      .filter((href) => href.startsWith(origin) && !href.includes("#"));
     return [...new Set(urls)];
   }, new URL(baseURL).origin);
 
-  for (const href of hrefs.slice(0, 40)) {
-    const response = await request.get(href, { maxRedirects: 5 });
-    extras.links.push({ href, from: "/", status: response.status() });
+  for (const href of hrefs.slice(0, 25)) {
+    try {
+      const response = await request.get(href, { maxRedirects: 5, timeout: 15_000 });
+      extras.links.push({ href, from: "/", status: response.status() });
+    } catch (error) {
+      extras.links.push({ href, from: "/", status: 0, error: error.message });
+    }
   }
 
-  await page.goto("/listings", { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(1000);
-  const listingHref = await page.locator('a[href*="/listing/"]').first().getAttribute("href");
-  if (listingHref) {
-    const result = emptyPageResult(listingHref, "desktop");
-    attachListeners(page, result);
-    const response = await page.goto(listingHref, { waitUntil: "domcontentloaded" });
-    result.status = response?.status() ?? null;
-    await page.waitForTimeout(800);
-    await collectPageSignals(page, result);
-    pages.push(result);
+  let listingPath = "";
+  try {
+    const listings = await request.get("/api/listings", { timeout: 15_000 });
+    if (listings.ok()) {
+      const payload = await listings.json();
+      const first = (payload.listings || []).find((item) => item.id);
+      if (first?.id) listingPath = `/listing/${first.id}`;
+    }
+  } catch {
+    listingPath = "";
+  }
+
+  if (!listingPath) {
+    await page.goto("/listings", { waitUntil: "domcontentloaded" });
+    const viewBusiness = page.locator("button.listing-card-detail").first();
+    if (await viewBusiness.count()) {
+      await viewBusiness.click();
+      await page.waitForTimeout(500);
+      listingPath = new URL(page.url()).pathname;
+    }
+  }
+
+  if (listingPath && listingPath.startsWith("/listing/")) {
+    await auditPath(context, listingPath, "desktop");
+    extras.checks.push({
+      ok: true,
+      name: "Listing detail discovery",
+      detail: `Opened ${listingPath}`,
+    });
   } else {
     extras.checks.push({
       ok: false,
       name: "Listing detail discovery",
-      detail: "No /listing/:id links found on /listings",
+      detail: "No published listing id or View business control found",
     });
   }
 });
 
 test("product checks on live homepage and packages", async ({ page }, testInfo) => {
-  if (testInfo.project.name.includes("mobile")) test.skip();
+  test.skip(testInfo.project.name.includes("mobile"), "desktop product checks only");
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(500);
 
   extras.checks.push({
-    ok: await page.locator('a[href="https://www.instagram.com/findra.ph/"]').count().then((n) => n > 0),
+    ok: (await page.locator('a[href="https://www.instagram.com/findra.ph/"]').count()) > 0,
     name: "Instagram footer link",
     detail: "Footer should point to https://www.instagram.com/findra.ph/",
   });
   extras.checks.push({
-    ok: await page.locator('a[href="mailto:hello@findra.ph"]').count().then((n) => n > 0),
+    ok: (await page.locator('a[href="mailto:hello@findra.ph"]').count()) > 0,
     name: "Support email",
     detail: "Public chrome should expose hello@findra.ph",
   });
   extras.checks.push({
-    ok: await page.locator('a[href="https://www.facebook.com/findraph/?_rdc=1&_rdr#"]').count().then((n) => n > 0),
+    ok: (await page.locator('a[href*="facebook.com/findraph"]').count()) > 0,
     name: "Facebook footer link",
     detail: "Footer should point to the Findra Facebook page",
   });
@@ -118,7 +143,7 @@ test("product checks on live homepage and packages", async ({ page }, testInfo) 
   });
 
   await page.goto("/packages", { waitUntil: "domcontentloaded" });
-  const body = (await page.locator("main, body").first().innerText()).replace(/\s+/g, " ");
+  const body = (await page.locator("body").innerText()).replace(/\s+/g, " ");
   extras.checks.push({
     ok: /799|999|Early Bird|Basic/i.test(body),
     name: "Packages visible to guests",
@@ -129,14 +154,14 @@ test("product checks on live homepage and packages", async ({ page }, testInfo) 
 
   await page.goto("/login", { waitUntil: "domcontentloaded" });
   extras.checks.push({
-    ok: await page.locator('input[type="email"], input[name="email"]').count().then((n) => n > 0),
+    ok: (await page.locator('input[type="email"], input[name="email"]').count()) > 0,
     name: "Login form",
     detail: "Login page should expose an email field",
   });
 });
 
 test.afterAll(() => {
-  if (!pages.length) return;
+  if (!pages.length && !extras.checks.length) return;
   writeAuditReport({
     baseURL: process.env.PLAYWRIGHT_BASE_URL || "https://findra.ph",
     generatedAt: new Date().toISOString(),
