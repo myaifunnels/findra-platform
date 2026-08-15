@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, WarningCircle } from "@phosphor-icons/react";
+import paymongoLogo from "./assets/integrations/paymongo.png";
+import brevoLogo from "./assets/integrations/brevo.png";
+import googleMapsLogo from "./assets/integrations/google-maps.png";
+import cloudflareLogo from "./assets/integrations/cloudflare-r2.png";
+import textbeeLogo from "./assets/integrations/textbee.png";
 
 function useIntegration(path, fallback) {
   const [status, setStatus] = useState({ ...fallback, loading: true });
@@ -36,21 +41,18 @@ function statusLabel(status) {
   return "Not connected";
 }
 
-function BrandLogo({ src, alt }) {
-  return <img src={src} alt={alt} />;
-}
-
-function Card({ brand, logo, kicker, title, copy, status, enabled, onToggle, toggling, children }) {
+function Card({ brand, logo, logoAlt, kicker, title, copy, status, enabled, onToggle, toggling, children }) {
   const label = statusLabel(status);
   const on = label === "Connected";
   return (
     <article className={`findra-int-card brand-${brand} ${on ? "is-on" : ""}`}>
       <header className="findra-int-brandbar">
-        <span className="findra-int-logo">{logo}</span>
-        <div>
+        <span className="findra-int-logo">
+          <img src={logo} alt={logoAlt || title} width="48" height="48" decoding="async" />
+        </span>
+        <div className="findra-int-titles">
           <small>{kicker}</small>
           <h3>{title}</h3>
-          <p>{copy}</p>
         </div>
         <div className="findra-int-head-meta">
           <span className={`findra-int-pill ${on ? "on" : label === "Paused" ? "paused" : ""}`}>{label}</span>
@@ -67,7 +69,10 @@ function Card({ brand, logo, kicker, title, copy, status, enabled, onToggle, tog
           )}
         </div>
       </header>
-      <div className="findra-int-body">{children}</div>
+      <div className="findra-int-body">
+        {copy ? <p className="findra-int-copy">{copy}</p> : null}
+        {children}
+      </div>
     </article>
   );
 }
@@ -145,7 +150,7 @@ function PayMongoIntegration({ onNotify }) {
     }
   };
   return (
-    <Card brand="paymongo" logo={<BrandLogo src="/assets/integrations/paymongo.png" alt="PayMongo" />} kicker="Payments" title="PayMongo" copy="Cards, GCash, QR Ph, and online banking." status={status} enabled={status.enabled} toggling={busy === "toggle"} onToggle={toggle}>
+    <Card brand="paymongo" logo={paymongoLogo} logoAlt="PayMongo" kicker="Payments" title="PayMongo" copy="Cards, GCash, QR Ph, and online banking." status={status} enabled={status.enabled} toggling={busy === "toggle"} onToggle={toggle}>
       <p className="findra-int-meta">{status.mode === "live" ? "Live" : "Test"}{status.keyHint ? ` · ${status.keyHint}` : ""}</p>
       <form onSubmit={save}>
         <Fields>
@@ -222,7 +227,7 @@ function BrevoIntegration({ onNotify }) {
     }
   };
   return (
-    <Card brand="brevo" logo={<BrandLogo src="/assets/integrations/brevo.png" alt="Brevo" />} kicker="Email" title="Brevo" copy="Transactional mail, newsletter signups, and sender identity." status={status} enabled={status.enabled} toggling={busy === "toggle"} onToggle={toggle}>
+    <Card brand="brevo" logo={brevoLogo} logoAlt="Brevo" kicker="Email" title="Brevo" copy="Transactional mail, newsletter signups, and sender identity." status={status} enabled={status.enabled} toggling={busy === "toggle"} onToggle={toggle}>
       <p className="findra-int-meta">{status.fromEmail || "No sender yet"}{status.keyHint ? ` · ${status.keyHint}` : ""}</p>
       <form onSubmit={save}>
         <Fields>
@@ -263,7 +268,7 @@ function GoogleMapsIntegration({ onNotify }) {
     }
   };
   return (
-    <Card brand="google" logo={<BrandLogo src="/assets/integrations/google-maps.png" alt="Google Maps" />} kicker="Location" title="Google Maps" copy="Address search on listing forms and public maps." status={status}>
+    <Card brand="google" logo={googleMapsLogo} logoAlt="Google Maps" kicker="Location" title="Google Maps" copy="Address search on listing forms and public maps." status={status}>
       <p className="findra-int-meta">{status.keyHint || "No key yet"}</p>
       <form onSubmit={save}>
         <Fields>
@@ -315,7 +320,7 @@ function R2Integration({ onNotify }) {
     }
   };
   return (
-    <Card brand="cloudflare" logo={<BrandLogo src="/assets/integrations/cloudflare-r2.png" alt="Cloudflare R2" />} kicker="Files" title="Cloudflare R2" copy="Logos, galleries, videos, and brochures." status={status} enabled={status.enabled} toggling={busy === "toggle"} onToggle={toggle}>
+    <Card brand="cloudflare" logo={cloudflareLogo} logoAlt="Cloudflare R2" kicker="Files" title="Cloudflare R2" copy="Logos, galleries, videos, and brochures." status={status} enabled={status.enabled} toggling={busy === "toggle"} onToggle={toggle}>
       <p className="findra-int-meta">{status.bucketName || "No bucket yet"}{status.keyHint ? ` · ${status.keyHint}` : ""}</p>
       <form onSubmit={save}>
         <Fields>
@@ -354,7 +359,7 @@ function TextBeeIntegration({ onNotify }) {
     }
   };
   return (
-    <Card brand="textbee" logo={<BrandLogo src="/assets/integrations/textbee.png" alt="TextBee" />} kicker="SMS" title="TextBee" copy="Optional SMS next to Brevo email." status={status}>
+    <Card brand="textbee" logo={textbeeLogo} logoAlt="TextBee" kicker="SMS" title="TextBee" copy="Optional SMS next to Brevo email." status={status}>
       <p className="findra-int-meta">{status.deviceHint}</p>
       <form onSubmit={save}>
         <Fields>
