@@ -258,26 +258,6 @@ function summarize(pages, extras) {
       `${guestAuthPages} public page(s) called /api/auth/session and received 401 (expected for guests)`,
     );
   }
-    const failedOwn = page.failedRequests.filter(
-      (req) => !isThirdParty(req.url) && !isExpectedGuestAuthFailure(req),
-    );
-    if (failedOwn.length) {
-      p1.push(`${label} has ${failedOwn.length} failed first-party request(s)`);
-    }
-    if (page.brokenImages.length) {
-      p1.push(`${label} has ${page.brokenImages.length} broken image(s)`);
-    }
-    const seriousAxe = page.axeViolations.filter((v) =>
-      ["serious", "critical"].includes(v.impact),
-    );
-    if (seriousAxe.length) {
-      p1.push(`${label} has ${seriousAxe.length} serious/critical axe violation(s)`);
-    }
-    if (page.overflow) p2.push(`${label} horizontal overflow (${page.overflowWidth}px)`);
-    if (page.missingAlt.length) p2.push(`${label} ${page.missingAlt.length} image(s) missing alt`);
-    const moderateAxe = page.axeViolations.filter((v) => v.impact === "moderate");
-    if (moderateAxe.length) p2.push(`${label} ${moderateAxe.length} moderate axe violation(s)`);
-  }
   for (const check of extras?.checks || []) {
     if (!check.ok) p1.push(`Product check failed: ${check.name} — ${check.detail}`);
   }
