@@ -3,7 +3,8 @@
 **Source:** [Client Google Doc](https://docs.google.com/document/d/1a_mY4yJlhQSqMiXmJa8hCFzfDMlXDv8E43Xeeu62fis/edit?usp=sharing)  
 **Response date:** 15 August 2026  
 **Live site:** https://findra.ph  
-**How to use:** Copy this outline back into the Google Doc. Original client wording is unchanged. Each item has a Findra status and short response.
+**PDF:** `qa/client-feedback/GOOGLE-DOC-ANNOTATED.pdf` (regenerate with `node qa/client-feedback/render-annotated-pdf.mjs`)  
+**How to use:** Share the PDF, or copy this outline back into the Google Doc. Original client wording is unchanged. Each item has a Findra status and short response.
 
 Status key:
 
