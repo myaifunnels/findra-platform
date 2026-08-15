@@ -16,4 +16,4 @@ When implementing from a selected generated mock, treat that image as the source
 - Admin-managed categories and services populate the business listing editor, while existing listings retain their saved taxonomy values.
 - Admin notification workflows use Findra's current visual system while supporting WordPress/Listivo-style automation rules, editable system messages, delivery logs, and sender settings.
 - Admin-created custom fields must be persistent, ordered, visibility-aware, and render as real saved inputs in the appropriate multi-step listing form and public listing detail.
-- Dashboard body and control text should generally remain at 12px or larger, with metadata no smaller than 9.5–10px and strong 20–31px page/section headings.
+- When Contact page or other requested site work is ready, push it to `main` so findra.ph can pick it up. Do not leave the change only on a draft PR.
