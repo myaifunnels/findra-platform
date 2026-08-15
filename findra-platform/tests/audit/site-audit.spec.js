@@ -143,13 +143,20 @@ test("product checks on live homepage and packages", async ({ page }, testInfo) 
   });
 
   await page.goto("/packages", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () => /Early Bird|Basic|799|999|being updated|Loading packages/i.test(document.body.innerText),
+    { timeout: 10_000 },
+  ).catch(() => {});
   const body = (await page.locator("body").innerText()).replace(/\s+/g, " ");
+  const packagesReady = /Early Bird|Basic|799|999/i.test(body);
   extras.checks.push({
-    ok: /799|999|Early Bird|Basic/i.test(body),
+    ok: packagesReady,
     name: "Packages visible to guests",
-    detail: /799|999|Early Bird|Basic/i.test(body)
+    detail: packagesReady
       ? "Guest packages page shows pricing copy"
-      : "Could not find Early Bird / Regular pricing on /packages",
+      : /being updated/i.test(body)
+        ? "Packages page shows 'being updated' — live /api/packages returned no active Basic/Early Bird plans"
+        : "Could not find Early Bird / Regular pricing on /packages",
   });
 
   await page.goto("/login", { waitUntil: "domcontentloaded" });

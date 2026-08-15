@@ -220,21 +220,44 @@ function summarize(pages, extras) {
   const p0 = [];
   const p1 = [];
   const p2 = [];
+  let guestAuthPages = 0;
   for (const page of pages) {
     const label = `${page.path} [${page.viewport}]`;
     if (!page.status || page.status >= 400) {
       p0.push(`${label} returned HTTP ${page.status}`);
     }
-    const guestAuth = page.failedRequests.filter(isExpectedGuestAuthFailure);
-    if (guestAuth.length) {
-      p2.push(`${label} guest session probe returned 401 (expected until logged in)`);
-    }
+    if (page.failedRequests.some(isExpectedGuestAuthFailure)) guestAuthPages += 1;
     const unexpectedConsole = page.consoleErrors.filter(
       (text) => !/status of 401/.test(text),
     );
     if (unexpectedConsole.length) {
       p1.push(`${label} has ${unexpectedConsole.length} console error(s)`);
     }
+    const failedOwn = page.failedRequests.filter(
+      (req) => !isThirdParty(req.url) && !isExpectedGuestAuthFailure(req),
+    );
+    if (failedOwn.length) {
+      p1.push(`${label} has ${failedOwn.length} failed first-party request(s)`);
+    }
+    if (page.brokenImages.length) {
+      p1.push(`${label} has ${page.brokenImages.length} broken image(s)`);
+    }
+    const seriousAxe = page.axeViolations.filter((v) =>
+      ["serious", "critical"].includes(v.impact),
+    );
+    if (seriousAxe.length) {
+      p1.push(`${label} has ${seriousAxe.length} serious/critical axe violation(s)`);
+    }
+    if (page.overflow) p2.push(`${label} horizontal overflow (${page.overflowWidth}px)`);
+    if (page.missingAlt.length) p2.push(`${label} ${page.missingAlt.length} image(s) missing alt`);
+    const moderateAxe = page.axeViolations.filter((v) => v.impact === "moderate");
+    if (moderateAxe.length) p2.push(`${label} ${moderateAxe.length} moderate axe violation(s)`);
+  }
+  if (guestAuthPages) {
+    p2.push(
+      `${guestAuthPages} public page(s) called /api/auth/session and received 401 (expected for guests)`,
+    );
+  }
     const failedOwn = page.failedRequests.filter(
       (req) => !isThirdParty(req.url) && !isExpectedGuestAuthFailure(req),
     );
