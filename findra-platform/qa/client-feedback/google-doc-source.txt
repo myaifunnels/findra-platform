@@ -1,0 +1,272 @@
+﻿HOME PAGE
+
+
+
+
+* Keyword search box
+   * Not suggestive
+   * Leads to businesses page only regardless of keyword
+* Business Category dropdown
+   * Any chosen dropdown leads to the same business page. Showing all businesses instead of the selected category only.
+* Category Tiles
+   * All selection leads to the same business page. Showing all businesses instead of the selected category only.
+* Featured Businesses
+   * Category under tagline must be limited to the 5 main categories only. Creation of new category is not allowed.
+   * Fix business description preview - text alignment
+   * Fix business description preview - set allowable character for the business description preview for consistency
+* Be Discovered Box - adjust text distribution
+
+
+‘When visibility means growth,
+we make sure your business gets noticed by the people who matter’
+
+
+
+
+* Footer
+   * Make logo bigger and more visible (not same color as the background) - SAME AS OLD WEBSITE
+   * Social media icons are both pink - please make SAME AS OLD WEBSITE
+   * Take out ‘Account Login’
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+BUSINESSES PAGE
+
+
+* Breadcrumb Trail
+   * Please make it consistent, in the businesses page it shows
+
+Home → Search Results (instead of) Home → Businesses
+   * Don’t show matching businesses when ‘Business Type’ AND/OR ‘Business Category’ is set to All
+   * Location search is not accurate, all businesses appears regardless of specific location search
+   * Filters
+   * Remove ‘Business Type’
+   * Add ‘Sub-Category’ (below ‘Business Category)
+   * Change title of ‘Business Services’ search to ‘Find a Service’ - filter businesses appearing on the right based on keyword type
+   * Remove bullet selection below ‘Business Services’ search box
+   * Move location search here - location filter only applies when the selections above were made - it is no use to search by location without identifying first what services is needed
+   * Footer - PLEASE APPLY SAME COMMENT FROM HOME
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+BUSINESSES PROFILE PAGE
+
+
+   * Remove ‘Business Type’
+   * Change ‘Business Category’ to ‘Category’ only
+   * This should return Business Category / Sub-Category, in the case of Events by Ina this must show
+
+Category: Services & Rentals / Event Coordination, Venues & Rentals
+
+      * Add ‘Operating Hours’ below Business Address
+      * Limit “About Us” to 200 characters
+      * Limit ‘Our Services’ to 3 services; Maximum of 25 characters per service
+      * Limit ‘Gallery’ to 6 photos with option to click on each photo and show caption. Caption per photo should be limited to 30 characters
+      * Can featured video not be limited to youtube only? Can they upload other video formats directly provided it meets the type and file size limit. If possible, the video should also show a preview and play button like when a YouTube link is used.
+      * Limit ‘Featured’ video to 1 video only;  please suggest an optimized file type and file size limit that won’t make the business profile page crash (and the website to not slow down).
+      * Limit ‘Attachment’ to 1 attachment only; Suggest company profile or brochure; please suggest an optimized file type and file size limit that won’t make the business profile page crash (and the website to not slow down)
+      * Change “Business Location” to Business Pin Location”
+      * Inquiry Form
+      * Can we see and track the messages between the businesses and their customers?
+      * Ensure accurate re-directing using the different platforms (eg viber, email, etc.)
+      * Button for other platforms (eg viber, whatsapp, etc) will only appear if it is available
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ABOUT PAGE
+      * Mission
+      * Change “Why the platform exists” to “Core Purpose”
+      * Change “To make the discovery and showcasing of businesses in the Philippines effortless and noise-free.” to “To create a simpler, more effective way to discover and showcase businesses in the Philippines.”
+      * Retain bullet points - too much clutter, low relevance, hard to trust
+      * Brand Values
+      * Convert the format similar to Mission and Vision format 
+      * How it works for seekers
+      * Step 1
+      * Retain “Search”
+      * Change definition to “Find businesses that match your needs.”
+      * Step 2
+      * Change title to “Evaluate”
+      * Change definition to “Review services and key details to make an informed choice.”
+      * Step 3
+      * Retain “Connect”
+      * Change definition to “Connect with businesses that match your needs.”        
+      * How it works for businesses
+      * Step 1
+      * Change title to “Build Your Profile”
+      * Change description to “Add your business, services, and key details.”
+      * Step 2
+      * Change description to “Your business is found by people based on what you offer and what they’re looking for.”
+      * Step 3
+      * Change title to “Connect”
+      * Change definition to “Make it easy for people to get in touch with your business.”
+      * Questions on email signup
+      * Where do the emails get stored and how to access them
+
+
+
+
+
+
+
+
+
+
+
+
+PACKAGES  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      * Change inclusion points to
+      * Dedicated Business Profile
+      * Secure Business Dashboard
+      * SEO-Optimized Business Page
+      * Built-in Inquiry Form and Direct Contact Tools
+      * Location-Based Search
+      * Relevant Category Listing
+
+
+      * Add another basic package, side by side to Early Bird  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CONTACT US
+
+
+         * Remove ‘How Can We Help?’
+         * Remove ‘Have a question about Findra, your business listing, or how the platform works? Our team is here to help.’ but leave ‘Reach out anytime and we’ll get back to you as soon as possible.’
+         * Where do the messages go and how can we manage it?
+
+
+
+
+LEGAL & POLICIES
+         * All good
+
+
+FAQ
