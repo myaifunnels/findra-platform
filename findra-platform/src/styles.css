@@ -11330,7 +11330,7 @@ th {
 
 .findra-integrations.embedded,
 .findra-integrations { display: grid; gap: 16px; }
-.findra-int-list { display: grid; gap: 12px; }
+.findra-int-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .findra-int-card {
   padding: 18px 18px 16px;
   border: 1px solid rgba(8, 125, 60, 0.16);
@@ -11396,3 +11396,51 @@ th {
   .findra-int-head { flex-wrap: wrap; }
   .findra-int-head-meta { width: 100%; justify-content: flex-end; }
 }
+
+.findra-int-logo { width: 44px; height: 44px; flex: none; display: block; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 16px rgba(0,0,0,.12); }
+.findra-int-logo svg { display: block; width: 44px; height: 44px; }
+.findra-int-card.brand-paymongo { border-color: rgba(0, 212, 124, .35); background: linear-gradient(180deg, #121826 0 86px, #fff 86px); }
+.findra-int-card.brand-paymongo .findra-int-head small { color: #00d47c; }
+.findra-int-card.brand-paymongo .findra-int-head h3,
+.findra-int-card.brand-paymongo .findra-int-head p { color: #f4fff9; }
+.findra-int-card.brand-paymongo .findra-int-meta { color: #3d4b42; }
+.findra-int-card.brand-brevo { border-color: rgba(11, 153, 110, .28); background: linear-gradient(180deg, #0b996e 0 86px, #fff 86px); }
+.findra-int-card.brand-brevo .findra-int-head small,
+.findra-int-card.brand-brevo .findra-int-head h3,
+.findra-int-card.brand-brevo .findra-int-head p { color: #fff; }
+.findra-int-card.brand-google { border-color: rgba(66, 133, 244, .28); background: linear-gradient(180deg, #eef4fe 0 86px, #fff 86px); }
+.findra-int-card.brand-google .findra-int-head small { color: #1a73e8; }
+.findra-int-card.brand-cloudflare { border-color: rgba(246, 130, 31, .35); background: linear-gradient(180deg, #f6821f 0 86px, #fff 86px); }
+.findra-int-card.brand-cloudflare .findra-int-head small,
+.findra-int-card.brand-cloudflare .findra-int-head h3,
+.findra-int-card.brand-cloudflare .findra-int-head p { color: #fff; }
+.findra-int-card.brand-textbee { border-color: rgba(245, 197, 24, .4); background: linear-gradient(180deg, #111827 0 86px, #fff 86px); }
+.findra-int-card.brand-textbee .findra-int-head small { color: #f5c518; }
+.findra-int-card.brand-textbee .findra-int-head h3,
+.findra-int-card.brand-textbee .findra-int-head p { color: #fff; }
+.findra-int-card.brand-paymongo .findra-int-switch.on,
+.findra-int-card.brand-brevo .findra-int-switch.on { background: #00b56a; }
+.findra-int-card.brand-cloudflare .findra-int-switch.on { background: #c45e0d; }
+.findra-int-card.brand-google .findra-int-switch.on { background: #1a73e8; }
+.findra-int-card.brand-textbee .findra-int-switch.on { background: #f5c518; }
+.findra-int-card.brand-textbee .findra-int-switch.on i { background: #111827; }
+[data-theme="dark"] .findra-int-card.brand-paymongo { background: linear-gradient(180deg, #121826 0 86px, #101c16 86px); }
+[data-theme="dark"] .findra-int-card.brand-brevo { background: linear-gradient(180deg, #0b996e 0 86px, #101c16 86px); }
+[data-theme="dark"] .findra-int-card.brand-google { background: linear-gradient(180deg, #1b2838 0 86px, #101c16 86px); }
+[data-theme="dark"] .findra-int-card.brand-cloudflare { background: linear-gradient(180deg, #f6821f 0 86px, #101c16 86px); }
+[data-theme="dark"] .findra-int-card.brand-textbee { background: linear-gradient(180deg, #111827 0 86px, #101c16 86px); }
+[data-theme="dark"] .findra-int-card.brand-paymongo .findra-int-meta,
+[data-theme="dark"] .findra-int-card.brand-google .findra-int-head h3 { color: #edf6f2; }
+.appearance-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.appearance-swatch {
+  display: grid; gap: 6px; padding: 12px; border: 1px solid var(--glass-line); border-radius: 14px;
+  background: var(--field-bg); color: inherit; text-align: left; font: inherit;
+}
+.appearance-swatch.active { border-color: #087d3c; box-shadow: inset 0 0 0 1px #087d3c; }
+.appearance-swatch strong { font-size: 14px; }
+.appearance-swatch small { color: var(--surface-muted); font-size: 12px; }
+.appearance-preview { display: block; height: 54px; border-radius: 10px; }
+.appearance-preview.light { background: linear-gradient(135deg, #f7fbf8, #dcefe3); border: 1px solid #cfe3d6; }
+.appearance-preview.dark { background: linear-gradient(135deg, #102018, #06140e); border: 1px solid #1d3a2a; }
+.settings-profile-card h3 { margin-bottom: 4px; }
+@media (max-width: 980px) { .findra-int-list { grid-template-columns: 1fr; } }
