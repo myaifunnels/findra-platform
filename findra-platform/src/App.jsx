@@ -1908,9 +1908,6 @@ function ContactPage({ go }) {
       <InfoPageHero title="CONTACT US" image="/assets/contact-banner.jpg" />
       <main className="contact-page">
         <section className="contact-intro">
-          <h2>
-            We’re here to help.
-          </h2>
           <p>
             Reach out anytime and we’ll get back to you as soon as possible.
           </p>
@@ -4506,8 +4503,8 @@ function InquiriesPanel({ role, listing, query = "", onNotify }) {
     <div className="admin-content">
       <section className="welcome-row">
         <div>
-          <h2>{role === "admin" ? "Direct inquiries" : "Customer inquiries"}</h2>
-          <p>{role === "admin" ? "Messages sent straight to Findra through the public contact form. Business ↔ customer conversations are private to each business owner." : "Messages customers sent through your public business profile."}</p>
+          <h2>{role === "admin" ? "Contact Us messages" : "Customer inquiries"}</h2>
+          <p>{role === "admin" ? "Every message from the public Contact Us page is stored here. Open a conversation to read it, reply by email, and track New versus Responded. Listing inquiries stay in each business owner’s dashboard and are not shown in this inbox." : "Messages customers sent through your public business profile."}</p>
         </div>
         <button className="secondary-button" onClick={load}>Refresh</button>
       </section>
@@ -4545,13 +4542,14 @@ function InquiriesPanel({ role, listing, query = "", onNotify }) {
                   </div>
                   <div className="inquiry-conversation-tags">
                     <span className={`inquiry-sender-tag ${selected.sender_registered ? "registered" : "guest"}`}>{senderTag(selected)}</span>
+                    {role === "admin" && !selected.listing_name && <span className="inquiry-sender-tag registered">Contact Us page</span>}
                     <span className={`status-badge ${selected.status.toLowerCase()}`}>{selected.status}</span>
                   </div>
                 </header>
                 <div className="inquiry-thread">
                   <div className="inquiry-bubble inbound">
                     <p>{selected.message}</p>
-                    <time>{new Date(selected.created_at).toLocaleString()}{selected.listing_name ? ` · via ${selected.listing_name}` : " · via website contact form"}</time>
+                    <time>{new Date(selected.created_at).toLocaleString()}{selected.listing_name ? ` · via ${selected.listing_name}` : " · via Contact Us page"}</time>
                   </div>
                   {repliesLoading && <p className="muted-copy">Loading conversation…</p>}
                   {replies.map((reply) => (
@@ -4583,7 +4581,7 @@ function InquiriesPanel({ role, listing, query = "", onNotify }) {
           </div>
         </section>
       ) : (
-        <section className="panel admin-empty"><ChatCircleText size={42} /><h3>No inquiries yet</h3><p>{role === "admin" ? "Inquiries from listings and the contact form will show up here." : "Publish and share your listing to start receiving customer messages."}</p></section>
+        <section className="panel admin-empty"><ChatCircleText size={42} /><h3>No inquiries yet</h3><p>{role === "admin" ? "Messages from the public Contact Us page will show up here. Open one to read it and reply by email." : "Publish and share your listing to start receiving customer messages."}</p></section>
       )}
     </div>
   );
