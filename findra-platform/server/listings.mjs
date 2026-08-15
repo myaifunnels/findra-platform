@@ -1,6 +1,12 @@
 import { query } from "./db.mjs";
 import { readSession } from "./auth.mjs";
 import { notify, notifyAdmins } from "./notifications.mjs";
+import { publicAppUrl, readIntegration } from "./integrations.mjs";
+
+async function listingPublicUrl(id) {
+  const paymongo = await readIntegration("paymongo");
+  return `${publicAppUrl(null, paymongo.settings?.appUrl)}/listing/${id}`;
+}
 
 function json(response, status, body) {
   response.statusCode = status;
@@ -121,7 +127,7 @@ async function create(request, response) {
     [user.id, status, name, String(record.category || ""), String(record.location || ""), JSON.stringify(record)],
   );
   const created = result.rows[0];
-  const notificationContext = { businessName: name, contactPhone: record.phone || record.whatsapp || record.viber || "", businessUrl: `${process.env.PAYMONGO_APP_URL || "https://staging.findra.ph"}/listing/${created.id}` };
+  const notificationContext = { businessName: name, contactPhone: record.phone || record.whatsapp || record.viber || "", businessUrl: await listingPublicUrl(created.id) };
   if (user.role === "admin" && status === "Published") notify({ userId: created.owner_id, email: record.email, event: "listing-approved", context: notificationContext }).catch(() => {});
   if (user.role === "admin" && status === "Declined") notify({ userId: created.owner_id, email: record.email, event: "listing-declined", context: notificationContext }).catch(() => {});
   if (user.role !== "admin") {
@@ -151,7 +157,7 @@ async function update(request, response, id) {
   );
   if (user.role === "admin" && listing.status !== nextStatus) {
     const event = nextStatus === "Published" ? "listing-approved" : nextStatus === "Declined" ? "listing-declined" : null;
-    if (event) notify({ userId: listing.owner_id, email: listing.data?.email, event, context: { businessName: name, contactPhone: nextData.phone || nextData.whatsapp || nextData.viber || "", businessUrl: `${process.env.PAYMONGO_APP_URL || "https://staging.findra.ph"}/listing/${id}` } }).catch(() => {});
+    if (event) notify({ userId: listing.owner_id, email: listing.data?.email, event, context: { businessName: name, contactPhone: nextData.phone || nextData.whatsapp || nextData.viber || "", businessUrl: await listingPublicUrl(id) } }).catch(() => {});
   }
   return json(response, 200, { listing: publicRecord({ ...result.rows[0], owner_name: user.display_name }) });
 }

@@ -2,6 +2,8 @@ import { query } from "./db.mjs";
 import { readSession } from "./auth.mjs";
 import { sendSms } from "./textbee.mjs";
 import { encryptText, decryptText } from "./crypto.mjs";
+import { brevoConfig } from "./brevo.mjs";
+import { publicAppUrl, readIntegration } from "./integrations.mjs";
 const copy = {
   "new-user": ["Welcome to Findra PH! 👋", "Your account is active. Complete and submit your Business Details from your dashboard."],
   "listing-submitted": ["We’re Reviewing Your Business Details", "We received your submission and it is now under review. We’ll update you within 3–4 business days."],
@@ -125,9 +127,9 @@ function defaultsFor(event) {
     name: templateNames[event] || "Findra account update",
     subject: clientSubjects[event] || subject,
     body_html: clientBodies[event] || `<p>Hi {{contactFirstName}},</p><p>${body}</p><p><a href="{{dashboardUrl}}">Access your dashboard</a></p><p>The Findra PH Team</p>`,
-    from_name: process.env.BREVO_FROM_NAME || "Findra PH",
-    from_email: process.env.BREVO_FROM_EMAIL || "",
-    reply_to: process.env.BREVO_FROM_EMAIL || "",
+    from_name: "Findra PH",
+    from_email: "",
+    reply_to: "",
     active: true,
   };
 }
@@ -137,8 +139,8 @@ function smsDefaultsFor(event) {
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
 }
-function renderTemplate(value, context = {}) {
-  const appUrl = process.env.PAYMONGO_APP_URL || "https://staging.findra.ph";
+function renderTemplate(value, context = {}, extras = {}) {
+  const appUrl = extras.appUrl || "https://findra.ph";
   const fullName = context.contactFullName || context.userDisplayName || "Findra member";
   const fields = {
     contactFirstName: context.contactFirstName || String(fullName).trim().split(/\s+/)[0] || "there",
@@ -150,7 +152,7 @@ function renderTemplate(value, context = {}) {
     dashboardUrl: context.dashboardUrl || `${appUrl}/user`,
     adminUrl: context.adminUrl || `${appUrl}/admin`,
     businessUrl: context.businessUrl || context.dashboardUrl || `${appUrl}/user`,
-    supportEmail: process.env.BREVO_FROM_EMAIL || "hello@findra.ph",
+    supportEmail: extras.supportEmail || "hello@findra.ph",
     currentYear: new Date().getFullYear(),
     daysLeft: context.daysLeft ?? "",
     replyFrom: context.replyFrom || "The business",
@@ -159,11 +161,17 @@ function renderTemplate(value, context = {}) {
   };
   return String(value || "").replace(/{{([a-zA-Z]+)}}/g, (match, key) => key in fields ? escapeHtml(fields[key]) : match);
 }
-function renderPlainText(value, context) {
-  return renderTemplate(value, context).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\r\n/g, "\n").replace(/[^\S\r\n]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+function renderPlainText(value, context, extras) {
+  return renderTemplate(value, context, extras).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\r\n/g, "\n").replace(/[^\S\r\n]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
 async function templateFor(event) {
   const fallback = defaultsFor(event);
+  const brevo = await brevoConfig().catch(() => null);
+  if (brevo?.fromEmail) {
+    fallback.from_email = brevo.fromEmail;
+    fallback.from_name = brevo.fromName || fallback.from_name;
+    fallback.reply_to = brevo.fromEmail;
+  }
   try {
     const result = await query("SELECT * FROM email_templates WHERE event=$1", [event]);
     return result.rows[0] ? { ...fallback, ...result.rows[0] } : fallback;
@@ -178,20 +186,43 @@ async function smsTemplateFor(event) {
     return result.rows[0] ? { ...fallback, ...result.rows[0] } : fallback;
   } catch { return fallback; }
 }
+async function mailExtras() {
+  const brevo = await brevoConfig();
+  const paymongo = await readIntegration("paymongo");
+  return {
+    appUrl: publicAppUrl(null, paymongo.settings?.appUrl),
+    supportEmail: brevo.fromEmail || "hello@findra.ph",
+    brevo,
+  };
+}
 async function send(email, template, context) {
-  const key=process.env.BREVO_API_KEY, from=template.from_email || process.env.BREVO_FROM_EMAIL;
-  if (process.env.BREVO_ENABLED === "false" || !key || !from) return "not_configured";
-  const htmlContent = renderTemplate(template.body_html, context);
-  const subject = renderTemplate(template.subject, context);
-  const response=await fetch("https://api.brevo.com/v3/smtp/email", {method:"POST",headers:{"api-key":key,"Content-Type":"application/json"},body:JSON.stringify({sender:{email:from,name:template.from_name||process.env.BREVO_FROM_NAME||"Findra PH"},replyTo:template.reply_to ? {email:template.reply_to} : undefined,to:[{email}],subject,htmlContent,textContent:htmlContent.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim()})});
+  const extras = await mailExtras();
+  const key = extras.brevo.apiKey;
+  const from = template.from_email || extras.brevo.fromEmail;
+  if (!extras.brevo.enabled || !key || !from) return "not_configured";
+  const htmlContent = renderTemplate(template.body_html, context, extras);
+  const subject = renderTemplate(template.subject, context, extras);
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: { "api-key": key, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sender: { email: from, name: template.from_name || extras.brevo.fromName || "Findra PH" },
+      replyTo: template.reply_to ? { email: template.reply_to } : extras.brevo.fromEmail ? { email: extras.brevo.fromEmail } : undefined,
+      to: [{ email }],
+      subject,
+      htmlContent,
+      textContent: htmlContent.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
+    }),
+  });
   return response.ok ? "sent" : "failed";
 }
 async function runAdditionalActions(event, email, context) {
   let actions = [];
   try { actions = (await query("SELECT * FROM automation_actions WHERE event=$1 AND active=TRUE ORDER BY id", [event])).rows; } catch { return; }
+  const extras = await mailExtras();
   const defaultSms = await smsTemplateFor(event);
   if (defaultSms.active && context.contactPhone) {
-    try { await sendSms({ recipient: context.contactPhone, message: renderPlainText(defaultSms.body, context) }); } catch { /* SMS is supplementary to the email record. */ }
+    try { await sendSms({ recipient: context.contactPhone, message: renderPlainText(defaultSms.body, context, extras) }); } catch { /* SMS is supplementary to the email record. */ }
   }
   await Promise.all(actions.map(async (action) => {
     try {
@@ -199,7 +230,7 @@ async function runAdditionalActions(event, email, context) {
         const template = { ...defaultsFor(event), subject: action.subject || defaultsFor(event).subject, body_html: action.body };
         await send(email, template, context);
       }
-      if (action.channel === "sms" && context.contactPhone) await sendSms({ recipient: context.contactPhone, message: renderPlainText(action.body, context) });
+      if (action.channel === "sms" && context.contactPhone) await sendSms({ recipient: context.contactPhone, message: renderPlainText(action.body, context, extras) });
     } catch { /* Preserve the primary automation if an optional action fails. */ }
   }));
 }
