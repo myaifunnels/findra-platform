@@ -246,7 +246,69 @@ function BrevoIntegration({ onNotify }) {
         <input required type="email" value={testEmail} onChange={(event) => setTestEmail(event.target.value)} placeholder="Send a test to…" disabled={!status.enabled} />
         <button type="submit" className="secondary-button" disabled={!status.enabled || busy === "test"}>{busy === "test" ? "Sending…" : "Send test"}</button>
       </form>
+      <NewsletterSubscribers />
     </Card>
+  );
+}
+
+function NewsletterSubscribers() {
+  const [subscribers, setSubscribers] = useState([]);
+  const [storage, setStorage] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/newsletter/subscribers", { credentials: "same-origin" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Newsletter subscribers could not be loaded.");
+        if (!cancelled) {
+          setSubscribers(payload.subscribers || []);
+          setStorage(payload.storage || "");
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return (
+    <div className="findra-int-subscribers">
+      <h4>About-page newsletter signups</h4>
+      {storage ? <p>{storage}</p> : null}
+      {loading ? <p>Loading signups…</p> : null}
+      {error ? <p className="findra-int-error"><WarningCircle weight="fill" /> {error}</p> : null}
+      {!loading && !error && subscribers.length === 0 ? <p>No newsletter emails yet.</p> : null}
+      {subscribers.length > 0 ? (
+        <div className="findra-int-subscriber-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Source</th>
+                <th>Brevo</th>
+                <th>Signed up</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subscribers.map((row) => (
+                <tr key={row.email}>
+                  <td>{row.email}</td>
+                  <td>{row.source}</td>
+                  <td>{row.brevo_status}</td>
+                  <td>{row.subscribed_at ? new Date(row.subscribed_at).toLocaleString() : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
