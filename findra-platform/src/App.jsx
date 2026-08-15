@@ -2489,6 +2489,7 @@ const sideItems = [
   ["Inbox", EnvelopeSimple],
   ["Subscriptions", CreditCard],
   ["Automation", ArrowsClockwise],
+  ["Integrations", Plug],
   ["Settings", Gear],
 ];
 
@@ -2920,7 +2921,10 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
               session={session}
               roleLabel={session?.role === "admin" ? "Administrator" : "Findra team"}
               onLogout={onLogout}
-              items={[["Settings", Gear, () => setSection("Settings")]]}
+              items={[
+                ["Integrations", Plug, () => setSection("Integrations")],
+                ["Settings", Gear, () => setSection("Settings")],
+              ]}
             />
           </div>
         </header>
@@ -2949,7 +2953,9 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
             remove={(item) => setConfirmation({ type: "delete", item })}
           />
         ) : section === "Settings" ? (
-          <SettingsAdmin onNotify={onNotify} />
+          <SettingsAdmin session={session} onNotify={onNotify} onOpenIntegrations={() => setSection("Integrations")} />
+        ) : section === "Integrations" ? (
+          <IntegrationsAdmin onNotify={onNotify} />
         ) : section === "Users" ? (
           <UsersManagement query={query} onNotify={onNotify} />
         ) : section === "Inquiries" ? (
@@ -5093,22 +5099,94 @@ function AdminSection({ section }) {
   );
 }
 
-function SettingsAdmin({ onNotify }) {
+function SettingsAdmin({ session, onNotify, onOpenIntegrations }) {
   const [tab, setTab] = useState("account");
-  const setTheme = (theme) => {
-    localStorage.setItem("findra-theme", theme);
-    document.documentElement.dataset.theme = theme;
-    onNotify?.({ type: "success", title: "Appearance updated", message: `${theme === "dark" ? "Dark" : "Light"} mode is now the default appearance for this browser.` });
+  const [theme, setThemeState] = useState(() => document.documentElement.dataset.theme || localStorage.getItem("findra-theme") || "dark");
+  const setTheme = (next) => {
+    localStorage.setItem("findra-theme", next);
+    document.documentElement.dataset.theme = next;
+    setThemeState(next);
+    onNotify?.({ type: "success", title: "Appearance updated", message: `${next === "dark" ? "Dark" : "Light"} mode is now the default for this browser.` });
   };
-  return <div className="admin-content settings-workspace">
-    <section className="welcome-row"><div><span className="section-eyebrow">Workspace controls</span><h2>Settings</h2><p>Manage administrator preferences, appearance, and connected platform services.</p></div></section>
-    <nav className="settings-tabs" aria-label="Settings sections">
-      {["account", "appearance", "integrations"].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item === "account" ? "Account" : item === "appearance" ? "Appearance" : "Integrations"}</button>)}
-    </nav>
-    {tab === "account" && <section className="settings-card-grid"><article className="panel"><span className="section-eyebrow">Administrator account</span><h3>Workspace ownership</h3><p>Account access, password recovery, and administrator permissions are managed through secure Findra sessions.</p><div className="account-detail-grid"><article><small>ACCESS</small><strong>Administrator</strong></article><article><small>SESSION</small><strong>Secure cookie</strong></article></div></article><article className="panel"><span className="section-eyebrow">Security</span><h3>Recommended controls</h3><p>Store PayMongo, Brevo, Google Maps, Cloudflare R2, and SMS keys in Integrations. Keep a unique admin password and enable two-factor authentication on those provider dashboards.</p></article></section>}
-    {tab === "appearance" && <section className="settings-card-grid"><article className="panel"><span className="section-eyebrow">Interface preference</span><h3>Appearance</h3><p>Choose the visual mode that best suits your working environment. Each user keeps this choice in their own browser.</p><div className="appearance-choice-row"><button className="secondary-button" onClick={() => setTheme("light")}>Light mode</button><button className="admin-primary" onClick={() => setTheme("dark")}>Dark mode</button></div></article><article className="panel"><span className="section-eyebrow">Accessibility</span><h3>Readable by default</h3><p>Findra uses high-contrast text, visible keyboard focus, and clear status colors across administration and business-owner dashboards.</p></article></section>}
-    {tab === "integrations" && <IntegrationsAdmin onNotify={onNotify} embedded />}
-  </div>;
+  return (
+    <div className="admin-content settings-workspace">
+      <section className="welcome-row">
+        <div>
+          <span className="section-eyebrow">Workspace</span>
+          <h2>Settings</h2>
+          <p>Account, appearance, and workspace preferences for this administrator.</p>
+        </div>
+      </section>
+      <nav className="settings-tabs" aria-label="Settings sections">
+        <button className={tab === "account" ? "active" : ""} onClick={() => setTab("account")}>Account</button>
+        <button className={tab === "appearance" ? "active" : ""} onClick={() => setTab("appearance")}>Appearance</button>
+        <button className={tab === "workspace" ? "active" : ""} onClick={() => setTab("workspace")}>Workspace</button>
+      </nav>
+      {tab === "account" && (
+        <section className="settings-card-grid">
+          <article className="panel settings-profile-card">
+            <span className="section-eyebrow">Signed in</span>
+            <h3>{session?.name || "Administrator"}</h3>
+            <p>{session?.email || "Secure Findra session"}</p>
+            <div className="account-detail-grid">
+              <article><small>ROLE</small><strong>Administrator</strong></article>
+              <article><small>SESSION</small><strong>Secure cookie · 14 days</strong></article>
+            </div>
+          </article>
+          <article className="panel">
+            <span className="section-eyebrow">Security</span>
+            <h3>Protect this workspace</h3>
+            <p>Use a unique password and turn on two-factor authentication on PayMongo, Brevo, Cloudflare, and Google Cloud. Integration keys are stored from the Integrations tab, not in Render.</p>
+          </article>
+        </section>
+      )}
+      {tab === "appearance" && (
+        <section className="settings-card-grid">
+          <article className="panel">
+            <span className="section-eyebrow">Theme</span>
+            <h3>Dashboard appearance</h3>
+            <p>This choice stays in your browser and does not change the public Findra site for visitors.</p>
+            <div className="appearance-choice-grid">
+              <button type="button" className={`appearance-swatch light ${theme === "light" ? "active" : ""}`} onClick={() => setTheme("light")}>
+                <span className="appearance-preview light" />
+                <strong>Light</strong>
+                <small>Bright panels and green accents</small>
+              </button>
+              <button type="button" className={`appearance-swatch dark ${theme === "dark" ? "active" : ""}`} onClick={() => setTheme("dark")}>
+                <span className="appearance-preview dark" />
+                <strong>Dark</strong>
+                <small>Low-glare admin workspace</small>
+              </button>
+            </div>
+          </article>
+          <article className="panel">
+            <span className="section-eyebrow">Readability</span>
+            <h3>Accessible by default</h3>
+            <p>Findra keeps dashboard body text at 12px or larger, uses high-contrast greens, and shows a clear focus ring on every control.</p>
+          </article>
+        </section>
+      )}
+      {tab === "workspace" && (
+        <section className="settings-card-grid">
+          <article className="panel">
+            <span className="section-eyebrow">Directory</span>
+            <h3>Findra PH workspace</h3>
+            <p>Public listings, packages, and checkout run from this staging or production host. Connected apps are managed separately.</p>
+            <div className="account-detail-grid">
+              <article><small>SUPPORT</small><strong>hello@findra.ph</strong></article>
+              <article><small>REGION</small><strong>Philippines</strong></article>
+            </div>
+          </article>
+          <article className="panel">
+            <span className="section-eyebrow">Connected apps</span>
+            <h3>Integrations</h3>
+            <p>PayMongo, Brevo, Google Maps, Cloudflare R2, and TextBee have their own tab so keys stay in one place.</p>
+            <button type="button" className="admin-primary" onClick={onOpenIntegrations}>Open Integrations</button>
+          </article>
+        </section>
+      )}
+    </div>
+  );
 }
 
 function ListingActionConfirm({ action, close, confirm }) {
