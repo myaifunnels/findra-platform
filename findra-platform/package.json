@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server.mjs",
-    "db:migrate": "node server/migrate.mjs"
+    "db:migrate": "node server/migrate.mjs",
+    "test": "node --test src/listingProfile.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1090.0",

@@ -70,15 +70,13 @@ function decryptInquiry(row) {
 }
 
 async function list(request, response, user) {
-  // Admin only ever sees inquiries addressed directly to the platform (no
-  // business picked) — business <-> customer conversations are private to
-  // that business owner and are excluded here entirely.
+  // Admin can see and track every conversation: platform contact-form
+  // messages and business ↔ customer inquiries from listing profiles.
   const result =
     user.role === "admin"
       ? await query(`${listSelect} FROM inquiries
           LEFT JOIN listings ON listings.id = inquiries.listing_id
           LEFT JOIN users ON users.id = inquiries.sender_user_id
-          WHERE inquiries.target = 'admin'
           ORDER BY inquiries.created_at DESC LIMIT 200`)
       : await query(
           `${listSelect} FROM inquiries
@@ -93,7 +91,7 @@ async function list(request, response, user) {
 async function findAccessibleInquiry(id, user) {
   const result =
     user.role === "admin"
-      ? await query("SELECT inquiries.*, listings.name AS listing_name FROM inquiries LEFT JOIN listings ON listings.id = inquiries.listing_id WHERE inquiries.id = $1 AND inquiries.target = 'admin'", [id])
+      ? await query("SELECT inquiries.*, listings.name AS listing_name FROM inquiries LEFT JOIN listings ON listings.id = inquiries.listing_id WHERE inquiries.id = $1", [id])
       : await query(
           `SELECT inquiries.*, listings.name AS listing_name FROM inquiries
             JOIN listings ON listings.id = inquiries.listing_id
@@ -171,7 +169,7 @@ export async function handleInquiriesRequest(request, response) {
       const status = ["New", "Read", "Responded"].includes(body.status) ? body.status : "Read";
       const result =
         user.role === "admin"
-          ? await query("UPDATE inquiries SET status = $1 WHERE id = $2 AND target = 'admin' RETURNING *", [status, match[1]])
+          ? await query("UPDATE inquiries SET status = $1 WHERE id = $2 RETURNING *", [status, match[1]])
           : await query(
               `UPDATE inquiries SET status = $1 WHERE id = $2
                  AND listing_id IN (SELECT id FROM listings WHERE owner_id = $3) RETURNING *`,

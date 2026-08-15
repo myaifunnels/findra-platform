@@ -2,6 +2,7 @@ import { query } from "./db.mjs";
 import { readSession } from "./auth.mjs";
 import { notify, notifyAdmins } from "./notifications.mjs";
 import { publicAppUrl, readIntegration } from "./integrations.mjs";
+import { clipAbout, clipAttachments, clipCaptions, clipGallery, clipServices, messagingDigits, sanitizeListingRecord } from "../src/listingProfile.js";
 
 async function listingPublicUrl(id) {
   const paymongo = await readIntegration("paymongo");
@@ -46,11 +47,17 @@ export function subscriptionDaysLeft(subscription, createdAt) {
 
 function publicRecord(row) {
   const data = row.data || {};
+  const galleryImages = clipGallery(data.galleryImages);
   const subscription = data.subscription
     ? { ...data.subscription, daysLeft: subscriptionDaysLeft(data.subscription, row.created_at) }
     : data.subscription;
   return {
     ...data,
+    description: clipAbout(data.description),
+    services: clipServices(data.services),
+    galleryImages,
+    galleryCaptions: clipCaptions(data.galleryCaptions, galleryImages.length),
+    attachments: clipAttachments(data.attachments),
     subscription,
     id: Number(row.id),
     name: row.name,
@@ -68,10 +75,7 @@ function normaliseBusinessEmail(value) {
 }
 
 function normaliseBusinessPhone(value) {
-  let digits = String(value || "").replace(/\D/g, "");
-  // Treat common Philippine local and international formats as the same number.
-  if (/^0\d{10}$/.test(digits)) digits = `63${digits.slice(1)}`;
-  return digits;
+  return messagingDigits(value);
 }
 
 async function assertUniqueBusinessContact(record, excludeId = null) {
@@ -115,7 +119,7 @@ async function list(request, response) {
 async function create(request, response) {
   const user = await readSession(request);
   if (!user) return json(response, 401, { error: "Please sign in to save a listing." });
-  const record = await readJson(request);
+  const record = sanitizeListingRecord(await readJson(request));
   const name = String(record.name || "").trim();
   if (!name) return json(response, 400, { error: "Business name is required." });
   await assertUniqueBusinessContact(record);
@@ -140,7 +144,7 @@ async function create(request, response) {
 async function update(request, response, id) {
   const user = await readSession(request);
   if (!user) return json(response, 401, { error: "Please sign in to update a listing." });
-  const record = await readJson(request);
+  const record = sanitizeListingRecord(await readJson(request));
   const existing = await query("SELECT * FROM listings WHERE id = $1", [id]);
   const listing = existing.rows[0];
   if (!listing) return json(response, 404, { error: "Listing not found." });

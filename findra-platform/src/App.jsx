@@ -65,6 +65,18 @@ import {
   UsersManagement,
 } from "./adminModules";
 import { IntegrationsAdmin } from "./integrationsAdmin";
+import {
+  categoryLine,
+  clipAbout,
+  clipAttachments,
+  clipCaptions,
+  clipGallery,
+  clipServices,
+  sanitizeListingRecord,
+  telHref,
+  viberHref,
+  whatsappHref,
+} from "./listingProfile";
 
 // Retained only while the legacy fallback code below is removed in the next
 // migration. It is never exposed or accepted by the production auth flow.
@@ -1335,10 +1347,24 @@ function ListingDetail({ go, item }) {
         </main>
       </PublicLayout>
     );
-  const gallery = item.galleryImages?.length ? item.galleryImages : [];
-  const about =
-    item.description ||
-    "We are a Filipino business built around thoughtful service, reliable delivery, and connections that create lasting value. Our team brings every project to life with care, clarity, and a practical understanding of what clients need.";
+  const gallery = clipGallery(item.galleryImages?.length ? item.galleryImages : []);
+  const galleryCaptions = clipCaptions(item.galleryCaptions, gallery.length);
+  const about = clipAbout(item.description) || "This business has not added an About Us description yet.";
+  const services = clipServices(item.services);
+  const attachments = clipAttachments(item.attachments);
+  const socialLinks = [
+    item.website && { href: item.website, label: "Website", icon: Globe },
+    item.facebook && { href: item.facebook, label: "Facebook", icon: FacebookLogo, weight: "fill" },
+    item.instagram && { href: item.instagram, label: "Instagram", icon: InstagramLogo, weight: "bold" },
+    item.linkedin && { href: item.linkedin, label: "LinkedIn", icon: LinkedinLogo, weight: "fill" },
+  ].filter(Boolean);
+  const contactActions = [
+    item.phone && { href: telHref(item.phone), label: "Call", icon: Phone },
+    item.email && { href: `mailto:${item.email}`, label: "Email", icon: EnvelopeSimple },
+    item.website && { href: item.website, label: "Website", icon: Globe, external: true },
+    item.whatsapp && { href: whatsappHref(item.whatsapp), label: "WhatsApp", icon: ChatCircleText, className: "contact-action-whatsapp", external: true, weight: "fill" },
+    item.viber && { href: viberHref(item.viber), label: "Viber", icon: ChatCircleText, className: "contact-action-viber", weight: "fill" },
+  ].filter(Boolean);
   const initials = item.name
     .split(" ")
     .map((x) => x[0])
@@ -1359,20 +1385,11 @@ function ListingDetail({ go, item }) {
         <div className="detail-meta">
           <div>
             <strong>Category:</strong>
-            <span>
-              {item.category}
-              {(item.subCategories || item.additionalCategories)?.length
-                ? ` / ${(item.subCategories || item.additionalCategories).join(", ")}`
-                : ""}
-            </span>
+            <span>{categoryLine(item) || "Not provided"}</span>
             <strong>Business Address:</strong>
             <span>{item.location || "Not provided"}</span>
-            {item.operatingHours && (
-              <>
-                <strong>Operating Hours:</strong>
-                <span>{item.operatingHours}</span>
-              </>
-            )}
+            <strong>Operating Hours:</strong>
+            <span>{item.operatingHours || "Not provided"}</span>
           </div>
           <div className={`detail-logo ${item.logo ? "has-image" : ""}`}>
             {item.logo ? (
@@ -1392,9 +1409,9 @@ function ListingDetail({ go, item }) {
               <section className="panel detail-section">
                 <h3 className="detail-section-title">Our services</h3>
                 <div className="service-tags detail-service-tags">
-                  {item.services.map((s) => (
+                  {services.length ? services.map((s) => (
                     <span key={s}>{s}</span>
-                  ))}
+                  )) : <span>No services listed</span>}
                 </div>
               </section>
               {item.location && (
@@ -1438,7 +1455,7 @@ function ListingDetail({ go, item }) {
                         className="gallery-photo-button"
                         key={`${source.slice(0, 45)}-${index}`}
                         onClick={() => setGalleryLightbox(index)}
-                        aria-label={`View gallery photo ${index + 1}${item.galleryCaptions?.[index] ? `: ${item.galleryCaptions[index]}` : ""}`}
+                        aria-label={`View gallery photo ${index + 1}${galleryCaptions[index] ? `: ${galleryCaptions[index]}` : ""}`}
                       >
                         <img src={source} alt={`${item.name} gallery ${index + 1}`} />
                       </button>
@@ -1463,8 +1480,8 @@ function ListingDetail({ go, item }) {
                       <X />
                     </button>
                     <img src={gallery[galleryLightbox]} alt={`${item.name} gallery ${galleryLightbox + 1}`} />
-                    {item.galleryCaptions?.[galleryLightbox] && (
-                      <p className="gallery-lightbox-caption">{item.galleryCaptions[galleryLightbox]}</p>
+                    {galleryCaptions[galleryLightbox] && (
+                      <p className="gallery-lightbox-caption">{galleryCaptions[galleryLightbox]}</p>
                     )}
                     <div className="gallery-lightbox-nav">
                       <button
@@ -1509,11 +1526,11 @@ function ListingDetail({ go, item }) {
                   )}
                 </section>
               )}
-              {item.attachments?.length > 0 && (
+              {attachments.length > 0 && (
                 <section className="panel detail-section listing-attachments">
                   <h3 className="detail-section-title">Attachments</h3>
                   <div className="listing-attachments-grid">
-                    {item.attachments.slice(0, 1).map((file, index) => (
+                    {attachments.map((file, index) => (
                       <a
                         href={file.data || file.url || "#"}
                         download={file.name}
@@ -1532,35 +1549,18 @@ function ListingDetail({ go, item }) {
             </div>
           </article>
           <div className="detail-sidebar">
+            {socialLinks.length > 0 && (
             <section className="panel detail-section detail-social-card">
               <h3 className="detail-section-title">Social &amp; online presence</h3>
               <div className="detail-social">
-                {item.website ? (
-                  <a href={item.website} target="_blank" rel="noreferrer" aria-label={`${item.name} website`}>
-                    <Globe /> <span>Website</span>
+                {socialLinks.map(({ href, label, icon: Icon, weight }) => (
+                  <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={`${item.name} ${label}`}>
+                    <Icon weight={weight} /> <span>{label}</span>
                   </a>
-                ) : (
-                  <span className="detail-social-empty">
-                    <Globe /> <span>Website</span>
-                  </span>
-                )}
-                {item.facebook && (
-                  <a href={item.facebook} target="_blank" rel="noreferrer" aria-label={`${item.name} Facebook`}>
-                    <FacebookLogo weight="fill" /> <span>Facebook</span>
-                  </a>
-                )}
-                {item.instagram && (
-                  <a href={item.instagram} target="_blank" rel="noreferrer" aria-label={`${item.name} Instagram`}>
-                    <InstagramLogo weight="bold" /> <span>Instagram</span>
-                  </a>
-                )}
-                {item.linkedin && (
-                  <a href={item.linkedin} target="_blank" rel="noreferrer" aria-label={`${item.name} LinkedIn`}>
-                    <LinkedinLogo weight="fill" /> <span>LinkedIn</span>
-                  </a>
-                )}
+                ))}
               </div>
             </section>
+            )}
             <aside className="inquiry-card listing-inquiry-card">
             <header className="inquiry-card-header">
               <span>Connect with this business</span>
@@ -1638,43 +1638,22 @@ function ListingDetail({ go, item }) {
                 </GreenButton>
               </form>
             )}
+            {contactActions.length > 0 && (
             <div className="contact-actions" aria-label="Business contact options">
-              {item.phone && (
-                <a href={`tel:${item.phone}`}>
-                  <Phone /> Call
-                </a>
-              )}
-              {item.email && (
-                <a href={`mailto:${item.email}`}>
-                  <EnvelopeSimple /> Email
-                </a>
-              )}
-              {item.website && (
-                <a href={item.website} target="_blank" rel="noreferrer">
-                  <Globe /> Website
-                </a>
-              )}
-              {item.whatsapp && (
+              {contactActions.map(({ href, label, icon: Icon, className, external, weight }) => (
                 <a
-                  className="contact-action-whatsapp"
-                  href={`https://wa.me/${item.whatsapp.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Chat with ${item.name} on WhatsApp`}
+                  key={label}
+                  className={className}
+                  href={href}
+                  target={external ? "_blank" : undefined}
+                  rel={external ? "noreferrer" : undefined}
+                  aria-label={label === "WhatsApp" || label === "Viber" ? `Chat with ${item.name} on ${label}` : label}
                 >
-                  <ChatCircleText weight="fill" /> WhatsApp
+                  <Icon weight={weight} /> {label}
                 </a>
-              )}
-              {item.viber && (
-                <a
-                  className="contact-action-viber"
-                  href={`viber://chat?number=${encodeURIComponent(`+${item.viber.replace(/\D/g, "")}`)}`}
-                  aria-label={`Chat with ${item.name} on Viber`}
-                >
-                  <ChatCircleText weight="fill" /> Viber
-                </a>
-              )}
+              ))}
             </div>
+            )}
           </aside>
           </div>
         </div>
@@ -4506,8 +4485,8 @@ function InquiriesPanel({ role, listing, query = "", onNotify }) {
     <div className="admin-content">
       <section className="welcome-row">
         <div>
-          <h2>{role === "admin" ? "Direct inquiries" : "Customer inquiries"}</h2>
-          <p>{role === "admin" ? "Messages sent straight to Findra through the public contact form. Business ↔ customer conversations are private to each business owner." : "Messages customers sent through your public business profile."}</p>
+          <h2>{role === "admin" ? "Inquiries" : "Customer inquiries"}</h2>
+          <p>{role === "admin" ? "Track every conversation: public contact-form messages and business ↔ customer inquiries from listing profiles, including replies." : "Messages customers sent through your public business profile."}</p>
         </div>
         <button className="secondary-button" onClick={load}>Refresh</button>
       </section>
@@ -4527,7 +4506,7 @@ function InquiriesPanel({ role, listing, query = "", onNotify }) {
                   <strong>{item.name}</strong>
                   {item.status === "New" && <i className="inquiry-unread-dot" aria-label="Unread" />}
                 </div>
-                <small className="inquiry-contact-email">{item.email}</small>
+                <small className="inquiry-contact-email">{item.email}{role === "admin" && item.listing_name ? ` · ${item.listing_name}` : ""}</small>
                 <div className="inquiry-contact-meta">
                   <span className={`inquiry-sender-tag ${item.sender_registered ? "registered" : "guest"}`}>{senderTag(item)}</span>
                   <time>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</time>
@@ -6060,7 +6039,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
       .map((value) => value.trim())
       .filter((value, index, list) => value && list.indexOf(value) === index);
     const { service, additionalCategory, additionalService, ...record } = form;
-    const result = await save({
+    const result = await save(sanitizeListingRecord({
       ...record,
       category: categoryValues[0],
       categories: categoryValues,
@@ -6072,7 +6051,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
         form.tagline ||
         form.description.slice(0, 72) ||
         "Discover this business on Findra",
-    });
+    }));
     if (item.id && result !== false) sessionStorage.removeItem(draftKey);
   };
   const steps = ["Business details", "Contact & location", "Media & review"];
@@ -6624,7 +6603,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                   </p>
                   <UploadBox
                     title="Attachments"
-                    hint="1 file only — PDF, JPG, or PNG, up to 12 MB. Suggested: your company profile or brochure. Word docs (.doc/.docx) are not accepted for upload yet."
+                    hint="1 file only — PDF company profile or brochure, up to 10 MB."
                     wide
                     accept=".pdf,application/pdf"
                     files={uploads.attachments.slice(0, 1)}
