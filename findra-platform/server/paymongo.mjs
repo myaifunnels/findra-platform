@@ -1,7 +1,14 @@
 import { activePackage, activePackageById } from "./packages.mjs";
 import { query } from "./db.mjs";
 import { notify } from "./notifications.mjs";
-import { readSession } from "./auth.mjs";
+import {
+  hintFor,
+  publicAppUrl,
+  readIntegration,
+  requireAdmin,
+  setIntegrationEnabled,
+  writeIntegration,
+} from "./integrations.mjs";
 const PAYMONGO_API = "https://api.paymongo.com/v1";
 // Keep in sync with the payment channels actually Active in the PayMongo
 // dashboard (Settings > Payment Methods). Inactive channels (GrabPay, Maya,
@@ -9,9 +16,7 @@ const PAYMONGO_API = "https://api.paymongo.com/v1";
 // since PayMongo checkout rejects sessions for a payment method the account
 // hasn't been enabled for.
 const ALLOWED_METHODS = new Set(["card", "gcash", "qrph", "dob"]);
-let runtimeEnabled = null;
-let runtimeConnectedAt = "";
-let runtimePaymentMethods = [];
+const VERIFIED_METHODS = ["card", "gcash", "qrph", "dob"];
 
 function json(response, status, body) {
   response.statusCode = status;
@@ -29,55 +34,50 @@ async function readJson(request) {
   return body ? JSON.parse(body) : {};
 }
 
-function activeSecretKey() {
-  const mode = configuredMode();
+async function paymongoRecord() {
+  return readIntegration("paymongo");
+}
+
+function secretFrom(record) {
+  const mode = record.settings?.mode === "live" ? "live" : "test";
   return mode === "live"
-    ? process.env.PAYMONGO_LIVE_SECRET_KEY || process.env.PAYMONGO_SECRET_KEY || ""
-    : process.env.PAYMONGO_TEST_SECRET_KEY || process.env.PAYMONGO_SECRET_KEY || "";
+    ? record.secrets.liveSecretKey || ""
+    : record.secrets.testSecretKey || "";
 }
 
-function configuredMode() {
-  return String(process.env.PAYMONGO_MODE || "test").toLowerCase() === "live" ? "live" : "test";
-}
-
-function integrationEnabled() {
-  return runtimeEnabled ?? process.env.PAYMONGO_ENABLED !== "false";
-}
-
-function payMongoHeaders(secretKey = activeSecretKey()) {
-  if (!integrationEnabled()) {
+async function payMongoHeaders(secretKey) {
+  const record = await paymongoRecord();
+  if (!record.enabled) {
     const error = new Error(
       "PayMongo checkout is disabled in the Findra integrations dashboard.",
     );
     error.status = 503;
     throw error;
   }
-  if (!secretKey || !secretKey.startsWith("sk_")) {
+  const key = secretKey || secretFrom(record);
+  if (!key || !key.startsWith("sk_")) {
     const error = new Error(
-      "PayMongo is not configured. Add a secret sk_test_ or sk_live_ PAYMONGO_SECRET_KEY to the server environment.",
+      "PayMongo is not configured. Add test and live secret keys in Admin → Integrations.",
     );
     error.status = 503;
     throw error;
   }
   return {
-    Authorization: `Basic ${Buffer.from(`${secretKey}:`).toString("base64")}`,
+    Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}`,
     "Content-Type": "application/json",
     Accept: "application/json",
   };
 }
 
-function appBaseUrl(request) {
-  if (process.env.PAYMONGO_APP_URL)
-    return process.env.PAYMONGO_APP_URL.replace(/\/$/, "");
-  const forwardedProto = request.headers["x-forwarded-proto"];
-  const protocol = forwardedProto || "http";
-  return `${protocol}://${request.headers.host}`;
+async function appBaseUrl(request) {
+  const record = await paymongoRecord();
+  return publicAppUrl(request, record.settings?.appUrl);
 }
 
 async function payMongoRequest(path, options = {}, secretKey) {
   const response = await fetch(`${PAYMONGO_API}${path}`, {
     ...options,
-    headers: payMongoHeaders(secretKey),
+    headers: await payMongoHeaders(secretKey),
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -92,62 +92,92 @@ async function payMongoRequest(path, options = {}, secretKey) {
   return payload.data;
 }
 
-function integrationStatus() {
-  const secretKey = activeSecretKey();
+async function verifyPayMongoKey(secretKey) {
+  const response = await fetch(`${PAYMONGO_API}/webhooks`, {
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${secretKey}:`).toString("base64")}`,
+      Accept: "application/json",
+    },
+  });
+  if (response.status === 401 || response.status === 403) {
+    const error = new Error("PayMongo rejected this secret key.");
+    error.status = 401;
+    throw error;
+  }
+  return true;
+}
+
+async function integrationStatus() {
+  const record = await paymongoRecord();
+  const secretKey = secretFrom(record);
   const configured = /^sk_(test|live)_/.test(secretKey);
-  const mode = configured ? configuredMode() : "not configured";
+  const mode = configured
+    ? record.settings?.mode === "live"
+      ? "live"
+      : "test"
+    : "not configured";
   return {
     configured,
-    connectedAt: runtimeConnectedAt,
-    enabled: configured && integrationEnabled(),
-    keyHint: configured
-      ? `${secretKey.slice(0, secretKey.indexOf("_", 3) + 1)}••••${secretKey.slice(-4)}`
-      : "",
+    connectedAt: record.connectedAt,
+    enabled: configured && record.enabled,
+    keyHint: configured ? hintFor("paymongo", { ...record.secrets, mode }) : "",
     mode,
-    paymentMethods: runtimePaymentMethods,
-    source: configured ? "server environment" : "not configured",
+    paymentMethods: configured ? VERIFIED_METHODS : [],
+    source: record.source,
+    appUrl: record.settings?.appUrl || "",
     availableModes: {
-      test: Boolean(process.env.PAYMONGO_TEST_SECRET_KEY),
-      live: Boolean(process.env.PAYMONGO_LIVE_SECRET_KEY),
+      test: Boolean(record.secrets.testSecretKey),
+      live: Boolean(record.secrets.liveSecretKey),
     },
   };
 }
 
-function paymentMethodNames(capabilities) {
-  const entries = Array.isArray(capabilities) ? capabilities : [];
-  return entries
-    .map(
-      (entry) =>
-        entry?.attributes?.payment_method ||
-        entry?.attributes?.name ||
-        entry?.id ||
-        "",
-    )
-    .filter(Boolean);
-}
-
 async function connectIntegration(request, response) {
-  return json(response, 410, { error: "PayMongo keys are managed securely through Render environment variables. Set PAYMONGO_MODE and the corresponding secret key, then redeploy." });
+  const body = await readJson(request);
+  const testSecretKey = String(body.testSecretKey || "").trim();
+  const liveSecretKey = String(body.liveSecretKey || "").trim();
+  const mode = body.mode === "live" ? "live" : "test";
+  const appUrl = String(body.appUrl || "").trim().replace(/\/$/, "");
+  const current = await paymongoRecord();
+  const nextTest = testSecretKey || current.secrets.testSecretKey || "";
+  const nextLive = liveSecretKey || current.secrets.liveSecretKey || "";
+  const activeKey = mode === "live" ? nextLive : nextTest;
+  if (!/^sk_(test|live)_/.test(activeKey)) {
+    return json(response, 400, {
+      error: `Enter a valid PayMongo ${mode} secret key beginning with sk_${mode}_.`,
+    });
+  }
+  if (testSecretKey && !testSecretKey.startsWith("sk_test_")) {
+    return json(response, 400, { error: "The test key must begin with sk_test_." });
+  }
+  if (liveSecretKey && !liveSecretKey.startsWith("sk_live_")) {
+    return json(response, 400, { error: "The live key must begin with sk_live_." });
+  }
+  await verifyPayMongoKey(activeKey);
+  await writeIntegration("paymongo", {
+    enabled: body.enabled !== false,
+    settings: { mode, appUrl },
+    secrets: {
+      testSecretKey: nextTest,
+      liveSecretKey: nextLive,
+    },
+    mergeSecrets: false,
+  });
+  return json(response, 200, await integrationStatus());
 }
 
 async function updateIntegration(request, response) {
   const body = await readJson(request);
   if (typeof body.enabled !== "boolean")
     return json(response, 400, { error: "An enabled state is required." });
-  if (body.enabled && !/^sk_(test|live)_/.test(activeSecretKey()))
+  const record = await paymongoRecord();
+  if (body.enabled && !/^sk_(test|live)_/.test(secretFrom(record)))
     return json(response, 409, {
       error:
         "Connect and verify a PayMongo secret key before enabling checkout.",
     });
-  runtimeEnabled = body.enabled;
-  return json(response, 200, integrationStatus());
-}
-
-async function requireAdmin(request, response) {
-  const user = await readSession(request);
-  if (user?.role === "admin") return true;
-  json(response, 403, { error: "Administrator access is required." });
-  return false;
+  await setIntegrationEnabled("paymongo", body.enabled);
+  return json(response, 200, await integrationStatus());
 }
 
 async function createCheckoutSession(request, response) {
@@ -171,7 +201,7 @@ async function createCheckoutSession(request, response) {
   const redirectPath = body.redirectPath === "/user" ? "/user" : "/add-listing";
   const listingId = body.listingId ? String(body.listingId).slice(0, 20) : "";
 
-  const baseUrl = appBaseUrl(request);
+  const baseUrl = await appBaseUrl(request);
   const referenceNumber = `FIN-${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 7)
@@ -267,7 +297,8 @@ export async function handlePayMongoRequest(request, response) {
       request.method === "GET" &&
       url.pathname === "/api/paymongo/integration"
     ) {
-      json(response, 200, integrationStatus());
+      if (!await requireAdmin(request, response)) return true;
+      json(response, 200, await integrationStatus());
       return true;
     }
     if (

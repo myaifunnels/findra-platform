@@ -275,6 +275,15 @@ CREATE TABLE IF NOT EXISTS support_message_replies (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS support_message_replies_message_id_idx ON support_message_replies(message_id, created_at ASC);
+
+CREATE TABLE IF NOT EXISTS integration_settings (
+  provider TEXT PRIMARY KEY,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+  secrets_enc TEXT,
+  connected_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 `;
 
 try {

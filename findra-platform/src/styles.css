@@ -9516,6 +9516,13 @@ th {
 .maps-integration-card header p { margin: 0; color: var(--surface-muted); font-size: 12px; }
 .maps-integration-card code { padding: 1px 4px; border-radius: 4px; background: rgba(16, 126, 67, 0.12); color: #087d3c; font-size: 10px; }
 .maps-integration-card > footer { display: flex; justify-content: flex-end; gap: 9px; margin-top: 16px; }
+.integration-inline-form { display: grid; gap: 14px; margin-top: 16px; }
+.integration-inline-form label small { display: block; margin-top: 6px; color: var(--surface-muted); font-size: 12px; line-height: 1.45; }
+.integration-inline-form footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+.r2-integration-section { margin-top: 20px; }
+.integrations-admin.embedded .brevo-integration-section,
+.integrations-admin.embedded .r2-integration-section,
+.integrations-admin.embedded .maps-integration-card { margin-top: 8px; }
 @media (max-width: 720px) { .settings-card-grid { grid-template-columns: 1fr; } .maps-integration-card > header { align-items: flex-start; flex-wrap: wrap; } .maps-integration-card .integration-status-pill { margin-left: 61px; } }
 
 @keyframes dashboard-enter {
