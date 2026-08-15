@@ -10040,11 +10040,17 @@ th {
 .contact-form-card form > label:not(.privacy-check) {
   display: grid;
   gap: 7px;
-  color: #344d43;
+  color: #1a3329;
   font-weight: 700;
   font-size: 14px;
 }
+.contact-field-label {
+  color: #163028;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+}
 .contact-form-card input,
+.contact-form-card select,
 .contact-form-card textarea {
   width: 100%;
   border: 1px solid #d6dfdb;
@@ -10055,6 +10061,20 @@ th {
   font:
     400 15px/1.5 Inter,
     sans-serif;
+}
+.contact-form-card input::placeholder,
+.contact-form-card textarea::placeholder {
+  color: #6b7f76;
+  opacity: 1;
+}
+.contact-phone-field {
+  display: grid;
+  grid-template-columns: minmax(148px, 0.9fr) minmax(0, 1.4fr);
+  gap: 10px;
+}
+.contact-phone-field select {
+  min-width: 0;
+  padding-right: 28px;
 }
 .privacy-check {
   display: flex;
@@ -10096,6 +10116,46 @@ th {
 .contact-success button {
   border: 0;
   background: transparent;
+  color: #087d3c;
+  font-weight: 750;
+}
+.contact-thanks-page {
+  width: min(720px, calc(100% - 40px));
+  margin: 60px auto 90px;
+}
+.contact-thanks-card {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 48px 36px;
+  border-radius: 12px;
+  background: #f2f4f7;
+  color: #1a3329;
+}
+.contact-thanks-card > svg {
+  font-size: 64px;
+  color: #0f9f52;
+}
+.contact-thanks-card h2 {
+  margin: 0;
+  font: 700 32px/1.2 "Lexend Deca", sans-serif;
+  color: #163028;
+}
+.contact-thanks-card p {
+  margin: 0;
+  max-width: 42ch;
+  color: #3d544b;
+  font-size: 16px;
+  line-height: 1.7;
+}
+.contact-thanks-actions {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+.contact-thanks-home {
   color: #087d3c;
   font-weight: 750;
 }
@@ -10903,11 +10963,35 @@ th {
 }
 [data-theme="dark"] .contact-intro h2,
 [data-theme="dark"] .faq-page h2,
-[data-theme="dark"] .contact-form-card > h3 {
-  color: #f0f7f3;
+[data-theme="dark"] .contact-form-card > h3,
+[data-theme="dark"] .contact-thanks-card h2 {
+  color: #f4fbf7;
 }
 [data-theme="dark"] .contact-intro > p {
-  color: #bdcec6;
+  color: #d5e6de;
+}
+[data-theme="dark"] .contact-form-card form > label:not(.privacy-check),
+[data-theme="dark"] .contact-field-label {
+  color: #f3faf6;
+}
+[data-theme="dark"] .privacy-check {
+  color: #d2e3db;
+}
+[data-theme="dark"] .privacy-check a,
+[data-theme="dark"] .contact-thanks-home {
+  color: #7ee0a8;
+}
+[data-theme="dark"] .contact-form-card input::placeholder,
+[data-theme="dark"] .contact-form-card textarea::placeholder {
+  color: #9bb0a6;
+}
+[data-theme="dark"] .contact-thanks-card {
+  background: var(--glass);
+  color: var(--surface-text);
+  border: 1px solid var(--glass-line);
+}
+[data-theme="dark"] .contact-thanks-card p {
+  color: #d5e6de;
 }
 [data-theme="dark"] .contact-form-card,
 [data-theme="dark"] .faq-list article,
@@ -11025,6 +11109,15 @@ th {
     gap: 44px;
     margin-top: 48px;
     text-align: center;
+  }
+  .contact-phone-field {
+    grid-template-columns: minmax(132px, 0.95fr) minmax(0, 1.35fr);
+  }
+  .contact-thanks-card {
+    padding: 36px 22px;
+  }
+  .contact-thanks-card h2 {
+    font-size: 26px;
   }
   .contact-intro h2 {
     font-size: 28px;

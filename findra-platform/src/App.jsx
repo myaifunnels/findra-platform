@@ -1897,11 +1897,73 @@ function AboutPage({ go }) {
   );
 }
 
+const contactDialCodes = [
+  { iso: "PH", name: "Philippines", dial: "+63", flag: "🇵🇭", placeholder: "917 123 4567" },
+  { iso: "AU", name: "Australia", dial: "+61", flag: "🇦🇺", placeholder: "412 345 678" },
+  { iso: "BH", name: "Bahrain", dial: "+973", flag: "🇧🇭", placeholder: "3312 3456" },
+  { iso: "BN", name: "Brunei", dial: "+673", flag: "🇧🇳", placeholder: "712 3456" },
+  { iso: "CA", name: "Canada", dial: "+1", flag: "🇨🇦", placeholder: "416 555 0123" },
+  { iso: "CN", name: "China", dial: "+86", flag: "🇨🇳", placeholder: "138 0013 8000" },
+  { iso: "FR", name: "France", dial: "+33", flag: "🇫🇷", placeholder: "6 12 34 56 78" },
+  { iso: "DE", name: "Germany", dial: "+49", flag: "🇩🇪", placeholder: "151 23456789" },
+  { iso: "HK", name: "Hong Kong", dial: "+852", flag: "🇭🇰", placeholder: "5123 4567" },
+  { iso: "IN", name: "India", dial: "+91", flag: "🇮🇳", placeholder: "98765 43210" },
+  { iso: "ID", name: "Indonesia", dial: "+62", flag: "🇮🇩", placeholder: "812 3456 7890" },
+  { iso: "IT", name: "Italy", dial: "+39", flag: "🇮🇹", placeholder: "312 345 6789" },
+  { iso: "JP", name: "Japan", dial: "+81", flag: "🇯🇵", placeholder: "90 1234 5678" },
+  { iso: "KW", name: "Kuwait", dial: "+965", flag: "🇰🇼", placeholder: "5000 1234" },
+  { iso: "MY", name: "Malaysia", dial: "+60", flag: "🇲🇾", placeholder: "12 345 6789" },
+  { iso: "NZ", name: "New Zealand", dial: "+64", flag: "🇳🇿", placeholder: "21 123 4567" },
+  { iso: "OM", name: "Oman", dial: "+968", flag: "🇴🇲", placeholder: "9212 3456" },
+  { iso: "QA", name: "Qatar", dial: "+974", flag: "🇶🇦", placeholder: "3312 3456" },
+  { iso: "SA", name: "Saudi Arabia", dial: "+966", flag: "🇸🇦", placeholder: "50 123 4567" },
+  { iso: "SG", name: "Singapore", dial: "+65", flag: "🇸🇬", placeholder: "8123 4567" },
+  { iso: "KR", name: "South Korea", dial: "+82", flag: "🇰🇷", placeholder: "10 1234 5678" },
+  { iso: "ES", name: "Spain", dial: "+34", flag: "🇪🇸", placeholder: "612 34 56 78" },
+  { iso: "TW", name: "Taiwan", dial: "+886", flag: "🇹🇼", placeholder: "912 345 678" },
+  { iso: "TH", name: "Thailand", dial: "+66", flag: "🇹🇭", placeholder: "81 234 5678" },
+  { iso: "AE", name: "United Arab Emirates", dial: "+971", flag: "🇦🇪", placeholder: "50 123 4567" },
+  { iso: "GB", name: "United Kingdom", dial: "+44", flag: "🇬🇧", placeholder: "7400 123456" },
+  { iso: "US", name: "United States", dial: "+1", flag: "🇺🇸", placeholder: "201 555 0123" },
+  { iso: "VN", name: "Vietnam", dial: "+84", flag: "🇻🇳", placeholder: "91 234 56 78" },
+];
+
+function formatContactPhone(dial, localNumber) {
+  const digits = String(localNumber || "").replace(/[^\d]/g, "");
+  if (!digits) return "";
+  return `${dial} ${digits}`.trim();
+}
+
+function ContactThanksPage({ go }) {
+  return (
+    <PublicLayout go={go}>
+      <InfoPageHero title="THANK YOU" image="/assets/contact-banner.jpg" />
+      <main className="contact-thanks-page">
+        <section className="contact-thanks-card">
+          <CheckCircle weight="fill" />
+          <h2>Message received</h2>
+          <p>
+            Thank you for reaching out. The Findra team will get back to you as soon as possible.
+          </p>
+          <div className="contact-thanks-actions">
+            <GreenButton type="button" onClick={() => go("/contact")}>
+              Send another message
+            </GreenButton>
+            <Link to="/" go={go} className="contact-thanks-home">
+              Back to home
+            </Link>
+          </div>
+        </section>
+      </main>
+    </PublicLayout>
+  );
+}
+
 function ContactPage({ go }) {
-  const [sent, setSent] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", phoneCountry: "PH", message: "" });
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const selectedCountry = contactDialCodes.find((item) => item.iso === form.phoneCountry) || contactDialCodes[0];
   const setField = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
   return (
     <PublicLayout go={go}>
@@ -1914,72 +1976,87 @@ function ContactPage({ go }) {
         </section>
         <section className="contact-form-card">
           <h3>Send a message</h3>
-          {sent ? (
-            <div className="contact-success">
-              <CheckCircle weight="fill" />
-              <h3>Message ready</h3>
-              <p>
-                Thanks for reaching out. The Findra team will get back to you
-                soon.
-              </p>
-              <button onClick={() => setSent(false)}>
-                Send another message
-              </button>
-            </div>
-          ) : (
-            <form
-              onSubmit={async (event) => {
-                event.preventDefault();
-                setSending(true);
-                setError("");
-                try {
-                  const response = await fetch("/api/inquiries", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(form),
-                  });
-                  const payload = await response.json().catch(() => ({}));
-                  if (!response.ok) throw new Error(payload.error || "Your message could not be sent.");
-                  setSent(true);
-                  setForm({ name: "", email: "", phone: "", message: "" });
-                } catch (requestError) {
-                  setError(requestError.message);
-                } finally {
-                  setSending(false);
-                }
-              }}
-            >
-              <label>
-                Name *<input required aria-label="Name" value={form.name} onChange={setField("name")} />
-              </label>
-              <label>
-                Email *<input required type="email" aria-label="Email" value={form.email} onChange={setField("email")} />
-              </label>
-              <label>
-                Phone
-                <input type="tel" aria-label="Phone" value={form.phone} onChange={setField("phone")} />
-              </label>
-              <label>
-                Message *<textarea required rows="6" aria-label="Message" value={form.message} onChange={setField("message")} />
-              </label>
-              <label className="privacy-check">
-                <input required type="checkbox" />
-                <span>
-                  I have read and agree to the{" "}
-                  <Link to="/legal#privacy-policy" go={go}>
-                    Privacy Policy
-                  </Link>{" "}
-                  and{" "}
-                  <Link to="/legal#terms-of-use" go={go}>
-                    Terms of Use
-                  </Link>
-                  .
-                </span>
-              </label>
-              {error && <p className="inquiry-form-error">{error}</p>}
-              <GreenButton type="submit" disabled={sending}>{sending ? "Sending…" : "Send"}</GreenButton>
-            </form>
-          )}
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setSending(true);
+              setError("");
+              try {
+                const response = await fetch("/api/inquiries", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    name: form.name,
+                    email: form.email,
+                    phone: formatContactPhone(selectedCountry.dial, form.phone),
+                    message: form.message,
+                  }),
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(payload.error || "Your message could not be sent.");
+                setForm({ name: "", email: "", phone: "", phoneCountry: "PH", message: "" });
+                go("/contact/thank-you");
+              } catch (requestError) {
+                setError(requestError.message);
+              } finally {
+                setSending(false);
+              }
+            }}
+          >
+            <label>
+              <span className="contact-field-label">Name *</span>
+              <input required aria-label="Name" placeholder="Juan Dela Cruz" autoComplete="name" value={form.name} onChange={setField("name")} />
+            </label>
+            <label>
+              <span className="contact-field-label">Email *</span>
+              <input required type="email" aria-label="Email" placeholder="you@email.com" autoComplete="email" value={form.email} onChange={setField("email")} />
+            </label>
+            <label>
+              <span className="contact-field-label">Phone</span>
+              <div className="contact-phone-field">
+                <select
+                  aria-label="Country code"
+                  value={form.phoneCountry}
+                  onChange={setField("phoneCountry")}
+                >
+                  {contactDialCodes.map((item) => (
+                    <option key={item.iso} value={item.iso}>
+                      {item.flag} {item.dial} {item.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  aria-label="Phone"
+                  placeholder={selectedCountry.placeholder}
+                  autoComplete="tel-national"
+                  value={form.phone}
+                  onChange={setField("phone")}
+                />
+              </div>
+            </label>
+            <label>
+              <span className="contact-field-label">Message *</span>
+              <textarea required rows="6" aria-label="Message" placeholder="Tell us how we can help" value={form.message} onChange={setField("message")} />
+            </label>
+            <label className="privacy-check">
+              <input required type="checkbox" />
+              <span>
+                I have read and agree to the{" "}
+                <Link to="/legal#privacy-policy" go={go}>
+                  Privacy Policy
+                </Link>{" "}
+                and{" "}
+                <Link to="/legal#terms-of-use" go={go}>
+                  Terms of Use
+                </Link>
+                .
+              </span>
+            </label>
+            {error && <p className="inquiry-form-error">{error}</p>}
+            <GreenButton type="submit" disabled={sending}>{sending ? "Sending…" : "Send"}</GreenButton>
+          </form>
         </section>
       </main>
     </PublicLayout>
@@ -7610,6 +7687,7 @@ export function App() {
     page = <ListingsPage go={go} listings={listings} />;
   else if (path.startsWith("/about")) page = <AboutPage go={go} />;
   else if (path.startsWith("/packages")) page = <PackagesPage go={go} />;
+  else if (path.startsWith("/contact/thank-you")) page = <ContactThanksPage go={go} />;
   else if (path.startsWith("/contact")) page = <ContactPage go={go} />;
   else if (path.startsWith("/faq")) page = <FAQPage go={go} />;
   else if (path.startsWith("/legal")) page = <LegalPage go={go} />;
