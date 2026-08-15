@@ -30,16 +30,16 @@ const mailSettingsKey = "findra-mail-settings-v1";
 const customFieldsKey = "findra-custom-fields-v1";
 
 const packageFeatures = [
-  "Complete public business profile",
-  "Categories and multiple services",
-  "Logo, featured image, gallery, and video",
-  "Customer inquiry and direct contact tools",
-  "Business-owner dashboard access",
+  "Dedicated Business Profile",
+  "Secure Business Dashboard",
+  "SEO-Optimized Business Page",
+  "Built-in Inquiry Form and Direct Contact Tools",
+  "Location-Based Search",
+  "Relevant Category Listing",
 ];
 const seedPackages = [
-  { id: 1, name: "Monthly", price: 799, interval: "Monthly", status: "Active", subscribers: 0, featured: false, features: packageFeatures },
-  { id: 2, name: "6 Months", price: 3995, interval: "6 Months", status: "Active", subscribers: 0, featured: false, features: packageFeatures },
-  { id: 3, name: "Annually", price: 7990, interval: "Annually", status: "Active", subscribers: 0, featured: true, features: packageFeatures },
+  { id: 1, name: "Early Bird", price: 4794, interval: "6 Months", status: "Active", subscribers: 0, featured: true, slotLimit: 30, features: packageFeatures },
+  { id: 2, name: "Basic", price: 5994, interval: "6 Months", status: "Active", subscribers: 0, featured: false, slotLimit: null, features: packageFeatures },
 ];
 
 const seedTaxonomy = {
@@ -538,14 +538,17 @@ export function UsersManagement({ query = "", onNotify }) {
 
 function PackageEditor({ item, close, save }) {
   const [form, setForm] = useState(
-    item || {
-      name: "",
-      price: 799,
-      interval: "Monthly",
-      status: "Active",
-      featured: false,
-      features: [],
-    },
+    item
+      ? { ...item, slotLimit: item.slotLimit ?? item.slot_limit ?? "" }
+      : {
+          name: "",
+          price: 799,
+          interval: "6 Months",
+          status: "Active",
+          featured: false,
+          slotLimit: "",
+          features: [],
+        },
   );
   const [features, setFeatures] = useState((form.features || []).join("\n"));
   const change = (key) => (event) =>
@@ -563,6 +566,7 @@ function PackageEditor({ item, close, save }) {
           save({
             ...form,
             price: Number(form.price),
+            slotLimit: form.slotLimit === "" || form.slotLimit == null ? null : Number(form.slotLimit),
             features: features
               .split("\n")
               .map((value) => value.trim())
@@ -598,8 +602,22 @@ function PackageEditor({ item, close, save }) {
               <option>Annually</option>
             </select>
             <small className="management-field-hint">
-              The public Packages page groups tiers by this exact label and
-              shows the savings versus the Monthly price.
+              Stored price is the amount charged at checkout. For a 6-month
+              lock-in, enter the 6-month total (₱799/month = 4794).
+            </small>
+          </label>
+          <label>
+            <span>Slot limit</span>
+            <input
+              min="0"
+              type="number"
+              value={form.slotLimit ?? form.slot_limit ?? ""}
+              onChange={change("slotLimit")}
+              placeholder="Unlimited"
+            />
+            <small className="management-field-hint">
+              Early Bird uses this to show remaining slots on the public
+              Packages page. Leave blank for unlimited.
             </small>
           </label>
           <label>
@@ -783,7 +801,12 @@ export function SubscriptionsManagement({ onNotify }) {
               <strong>₱{Number(item.price).toLocaleString()}</strong>
               <span>/ {item.interval.toLowerCase()}</span>
             </div>
-            <p>{item.subscribers} current subscribers</p>
+            <p>
+              {item.subscribers} current subscribers
+              {(item.slotLimit ?? item.slot_limit) != null
+                ? ` · ${item.slotsRemaining ?? Math.max(0, Number(item.slotLimit ?? item.slot_limit) - Number(item.subscribers || 0))} of ${item.slotLimit ?? item.slot_limit} slots remaining`
+                : ""}
+            </p>
             {item.features.length ? (
               <ul>
                 {item.features.map((feature) => (

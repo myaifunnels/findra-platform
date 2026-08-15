@@ -2068,6 +2068,19 @@ function ContactPage({ go }) {
 // against the Monthly package's price.
 const packageTierOrder = ["Monthly", "6 Months", "Annually"];
 const packageTierMonths = { Monthly: 1, "6 Months": 6, Annually: 12 };
+const listingPackageFeatures = [
+  "Dedicated Business Profile",
+  "Secure Business Dashboard",
+  "SEO-Optimized Business Page",
+  "Built-in Inquiry Form and Direct Contact Tools",
+  "Location-Based Search",
+  "Relevant Category Listing",
+];
+
+function packageMonthlyRate(item) {
+  const months = packageTierMonths[item?.interval] || 1;
+  return Math.round(Number(item?.price || 0) / months);
+}
 
 function PackagesPage({ go }) {
   const [packages, setPackages] = useState([]);
@@ -2094,13 +2107,8 @@ function PackagesPage({ go }) {
       })
       .catch(() => {});
   }, []);
-  const tiers = useMemo(() => {
-    const active = packages.filter((item) => item.status === "Active");
-    const preferred = ["Early Bird", "Basic"]
-      .map((name) => active.find((item) => item.name === name))
-      .filter(Boolean);
-    return preferred.length ? preferred : active.slice(0, 2);
-  }, [packages]);
+  const basic = packages.find((item) => item.name === "Basic" && item.status === "Active");
+  const earlyBird = packages.find((item) => item.name === "Early Bird" && item.status === "Active");
   const subscription = listing?.subscription?.status === "Active" ? listing.subscription : null;
   const goToBilling = () => {
     try {
@@ -2136,8 +2144,7 @@ function PackagesPage({ go }) {
           <h2>Choose the plan that fits your business.</h2>
           <p>
             You do not need an account to start. Complete your business
-            details first, then pick your billing duration and create or sign
-            in to your account right before secure checkout.
+            details first, then create or sign in right before secure checkout.
           </p>
         </section>
         {subscription && (
@@ -2145,80 +2152,94 @@ function PackagesPage({ go }) {
             <CheckCircle weight="fill" />
             <p>
               You’re currently on the <strong>{subscription.plan}</strong> plan.
-              Manage your billing duration from your account instead.
+              Manage your listing from your account instead.
             </p>
           </section>
         )}
         {loading ? (
           <section className="panel admin-empty"><p>Loading packages…</p></section>
+        ) : !basic && !earlyBird ? (
+          <section className="panel admin-empty"><p>Packages are being updated. Please check back shortly.</p></section>
         ) : (
           <section className="package-tier-grid two-tier">
-            <article className="package-tier-card featured">
-              <span className="package-tier-badge">Available now</span>
-              <span className="package-tier-name">{tiers.find((item) => item.name === "Basic")?.name || "Basic"}</span>
-              <h2>
-                ₱{Number(tiers.find((item) => item.name === "Basic")?.price || 0).toLocaleString()}
-                <small> / {String(tiers.find((item) => item.name === "Basic")?.interval || "Yearly").toLowerCase()}</small>
-              </h2>
-              <p className="package-tier-equivalent">
-                A complete Findra presence for customers who are ready to discover and contact your business.
-              </p>
-              <ul className="package-tier-features">
-                {(tiers.find((item) => item.name === "Basic")?.features?.length ? tiers.find((item) => item.name === "Basic").features : [
-                  "Dedicated Business Profile",
-                  "Secure Business Dashboard",
-                  "SEO-Optimized Business Page",
-                  "Built-in Inquiry Form and Direct Contact Tools",
-                  "Location-Based Search",
-                  "Relevant Category Listing",
-                ]).map((feature) => (
-                  <li key={feature}>
-                    <CheckCircle weight="fill" /> {feature}
-                  </li>
-                ))}
-              </ul>
-              {subscription ? (
-                <GreenButton onClick={goToBilling}>
-                  Manage in Billing <ArrowRight />
-                </GreenButton>
-              ) : (
-                <GreenButton onClick={() => startListing(tiers.find((item) => item.name === "Basic"))}>
-                  Start your listing
-                </GreenButton>
-              )}
-            </article>
-            <article className="package-tier-card">
-              <div>
-                <span className="package-tier-badge">Available now</span>
-                <span className="package-tier-name">{tiers.find((item) => item.name === "Early Bird")?.name || "Early Bird"}</span>
-                <h2>
-                  ₱{Number(tiers.find((item) => item.name === "Early Bird")?.price || 0).toLocaleString()}
-                  <small> / {String(tiers.find((item) => item.name === "Early Bird")?.interval || "Yearly").toLowerCase()}</small>
-                </h2>
-                <p className="package-tier-equivalent">
-                  Premium placement, priority support, and more — details
-                  coming soon.
-                </p>
-                <ul className="package-tier-features">
-                  {(tiers.find((item) => item.name === "Early Bird")?.features?.length ? tiers.find((item) => item.name === "Early Bird").features : ["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]).map((feature) => <li key={feature}><CheckCircle weight="fill" /> {feature}</li>)}
-                </ul>
-                {subscription ? <GreenButton onClick={goToBilling}>Manage in Billing <ArrowRight /></GreenButton> : <GreenButton onClick={() => startListing(tiers.find((item) => item.name === "Early Bird"))}>Choose Early Bird</GreenButton>}
-              </div>
-            </article>
+            {basic && (
+              <PackageListingCard
+                item={basic}
+                offer="Regular Pricing"
+                description="A complete Findra presence for customers who are ready to discover and contact your business."
+                subscription={subscription}
+                onBilling={goToBilling}
+                onStart={() => startListing(basic)}
+              />
+            )}
+            {earlyBird && (
+              <PackageListingCard
+                item={earlyBird}
+                featured
+                offer="Early Bird Offer"
+                description="Limited introductory pricing for the same complete Findra listing."
+                subscription={subscription}
+                onBilling={goToBilling}
+                onStart={() => startListing(earlyBird)}
+              />
+            )}
           </section>
         )}
         <section className="package-clarity-row">
           <article><ShieldCheck /><div><strong>Fill in your details first</strong><p>Your business details come first — no account needed to start.</p></div></article>
-          <article><CreditCard /><div><strong>Secure PayMongo checkout</strong><p>Choose your billing duration and pay only once your listing is ready.</p></div></article>
+          <article><CreditCard /><div><strong>Secure PayMongo checkout</strong><p>Pay your 6-month listing fee only once your listing is ready.</p></div></article>
           <article><CheckCircle /><div><strong>Reviewed before publishing</strong><p>Your paid listing enters Findra’s approval workflow before going live.</p></div></article>
         </section>
         <p className="packages-footnote">
-          No registration required to begin. Account creation and billing
-          duration selection happen right before checkout so your draft stays
-          protected.
+          No registration required to begin. Account creation happens right
+          before checkout so your draft stays protected.
         </p>
       </main>
     </PublicLayout>
+  );
+}
+
+function PackageListingCard({ item, featured = false, offer, description, subscription, onBilling, onStart }) {
+  const monthly = packageMonthlyRate(item);
+  const features = item.features?.length ? item.features : listingPackageFeatures;
+  const slotsRemaining = item.slotsRemaining;
+  const soldOut = slotsRemaining === 0;
+  return (
+    <article className={`package-tier-card ${featured ? "featured" : ""}`}>
+      <span className={`package-tier-badge ${soldOut ? "sold-out" : ""}`}>
+        {soldOut ? "Sold out" : "Available now"}
+      </span>
+      <span className="package-tier-name">
+        Basic — {offer}
+      </span>
+      <h2>
+        ₱{monthly.toLocaleString()}
+        <small> / month</small>
+      </h2>
+      <p className="package-tier-lock-in">(6 months locked in)</p>
+      {slotsRemaining != null && (
+        <p className="package-tier-slots">
+          {slotsRemaining} slot{slotsRemaining === 1 ? "" : "s"} remaining
+        </p>
+      )}
+      <p className="package-tier-equivalent">{description}</p>
+      <ul className="package-tier-features">
+        {features.map((feature) => (
+          <li key={feature}>
+            <CheckCircle weight="fill" /> {feature}
+          </li>
+        ))}
+      </ul>
+      {subscription ? (
+        <GreenButton onClick={onBilling}>
+          Manage in Billing <ArrowRight />
+        </GreenButton>
+      ) : (
+        <GreenButton onClick={onStart} disabled={soldOut}>
+          Create Business Profile
+        </GreenButton>
+      )}
+    </article>
   );
 }
 
@@ -2232,7 +2253,7 @@ const faqGroups = [
       ],
       [
         "Is there a cost to use the platform?",
-        "Using Findra as a buyer or seeker is free. Businesses pay ₱799/month for a Findra Business Listing, with discounted 6-month and annual billing cycles available. Anyone can review pricing before registering on the public Packages page.",
+        "Using Findra as a buyer or seeker is free. Businesses pay ₱999/month for a Findra Business Listing, or ₱799/month while Early Bird slots last. Both plans are locked in for 6 months. Anyone can review pricing before registering on the public Packages page.",
       ],
       [
         "Is my information secure?",
@@ -2270,11 +2291,11 @@ const faqGroups = [
     [
       [
         "How do I join and list my business?",
-        "Open the public Packages page to review the Findra Business Listing plan, then select Start your listing. You can complete the business details as a guest; Findra only asks you to create an account or sign in before checkout.",
+        "Open the public Packages page to review Early Bird and Regular pricing, then select Create Business Profile. You can complete the business details as a guest; Findra only asks you to create an account or sign in before checkout.",
       ],
       [
         "Is there a fee to feature my business?",
-        "Yes. Findra currently offers one annual Business Listing package at ₱999. The price, inclusions, and renewal terms are visible on the public Packages page before you register or begin checkout.",
+        "Yes. Findra offers Early Bird and Regular Basic listing packages. Early Bird is ₱799/month and Regular Pricing is ₱999/month, both locked in for 6 months. Remaining Early Bird slots are shown on the public Packages page before you register or begin checkout.",
       ],
       [
         "How do I respond to buyer inquiries or RFQs?",
@@ -6227,7 +6248,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
             <div>
               <span>YOUR LISTING PACKAGE</span>
               <strong>Findra Basic Listing</strong>
-              <small>You can browse and fill in your listing as a guest. You'll pick your billing duration as the last step, and creating an account is required before you can upload media.</small>
+              <small>You can browse and fill in your listing as a guest. Your selected package is saved, and creating an account is required before you can upload media or check out.</small>
             </div>
             <button type="button" onClick={onViewPackage}>View package details</button>
           </div>
@@ -6981,9 +7002,12 @@ function GuestAccountGate({ draft, go, createAccount, onReady }) {
 }
 
 const findraPlan = {
-  name: "Monthly",
-  amount: 799,
-  billing: "Monthly",
+  name: "Early Bird",
+  amount: 4794,
+  price: 4794,
+  billing: "6 Months",
+  interval: "6 Months",
+  features: listingPackageFeatures,
 };
 
 function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan }) {
@@ -7211,14 +7235,7 @@ function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan })
           </div>
           <h2>{plan.name}</h2>
           <ul>
-            {(plan.features?.length ? plan.features : [
-              "Dedicated Business Profile",
-              "Secure Business Dashboard",
-              "SEO-Optimized Business Page",
-              "Built-in Inquiry Form and Direct Contact Tools",
-              "Location-Based Search",
-              "Relevant Category Listing",
-            ]).map((feature) => <li key={feature}><Check /> {feature}</li>)}
+            {(plan.features?.length ? plan.features : listingPackageFeatures).map((feature) => <li key={feature}><Check /> {feature}</li>)}
           </ul>
           <dl>
             <div>
@@ -7270,11 +7287,16 @@ function GuestListingPage({ go, session, complete, createAccount }) {
       .then((payload) => {
         const packages = payload?.packages || [];
         if (!packages.length) return;
-        setPlanTiers(packages);
+        const listingPlans = packages.filter((item) => item.name === "Early Bird" || item.name === "Basic");
+        const pool = listingPlans.length ? listingPlans : packages;
+        setPlanTiers(pool);
         const selectedId = Number(sessionStorage.getItem("findra-selected-package-id"));
-        const active = packages.find((item) => item.id === selectedId)
-          || packages.find((item) => item.featured)
-          || packages[0];
+        const selected = pool.find((item) => item.id === selectedId);
+        const available = pool.filter((item) => item.slotsRemaining !== 0);
+        const active = (selected && selected.slotsRemaining !== 0 ? selected : null)
+          || available.find((item) => item.featured)
+          || available[0]
+          || pool[0];
         const nextPlan = { ...active, amount: active.price, billing: active.interval };
         Object.assign(findraPlan, nextPlan);
         setPlan(nextPlan);

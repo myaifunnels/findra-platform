@@ -12,7 +12,25 @@ async function body(request) {
   for await (const chunk of request) text += chunk;
   return text ? JSON.parse(text) : {};
 }
-function record(row) { return { ...row, id: Number(row.id), price: Number(row.price), features: row.features || [], subscribers: Number(row.subscribers || 0) }; }
+function record(row) {
+  const subscribers = Number(row.subscribers || 0);
+  const slotLimit = row.slot_limit == null || row.slot_limit === "" ? null : Number(row.slot_limit);
+  return {
+    ...row,
+    id: Number(row.id),
+    price: Number(row.price),
+    features: row.features || [],
+    subscribers,
+    slotLimit,
+    slotsRemaining: slotLimit == null || Number.isNaN(slotLimit) ? null : Math.max(0, slotLimit - subscribers),
+  };
+}
+function slotLimitValue(item) {
+  const value = item?.slotLimit ?? item?.slot_limit;
+  if (value === "" || value == null) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 async function requireAdmin(request) {
   const user = await readSession(request);
   if (!user || user.role !== "admin") { const error = new Error("Administrator access is required."); error.status = 403; throw error; }
@@ -55,13 +73,13 @@ export async function handlePackagesRequest(request, response) {
     }
     if (request.method === "POST" && url.pathname === "/api/packages") {
       await requireAdmin(request); const item = await body(request);
-      const result = await query("INSERT INTO packages (name, price, interval, status, featured, features) VALUES ($1,$2,$3,$4,$5,$6::jsonb) RETURNING *", [String(item.name || "").trim(), Number(item.price), item.interval || "Monthly", item.status || "Active", Boolean(item.featured), JSON.stringify(item.features || [])]);
+      const result = await query("INSERT INTO packages (name, price, interval, status, featured, features, slot_limit) VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7) RETURNING *", [String(item.name || "").trim(), Number(item.price), item.interval || "Monthly", item.status || "Active", Boolean(item.featured), JSON.stringify(item.features || []), slotLimitValue(item)]);
       return json(response, 201, { package: record({ ...result.rows[0], subscribers: 0 }) }), true;
     }
     const match = url.pathname.match(/^\/api\/packages\/(\d+)$/);
     if (request.method === "PATCH" && match) {
       await requireAdmin(request); const item = await body(request);
-      const result = await query("UPDATE packages SET name=$1, price=$2, interval=$3, status=$4, featured=$5, features=$6::jsonb, updated_at=NOW() WHERE id=$7 RETURNING *", [String(item.name || "").trim(), Number(item.price), item.interval || "Monthly", item.status || "Active", Boolean(item.featured), JSON.stringify(item.features || []), match[1]]);
+      const result = await query("UPDATE packages SET name=$1, price=$2, interval=$3, status=$4, featured=$5, features=$6::jsonb, slot_limit=$7, updated_at=NOW() WHERE id=$8 RETURNING *", [String(item.name || "").trim(), Number(item.price), item.interval || "Monthly", item.status || "Active", Boolean(item.featured), JSON.stringify(item.features || []), slotLimitValue(item), match[1]]);
       if (!result.rows[0]) return json(response, 404, { error: "Package not found." }), true;
       const subs = await query("SELECT COUNT(*)::int AS count FROM listings WHERE data->'subscription'->>'plan' = $1", [result.rows[0].name]);
       return json(response, 200, { package: record({ ...result.rows[0], subscribers: subs.rows[0].count }) }), true;
