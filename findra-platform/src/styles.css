@@ -706,10 +706,13 @@ footer {
   padding: 40px max(5vw, 60px);
 }
 .footer-brand {
-  width: 150px;
+  width: 190px;
   background: transparent;
   border-radius: 0;
   padding: 0;
+}
+.footer-brand img {
+  filter: brightness(0) invert(1);
 }
 .footer-main h4 {
   font-size: 18px;
@@ -10886,7 +10889,7 @@ th {
   display: block !important;
 }
 .footer-brand {
-  width: 150px;
+  width: 190px;
   background: transparent;
   border-radius: 0;
   padding: 0;

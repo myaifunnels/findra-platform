@@ -10,6 +10,7 @@ When implementing from a selected generated mock, treat that image as the source
 
 - Support both light and dark appearance modes throughout the public site and dashboards, and persist the visitor's selection locally.
 - In dark mode, use the client-provided `public/assets/findra-logo-dark-provided.png` logo asset.
+- On the green public footer, render the Findra wordmark in white (high contrast against the footer background), matching the old website.
 - Use clearly differentiated, high-contrast backgrounds for multi-step progress bars in both light and dark modes.
 - On desktop, listing creation and editing use a form-left, live-preview-right workspace; on mobile, provide an explicit Edit details / Live preview toggle.
 - Payment credentials are configured from the admin Integrations workspace, remain server-side, and are never returned unmasked to the browser.
