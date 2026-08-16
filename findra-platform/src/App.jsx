@@ -2249,11 +2249,14 @@ const faqGroups = [
     [
       [
         "What is Findra?",
-        "Findra is an online platform that connects businesses looking for reliable suppliers with verified vendors across various industries. Our goal is to make sourcing faster, easier, and more transparent.",
+        [
+          "Findra is an online platform that connects businesses looking for reliable suppliers.",
+          "With vendors across various industries, our goal is to make sourcing faster, easier, and more transparent.",
+        ],
       ],
       [
         "Is there a cost to use the platform?",
-        "Using Findra as a buyer or seeker is free. Businesses pay ₱999/month for a Findra Business Listing, or ₱799/month while Early Bird slots last. Both plans are locked in for 6 months. Anyone can review pricing before registering on the public Packages page.",
+        "Using Findra as a buyer or seeker is free. Businesses pay ₱999/month for a Findra Business Listing, or ₱799/month while Early Bird slots last. Both plans are locked in for 6 months.",
       ],
       [
         "Is my information secure?",
@@ -2274,11 +2277,14 @@ const faqGroups = [
       ],
       [
         "Are suppliers verified?",
-        "All listed suppliers undergo an approval and screening process. Buyers should still conduct their own due diligence before entering into any agreement.",
+        [
+          "We review businesses before they are listed on our platform, including checking publicly available information and looking for significant concerns or negative customer feedback. While our review is not a guarantee, it is intended to help maintain a more trustworthy selection of businesses on the platform.",
+          "We encourage customers to do their own research and due diligence before making a purchase or entering into an agreement.",
+        ],
       ],
       [
-        "What if I have issues with a supplier?",
-        "We encourage both parties to resolve issues directly. For fraud, unresponsiveness, or serious concerns, contact our support team and we’ll review the situation promptly.",
+        "What if I have an issue with a supplier?",
+        "If you have a serious concern about a business listed on Findra, you can contact our support team. We’ll review the concern and, where appropriate, may remove the business from the platform. We do not mediate or resolve disputes between customers and businesses.",
       ],
       [
         "Can I leave reviews for suppliers?",
@@ -2291,27 +2297,76 @@ const faqGroups = [
     [
       [
         "How do I join and list my business?",
-        "Open the public Packages page to review Early Bird and Regular pricing, then select Create Business Profile. You can complete the business details as a guest; Findra only asks you to create an account or sign in before checkout.",
+        "Open the Packages page to review Early Bird and Regular pricing, then select Create Business Profile. Once submitted, your details will be carefully reviewed to ensure completeness and legitimacy before your profile goes live on the platform. You will be notified of any updates or approval status via your registered email address.",
       ],
       [
         "Is there a fee to feature my business?",
         "Yes. Findra offers Early Bird and Regular Basic listing packages. Early Bird is ₱799/month and Regular Pricing is ₱999/month, both locked in for 6 months. Remaining Early Bird slots are shown on the public Packages page before you register or begin checkout.",
       ],
       [
-        "How do I respond to buyer inquiries or RFQs?",
+        "How do I respond to buyer inquiries and RFQs?",
         "You’ll receive an email notification when a buyer sends an inquiry. You can respond on the platform and send quotations or proposals.",
       ],
       [
-        "Can I update my profile or product listings later?",
-        "Yes. You can edit your business profile, add products, and update details from your dashboard. Revisions are reviewed before they go live.",
+        "Can I update my business profile later?",
+        "Yes. You can update your business profile and request changes to your listed services and other details from your dashboard. Changes are subject to review before they go live and must remain within the limits of your selected package.",
       ],
       [
         "How can I improve my visibility on the platform?",
-        "Complete your profile, respond promptly, maintain strong buyer ratings, share your listing on your own channels, and encourage trusted businesses to join Findra.",
+        [
+          "To maximize your visibility, we recommend:",
+          {
+            list: [
+              [
+                "Completing your profile",
+                "include your logo, product images, portfolio, and all requested details.",
+              ],
+              [
+                "Responding to inquiries promptly",
+                "quick responses build trust and improve your chances of securing orders.",
+              ],
+              [
+                "Maintaining strong buyer ratings",
+                "high ratings enhance credibility and attract more buyers.",
+              ],
+              [
+                "Sharing your profile",
+                "promote your listing on your website and social media pages.",
+              ],
+              [
+                "Encouraging others to join",
+                "referring fellow businesses helps grow the platform and boosts engagement.",
+              ],
+            ],
+          },
+          "Word of mouth is a powerful tool, and actively promoting your profile can significantly increase your reach.",
+        ],
       ],
     ],
   ],
 ];
+
+function FaqAnswer({ answer }) {
+  const blocks = Array.isArray(answer) ? answer : [answer];
+  return (
+    <div className="faq-answer">
+      {blocks.map((block, index) => {
+        if (typeof block === "string") {
+          return <p key={index}>{block}</p>;
+        }
+        return (
+          <ol key={index}>
+            {block.list.map(([title, detail]) => (
+              <li key={title}>
+                <strong>{title}</strong> – {detail}
+              </li>
+            ))}
+          </ol>
+        );
+      })}
+    </div>
+  );
+}
 
 function FAQPage({ go }) {
   const [open, setOpen] = useState(() =>
@@ -2345,7 +2400,7 @@ function FAQPage({ go }) {
                     <span>{open[question] ? "−" : "+"}</span>
                     {question}
                   </button>
-                  {open[question] && <p>{answer}</p>}
+                  {open[question] && <FaqAnswer answer={answer} />}
                 </article>
               ))}
             </div>
