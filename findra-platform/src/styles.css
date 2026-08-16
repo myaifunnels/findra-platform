@@ -10606,12 +10606,26 @@ th {
   background: #0e9e4c;
   color: #fff;
 }
-.faq-list article p {
-  margin: 0;
+.faq-list article .faq-answer {
   padding: 22px 28px;
   color: #42564f;
   font-size: 15px;
   line-height: 1.75;
+}
+.faq-list article .faq-answer p,
+.faq-list article .faq-answer ol {
+  margin: 0 0 14px;
+  padding: 0;
+}
+.faq-list article .faq-answer ol {
+  padding-left: 22px;
+}
+.faq-list article .faq-answer li + li {
+  margin-top: 8px;
+}
+.faq-list article .faq-answer p:last-child,
+.faq-list article .faq-answer ol:last-child {
+  margin-bottom: 0;
 }
 
 .legal-page {
@@ -11039,7 +11053,7 @@ th {
   border-color: var(--glass-line);
   color: var(--surface-text);
 }
-[data-theme="dark"] .faq-list article p,
+[data-theme="dark"] .faq-list article .faq-answer,
 [data-theme="dark"] .legal-page p,
 [data-theme="dark"] .legal-page strong {
   color: #d3e0da;
@@ -11179,7 +11193,7 @@ th {
   .faq-list button {
     font-size: 15px;
   }
-  .faq-list article p {
+  .faq-list article .faq-answer {
     padding: 20px;
     font-size: 15px;
   }
