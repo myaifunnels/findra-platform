@@ -2162,16 +2162,6 @@ function PackagesPage({ go }) {
           <section className="panel admin-empty"><p>Packages are being updated. Please check back shortly.</p></section>
         ) : (
           <section className="package-tier-grid two-tier">
-            {basic && (
-              <PackageListingCard
-                item={basic}
-                offer="Regular Pricing"
-                description="A complete Findra presence for customers who are ready to discover and contact your business."
-                subscription={subscription}
-                onBilling={goToBilling}
-                onStart={() => startListing(basic)}
-              />
-            )}
             {earlyBird && (
               <PackageListingCard
                 item={earlyBird}
@@ -2181,6 +2171,16 @@ function PackagesPage({ go }) {
                 subscription={subscription}
                 onBilling={goToBilling}
                 onStart={() => startListing(earlyBird)}
+              />
+            )}
+            {basic && (
+              <PackageListingCard
+                item={basic}
+                offer="Regular Pricing"
+                description="A complete Findra presence for customers who are ready to discover and contact your business."
+                subscription={subscription}
+                onBilling={goToBilling}
+                onStart={() => startListing(basic)}
               />
             )}
           </section>
