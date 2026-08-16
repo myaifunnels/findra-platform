@@ -1789,7 +1789,7 @@ function AboutPage({ go }) {
   const seekerSteps = [
     [MagnifyingGlass, "Search", "Find businesses that match your needs."],
     [ChartLineUp, "Evaluate", "Review services and key details to make an informed choice."],
-    [ChatCircleText, "Connect", "Connect to businesses that match your needs."],
+    [ChatCircleText, "Connect", "Connect with businesses that match your needs."],
   ];
   const businessSteps = [
     [
@@ -1830,8 +1830,8 @@ function AboutPage({ go }) {
         </section>
         <section className="about-image-card mission-card">
           <div>
-            <span className="info-kicker">CORE PURPOSE</span>
-            <h2>Why Findra exists</h2>
+            <span className="info-kicker">MISSION</span>
+            <h2>Core Purpose</h2>
             <p>To create a simpler, more effective way to discover and showcase businesses in the Philippines.</p>
             <FeatureRows items={aboutMission} />
           </div>
@@ -1847,12 +1847,14 @@ function AboutPage({ go }) {
             <FeatureRows items={aboutVision} />
           </div>
         </section>
-        <InfoCards
-          kicker="BRAND VALUES"
-          title="Guiding principles"
-          intro="We simplify business discovery by focusing on clarity, structure, and trust."
-          items={values}
-        />
+        <section className="about-image-card values-card">
+          <div>
+            <span className="info-kicker">BRAND VALUES</span>
+            <h2>Guiding principles</h2>
+            <p>We simplify business discovery by focusing on clarity, structure, and trust.</p>
+            <FeatureRows items={values} />
+          </div>
+        </section>
         <InfoCards
           kicker="HOW IT WORKS FOR SEEKERS"
           title="Find the right partners - fast"
@@ -1890,7 +1892,7 @@ function AboutPage({ go }) {
             </button>
           </form>
           {newsletterStatus && <p className={`newsletter-status ${newsletterStatus.type}`} role="status">{newsletterStatus.message}</p>}
-          <p className="newsletter-privacy">Your email is stored securely for Findra updates only. You can unsubscribe anytime.</p>
+          <p className="newsletter-privacy">Your email is stored in Findra for updates only. You can unsubscribe anytime.</p>
         </section>
       </main>
     </PublicLayout>
