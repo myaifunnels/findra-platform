@@ -440,6 +440,7 @@ a {
   font-size: 14px;
   line-height: 1.55;
   margin: 0 12px 20px;
+  text-align: justify;
   flex: 1;
 }
 .category-card .green-button {

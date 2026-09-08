@@ -1789,7 +1789,7 @@ function AboutPage({ go }) {
   const seekerSteps = [
     [MagnifyingGlass, "Search", "Find businesses that match your needs."],
     [ChartLineUp, "Evaluate", "Review services and key details to make an informed choice."],
-    [ChatCircleText, "Connect", "Connect to businesses that match your needs."],
+    [ChatCircleText, "Connect", "Connect with businesses that match your needs."],
   ];
   const businessSteps = [
     [
