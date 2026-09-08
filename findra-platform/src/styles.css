@@ -3106,6 +3106,73 @@ td {
   font-size: 9px;
   font-weight: 500;
 }
+.checkbox-field {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.checkbox-field input {
+  width: 16px;
+  height: 16px;
+  accent-color: #13a851;
+  flex: none;
+}
+.checkbox-field label {
+  font-size: 11px;
+  font-weight: 550;
+  color: #587069;
+}
+.service-entries-field > small {
+  display: block;
+  margin-bottom: 10px;
+  color: #587069;
+  font-size: 9px;
+  font-weight: 550;
+}
+.service-entries-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 14px;
+}
+.service-entries-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.service-entries-grid label > span {
+  font-size: 10px;
+  font-weight: 650;
+  color: #31444b;
+}
+.service-entries-grid label > small {
+  font-size: 9px;
+  font-weight: 550;
+  color: #869b93;
+  align-self: flex-end;
+}
+.operating-hours-field {
+  display: grid;
+  gap: 16px;
+  margin-top: 10px;
+}
+.operating-hours-group-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #31444b;
+}
+.operating-hours-group .form-grid.two label > span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 550;
+  color: #587069;
+}
 .map-check {
   margin: 14px 0;
   flex-direction: row !important;
@@ -3899,6 +3966,16 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
 }
 [data-theme="dark"] .multi-option-field > small {
   color: #acc0b7;
+}
+[data-theme="dark"] .checkbox-field label,
+[data-theme="dark"] .service-entries-field > small,
+[data-theme="dark"] .service-entries-grid label > small,
+[data-theme="dark"] .operating-hours-group .form-grid.two label > span {
+  color: #acc0b7;
+}
+[data-theme="dark"] .service-entries-grid label > span,
+[data-theme="dark"] .operating-hours-group-label {
+  color: #e7f1ec;
 }
 [data-theme="dark"] .multi-option-custom > .cancel-custom-value {
   border-color: #486056;

@@ -217,6 +217,7 @@ const blankListing = {
   views: 0,
   email: "",
   phone: "",
+  phonePublic: true,
   website: "",
   facebook: "",
   instagram: "",
@@ -1639,7 +1640,7 @@ function ListingDetail({ go, item }) {
               </form>
             )}
             <div className="contact-actions" aria-label="Business contact options">
-              {item.phone && (
+              {item.phone && item.phonePublic !== false && (
                 <a href={`tel:${item.phone}`}>
                   <Phone /> Call
                 </a>
@@ -2191,8 +2192,9 @@ function PackagesPage({ go }) {
           <article><CheckCircle /><div><strong>Reviewed before publishing</strong><p>Your paid listing enters Findra’s approval workflow before going live.</p></div></article>
         </section>
         <p className="packages-footnote">
-          No registration required to begin. Account creation happens right
-          before checkout so your draft stays protected.
+          You can start filling in your business details as a guest, but
+          creating your account early is what actually saves your draft —
+          uploading media or leaving before checkout requires an account.
         </p>
       </main>
     </PublicLayout>
@@ -5759,6 +5761,124 @@ function UploadBox({
   );
 }
 
+const OPERATING_HOURS_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const OPERATING_HOURS_TIMES = (() => {
+  const times = ["12:00 MN"];
+  for (let minutes = 30; minutes < 24 * 60; minutes += 30) {
+    const hour24 = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    const period = hour24 < 12 ? "AM" : "PM";
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    times.push(`${hour12}:${minute.toString().padStart(2, "0")} ${period}`);
+  }
+  return times;
+})();
+
+function parseOperatingHours(value) {
+  const match = /^(\w+)(?:–(\w+))? · ([\d: ]+(?:AM|PM|MN))–([\d: ]+(?:AM|PM|MN))$/.exec(value || "");
+  if (!match) return null;
+  const [, fromDay, toDay, fromTime, toTime] = match;
+  if (!OPERATING_HOURS_DAYS.includes(fromDay)) return null;
+  return { fromDay, toDay: toDay || fromDay, fromTime, toTime };
+}
+
+function OperatingHoursField({ value, onChange }) {
+  const parsed = parseOperatingHours(value) || {
+    fromDay: "Monday",
+    toDay: "Friday",
+    fromTime: "9:00 AM",
+    toTime: "6:00 PM",
+  };
+  const update = (patch) => {
+    const next = { ...parsed, ...patch };
+    onChange(
+      next.fromDay === next.toDay
+        ? `${next.fromDay} · ${next.fromTime}–${next.toTime}`
+        : `${next.fromDay}–${next.toDay} · ${next.fromTime}–${next.toTime}`,
+    );
+  };
+  return (
+    <div className="operating-hours-field">
+      <div className="operating-hours-group">
+        <span className="operating-hours-group-label">Days</span>
+        <div className="form-grid two">
+          <label>
+            <span>From</span>
+            <select value={parsed.fromDay} onChange={(event) => update({ fromDay: event.target.value })}>
+              {OPERATING_HOURS_DAYS.map((day) => (
+                <option key={day}>{day}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>To</span>
+            <select value={parsed.toDay} onChange={(event) => update({ toDay: event.target.value })}>
+              {OPERATING_HOURS_DAYS.map((day) => (
+                <option key={day}>{day}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+      <div className="operating-hours-group">
+        <span className="operating-hours-group-label">Time (PST)</span>
+        <div className="form-grid two">
+          <label>
+            <span>From</span>
+            <select value={parsed.fromTime} onChange={(event) => update({ fromTime: event.target.value })}>
+              {OPERATING_HOURS_TIMES.map((time) => (
+                <option key={time}>{time}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>To</span>
+            <select value={parsed.toTime} onChange={(event) => update({ toTime: event.target.value })}>
+              {OPERATING_HOURS_TIMES.map((time) => (
+                <option key={time}>{time}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ServiceEntriesField({ values = [], onChange, max = 5, maxLength = 25 }) {
+  // Slots hold their typed position locally (not re-derived from the
+  // compacted `values` prop on every keystroke) so an entry typed into
+  // "Service 3" doesn't jump up to "Service 1" while an earlier slot is
+  // still empty.
+  const [slots, setSlots] = useState(() => Array.from({ length: max }, (_, index) => values[index] || ""));
+  const setSlot = (index, value) => {
+    const next = [...slots];
+    next[index] = value.slice(0, maxLength);
+    setSlots(next);
+    onChange(next.map((entry) => entry.trim()).filter(Boolean));
+  };
+  return (
+    <div className="service-entries-field">
+      <small>Up to {max} entries, {maxLength} characters max each.</small>
+      <div className="service-entries-grid">
+        {slots.map((value, index) => (
+          <label key={index}>
+            <span>Service {index + 1}</span>
+            <input
+              value={value}
+              onChange={(event) => setSlot(index, event.target.value)}
+              maxLength={maxLength}
+              placeholder={`Service ${index + 1}`}
+              required={index === 0}
+            />
+            <small>{value.length}/{maxLength}</small>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MultiOptionField({
   label,
   options,
@@ -6103,10 +6223,13 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
     async (files) => {
       try {
       if (bucket === "attachments") {
-        const invalid = files.find((file) => file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf"));
-        const oversized = files.find((file) => file.size > 10 * 1024 * 1024);
-        if (invalid) throw new Error("Attachments must be a PDF company profile or brochure.");
-        if (oversized) throw new Error("Attachments must be 10 MB or smaller.");
+        const allowedExtensions = [".pdf", ".jpg", ".jpeg", ".png"];
+        const invalid = files.find(
+          (file) => !allowedExtensions.some((extension) => file.name.toLowerCase().endsWith(extension)),
+        );
+        const oversized = files.find((file) => file.size > 12 * 1024 * 1024);
+        if (invalid) throw new Error("Attachments must be a PDF, JPG, or PNG.");
+        if (oversized) throw new Error("Attachments must be 12 MB or smaller.");
       }
       const room = max ? Math.max(0, max - uploads[bucket].length) : files.length;
       if (max && room <= 0) {
@@ -6198,9 +6321,13 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+    if (!uploads.logo.length) {
+      setStepError("Add a business logo so customers can recognize your listing.");
+      return;
+    }
     if (!uploads.featured.length) {
       setStepError(
-        "Add a featured image so customers can recognize your listing.",
+        "Add a cover photo so customers can recognize your listing.",
       );
       return;
     }
@@ -6226,19 +6353,22 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
     });
     if (item.id && result !== false) sessionStorage.removeItem(draftKey);
   };
-  const steps = ["Business details", "Contact & location", "Media & review"];
+  const steps = ["Business Details", "Contact & Location", "Media & Attachments"];
   const stepCompletion = [
     [
       Boolean(form.name.trim()),
+      Boolean(form.tagline.trim()),
+      Boolean(form.owner.trim()),
       Boolean(form.description.trim()),
       Boolean(form.category.trim()),
       Boolean(form.service),
     ],
     [
       Boolean(form.email.trim() && form.email.includes("@")),
+      Boolean(form.phone.trim()),
       Boolean(form.location.trim()),
     ],
-    [Boolean(uploads.featured.length)],
+    [Boolean(uploads.logo.length), Boolean(uploads.featured.length)],
   ];
   const completedRequired = stepCompletion.flat().filter(Boolean).length;
   const totalRequired = stepCompletion.flat().length;
@@ -6337,11 +6467,6 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
             >
               <span>{index < step ? <Check /> : index + 1}</span>
               <strong>{label}</strong>
-              <small>
-                {stepCompletion[index].length
-                  ? `${stepCompletion[index].filter(Boolean).length}/${stepCompletion[index].length} required`
-                  : "Optional"}
-              </small>
               {index < steps.length - 1 && <i />}
             </button>
           ))}
@@ -6351,13 +6476,6 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
             STEP {step + 1} OF {steps.length}
           </span>
           <h2>{steps[step]}</h2>
-          <p>
-            {step === 0
-              ? "Tell people what your business does and how it should be discovered."
-              : step === 1
-                ? "Add the contact details and location customers will use to reach you."
-                : "Bring your profile to life, then review the information before continuing."}
-          </p>
         </div>
         {stepError && (
           <div className="listing-step-error" role="alert">
@@ -6399,31 +6517,34 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                       onChange={change("name")}
                       placeholder="Enter your registered business name"
                     />
+                    <small>The official name of the business.</small>
                   </label>
                   <div className="form-grid two profile-copy-fields">
                     <label>
-                      <FieldLabel>Listing Card Title (Optional)</FieldLabel>
+                      <FieldLabel>Display Name (Optional)</FieldLabel>
                       <input
                         value={form.cardTitle || ""}
                         onChange={change("cardTitle")}
                         maxLength="70"
-                        placeholder="The title customers see in directory cards"
+                        placeholder="The name that appears publicly on the website"
                       />
                       <small>{(form.cardTitle || "").length}/70 characters</small>
                     </label>
                     <label>
-                      <FieldLabel>Business Tagline (Optional)</FieldLabel>
+                      <FieldLabel required>Business Tagline</FieldLabel>
                       <input
+                        required
                         value={form.tagline}
                         onChange={change("tagline")}
-                        maxLength="90"
+                        maxLength="60"
                         placeholder="A short promise shown on your listing card and profile"
                       />
-                      <small>{form.tagline.length}/90 characters</small>
+                      <small>{form.tagline.length}/60 characters</small>
                     </label>
                     <label>
-                      <FieldLabel>Business Owner / Representative</FieldLabel>
+                      <FieldLabel required>Business Owner / Representative</FieldLabel>
                       <input
+                        required
                         value={form.owner}
                         onChange={change("owner")}
                         placeholder="Account holder or primary representative"
@@ -6460,13 +6581,13 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                     <textarea
                       required
                       rows="7"
-                      maxLength={200}
+                      maxLength={500}
                       value={form.description}
                       onChange={change("description")}
                       placeholder="Describe what your business offers, who you serve, and what makes you different"
                     />
                   </div>
-                  <small>{form.description.length}/200 characters</small>
+                  <small>{form.description.length}/500 characters</small>
                 </section>
                 <section className="form-block classification-block">
                   <SectionLabel>Business Classification</SectionLabel>
@@ -6495,10 +6616,10 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                     </label>
                     <MultiOptionField
                       label="Sub-Category"
-                      placeholder="Add a sub-category (optional)"
+                      placeholder="Add a sub-category"
                       customPlaceholder="Type one or more sub-categories, separated by commas"
                       options={[]}
-                      required={false}
+                      required
                       values={form.subCategories || []}
                       onChange={(values) =>
                         setForm((current) => ({
@@ -6508,28 +6629,25 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                         }))
                       }
                     />
-                    <MultiOptionField
-                      label="Business Services"
-                      placeholder="Choose a business service"
-                      customPlaceholder="Type one or more services, separated by commas"
-                      maxValues={3}
-                      maxLength={25}
-                      options={managedTaxonomy.services.map(
-                        (service) => service.name,
-                      )}
-                      values={[
-                        form.service,
-                        ...(form.additionalServices || []),
-                      ].filter(Boolean)}
-                      onChange={(values) =>
-                        setForm((current) => ({
-                          ...current,
-                          service: values[0] || "",
-                          additionalServices: values.slice(1),
-                        }))
-                      }
-                    />
                   </div>
+                </section>
+                <section className="form-block services-block">
+                  <SectionLabel>Business Services</SectionLabel>
+                  <ServiceEntriesField
+                    max={5}
+                    maxLength={25}
+                    values={[
+                      form.service,
+                      ...(form.additionalServices || []),
+                    ].filter(Boolean)}
+                    onChange={(values) =>
+                      setForm((current) => ({
+                        ...current,
+                        service: values[0] || "",
+                        additionalServices: values.slice(1),
+                      }))
+                    }
+                  />
                 </section>
                 <CustomListingFields
                   fields={managedCustomFields.filter((field) => field.section === "Business details")}
@@ -6554,13 +6672,25 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                       />
                     </label>
                     <label>
-                      <FieldLabel>Business Phone</FieldLabel>
+                      <FieldLabel required>Business Phone</FieldLabel>
                       <input
+                        required
                         type="tel"
                         value={form.phone}
                         onChange={change("phone")}
                         placeholder="+63 917 123 4567"
                       />
+                      <span className="checkbox-field">
+                        <input
+                          type="checkbox"
+                          id="phone-public-toggle"
+                          checked={form.phonePublic !== false}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, phonePublic: event.target.checked }))
+                          }
+                        />
+                        <label htmlFor="phone-public-toggle">Show this number publicly on my business profile</label>
+                      </span>
                     </label>
                   </div>
                 </section>
@@ -6585,7 +6715,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                   <small>Add only channels you actively monitor. We recommend a website, Facebook or Instagram, and one fast messaging channel such as WhatsApp or Viber.</small>
                 </section>
                 <section className="form-block address-block">
-                  <SectionLabel>Business Address</SectionLabel>
+                  <SectionLabel>Location & Hours</SectionLabel>
                   <label>
                     <FieldLabel required>Business Address</FieldLabel>
                     <GoogleAddressInput
@@ -6611,14 +6741,13 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                     latitude={form.latitude}
                     longitude={form.longitude}
                   />
-                  <label>
+                  <div>
                     <FieldLabel>Operating Hours</FieldLabel>
-                    <input
-                      value={form.operatingHours || ""}
-                      onChange={change("operatingHours")}
-                      placeholder="e.g. Mon–Fri 9:00 AM–6:00 PM, Sat 9:00 AM–1:00 PM"
+                    <OperatingHoursField
+                      value={form.operatingHours}
+                      onChange={(value) => setForm((current) => ({ ...current, operatingHours: value }))}
                     />
-                  </label>
+                  </div>
                 </section>
                 <CustomListingFields
                   fields={managedCustomFields.filter((field) => field.section === "Contact & location")}
@@ -6631,14 +6760,9 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
               <div className="listing-step-panel">
                 <section className="form-block media-block">
                   <SectionLabel>Business Media</SectionLabel>
-                  <p className="media-guidance">
-                    Add or replace the real media customers should see. Every
-                    saved logo, featured image, and gallery photo can be
-                    replaced or removed here before you save the listing.
-                  </p>
                   <div className="media-grid">
                     <UploadBox
-                      title="Business Logo"
+                      title="Business Logo *"
                       hint="Square JPG, PNG, or WebP, up to 12 MB. 500×500px or larger looks best."
                       files={uploads.logo}
                       onFiles={setFiles("logo")}
@@ -6646,7 +6770,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                       onReplace={replaceUpload("logo")}
                     />
                     <UploadBox
-                      title="Business Featured Image *"
+                      title="Business Cover Photo *"
                       hint="Landscape JPG, PNG, or WebP, up to 12 MB. 1200×630px or larger recommended."
                       files={uploads.featured}
                       onFiles={setFeatured}
@@ -6771,13 +6895,13 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                 <section className="form-block attachments-block">
                   <SectionLabel>Attachments</SectionLabel>
                   <p className="media-guidance">
-                    Add one company brochure or profile as a PDF (up to 10 MB).
+                    Add one company profile or brochure as a PDF, JPG, or PNG (up to 12 MB). Word documents (.doc/.docx) are not currently supported.
                   </p>
                   <UploadBox
                     title="Attachments"
                     hint="1 file only — PDF, JPG, or PNG, up to 12 MB. Suggested: your company profile or brochure. Word docs (.doc/.docx) are not accepted for upload yet."
                     wide
-                    accept=".pdf,application/pdf"
+                    accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
                     files={uploads.attachments.slice(0, 1)}
                     onFiles={setFiles("attachments", false, 1)}
                     onRemove={removeUpload("attachments")}
