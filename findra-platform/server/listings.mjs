@@ -30,7 +30,7 @@ async function readJson(request) {
   return body ? JSON.parse(body) : {};
 }
 
-function billingCycleDays(billing) {
+export function billingCycleDays(billing) {
   const label = String(billing || "").toLowerCase();
   if (label.includes("6")) return 183;
   if (label === "monthly") return 30;

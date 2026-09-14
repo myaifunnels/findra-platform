@@ -14,6 +14,8 @@ const copy = {
   "listing-pending-admin": ["New business listing needs review", "A business owner submitted a listing. Review its details and publish or decline it from the Findra admin workspace."],
   "inbox-message-admin": ["New Findra inbox message", "A business owner has sent a message to the Findra admin team."],
   "subscription-renewal": ["Your Findra PH subscription is expiring soon", "Renew your subscription to keep your Business Details live and visible to customers."],
+  "subscription-renewal-7": ["Your Findra Subscription Is Expiring Soon", "Your subscription is set to expire in 7 days. Renew to stay live on Findra."],
+  "subscription-renewal-1": ["Your Findra Subscription Expires Tomorrow", "Your subscription expires tomorrow. Renew to stay live on Findra."],
   "inquiry-reply": ["You have a reply to your Findra PH inquiry", "The business you contacted has responded to your inquiry. Check your email for their reply."],
   "inquiry-sent-guest": ["We received your inquiry on Findra PH", "Your message has been sent. The business will get back to you soon."],
   "inquiry-reply-sent-owner": ["Your reply was sent on Findra PH", "Your reply was delivered to the customer by email."],
@@ -28,7 +30,9 @@ const templateNames = {
   "inquiry-received": "New inquiry received",
   "listing-pending-admin": "New listing pending admin review",
   "inbox-message-admin": "New inbox message for admin",
-  "subscription-renewal": "Subscription renewal reminder",
+  "subscription-renewal": "Subscription renewal reminder (3 days)",
+  "subscription-renewal-7": "Subscription renewal reminder (7 days)",
+  "subscription-renewal-1": "Subscription renewal reminder (1 day)",
   "inquiry-reply": "Reply to customer inquiry",
   "inquiry-sent-guest": "Inquiry confirmation to guest",
   "inquiry-reply-sent-owner": "Reply confirmation to business owner",
@@ -80,6 +84,16 @@ Check your email for full details.`,
 {{daysLeft}} day(s) left on your {{businessName}} subscription.
 
 Renew soon to stay live on Findra PH.`,
+  "subscription-renewal-7": `Hi {{contactFirstName}},
+
+Your Findra subscription is set to expire on {{expirationDate}}.
+
+Renew soon to stay live.`,
+  "subscription-renewal-1": `Hi {{contactFirstName}},
+
+Your Findra subscription expires tomorrow, {{expirationDate}}.
+
+Renew now to stay live.`,
 };
 function json(res, status, body) { res.statusCode=status; res.setHeader("Content-Type","application/json"); res.end(JSON.stringify(body)); }
 async function readJson(request) {
@@ -93,30 +107,34 @@ async function readJson(request) {
 function defaultsFor(event) {
   const [subject, body] = copy[event] || ["Findra update", "There is a new update in your Findra account."];
   const clientSubjects = {
-    "new-user": "Welcome to Findra PH!",
+    "new-user": "Welcome to Findra — Registration Confirmed",
     "listing-submitted": "We’re Reviewing Your Business Details",
     "listing-approved": "Your Business Details are now live",
-    "listing-declined": "Action needed: Update your Business Details",
-    "subscription-started": "Your Findra PH subscription is now active",
-    "inquiry-received": "You have a new inquiry on Findra PH",
-    "listing-pending-admin": "New Business Details pending review",
+    "listing-declined": "Action Required — Updates Needed for Your Business Profile",
+    "subscription-started": "Payment Confirmed — Your Findra Subscription Is Active",
+    "inquiry-received": "New Customer Inquiry on Findra",
+    "listing-pending-admin": "New Business Profile Submitted for Review",
     "inbox-message-admin": "New Findra inbox message",
     "subscription-renewal": "{{daysLeft}} day(s) left on your Findra PH subscription",
+    "subscription-renewal-7": "Your Findra Subscription Is Expiring Soon",
+    "subscription-renewal-1": "Your Findra Subscription Expires Tomorrow",
     "inquiry-reply": "{{replyFrom}} replied to your inquiry on Findra PH",
     "inquiry-sent-guest": "We received your inquiry on Findra PH",
     "inquiry-reply-sent-owner": "Your reply was sent to {{contactFullName}}",
     "inbox-message-reply": "{{replyFrom}} replied to your Findra message",
   };
   const clientBodies = {
-    "new-user": `<p>Hi {{contactFirstName}},</p><p>Welcome to Findra PH!</p><p>We’re excited to have you on board. You’re officially registered, and your account is now active.</p><p>Here’s what you can do next:</p><ul><li>Complete your Business Details so customers can easily find and contact you.</li><li>Submit your Business Details for review and approval.</li><li>Manage your account and Business Details from your dashboard anytime.</li></ul><p><a href="{{dashboardUrl}}">Access your dashboard</a></p><p>Once your Business Details are submitted, our team will review them within 3–4 business days before they go live.</p><p>Welcome aboard,<br>The Findra PH Team</p>`,
-    "listing-submitted": `<p>Hi {{contactFirstName}},</p><p>Thanks for submitting <strong>{{businessName}}</strong> on Findra PH.</p><p>We’ve received your submission, and it’s now under review by our team.</p><p>Here’s what happens next:</p><ul><li>We’ll review your Business Details for accuracy and completeness.</li><li>Once approved, it will go live on the platform.</li><li>You’ll receive another email as soon as the review is completed.</li></ul><p><a href="{{dashboardUrl}}">Manage or update your Business Details</a></p><p>Thanks for choosing Findra PH,<br>The Findra PH Team</p>`,
+    "new-user": `<p>Hi {{contactFirstName}},</p><p>Welcome to Findra!</p><p>We’re excited to have you on board. Your registration is officially confirmed.</p><p><strong>Next step:</strong> Complete and submit your Business Profile through your dashboard for review and approval:</p><p><a href="{{dashboardUrl}}">Complete your Business Profile</a></p><p>Once your profile is approved, we’ll notify you and send the payment link for your chosen package. Your business will go live on Findra once payment is completed.</p><p>If you need help or have any questions, contact us at hello@findra.ph.</p><p>Welcome aboard!<br>The Findra Team</p>`,
+    "listing-submitted": `<p>Hi {{contactFirstName}},</p><p>Thanks for submitting your Business Profile on Findra!</p><p>We’ve received your submission, and it’s now under review by our team.</p><p>Here’s what happens next:</p><ul><li>We’ll review your Business Profile for accuracy and completeness.</li><li>We’ll get back to you within 3–5 working days once the review is completed.</li><li>Once approved, we’ll notify you and send the payment link for your chosen package.</li><li>Your business will go live on Findra once payment is completed.</li></ul><p>If you have any questions or need assistance, please contact us at hello@findra.ph.</p><p>Thanks for choosing Findra!<br>The Findra Team</p>`,
     "listing-approved": `<p>Hi {{contactFirstName}},</p><p>Great news — <strong>{{businessName}}</strong> has been approved and is now live on Findra PH!</p><p>Customers can now discover your business and send inquiries directly through the platform.</p><p>Here’s what you can do next:</p><ul><li>Review your Business Details to make sure everything looks accurate.</li><li>Keep your information updated to attract more customers.</li><li>Watch out for inquiries and respond promptly.</li></ul><p><a href="{{businessUrl}}">View your public business listing</a></p><p>We’re excited to support your growth!<br>The Findra PH Team</p>`,
-    "listing-declined": `<p>Hi {{contactFirstName}},</p><p>Thank you for submitting <strong>{{businessName}}</strong> to Findra PH.</p><p>After review, we’re unable to approve it just yet. A few updates are needed before your business can go live on the platform.</p><p>No worries — this is usually quick and easy to resolve.</p><p>What to do next:</p><ul><li>Log in to your dashboard.</li><li>Review and update your Business Details.</li><li>Resubmit once you’re done.</li></ul><p><a href="{{dashboardUrl}}">Update your Business Details</a></p><p>Regards,<br>The Findra PH Team</p>`,
-    "subscription-started": `<p>Hi {{contactFirstName}},</p><p>Your payment was successful — thank you.</p><p>Your Findra PH subscription is now active, and your Business Details will continue to stay visible on the platform.</p><p><a href="{{dashboardUrl}}">Manage your subscription and Business Details</a></p><p>Thank you for growing your business with Findra PH.<br>The Findra PH Team</p>`,
-    "inquiry-received": `<p>Hi {{contactFirstName}},</p><p>Good news! You’ve received a new inquiry from a potential customer on Findra PH.</p><p>Responding quickly can help turn inquiries into real business opportunities.</p><p><a href="{{dashboardUrl}}">View and reply to the message</a></p><p>Best regards,<br>The Findra PH Team</p>`,
-    "listing-pending-admin": `<p>Hi {{contactFirstName}},</p><p>A new business, <strong>{{businessName}}</strong>, has been submitted on Findra PH and is awaiting your review.</p><p>Please log in to the admin panel to review and approve or request changes.</p><p><a href="{{adminUrl}}">Review the business listing</a></p><p>Prompt review helps ensure a smooth onboarding experience for suppliers and keeps new businesses visible to customers quickly.</p><p>Regards,<br>Findra PH System</p>`,
+    "listing-declined": `<p>Hi {{contactFirstName}},</p><p>Thank you for submitting your Business Profile on Findra.</p><p>After reviewing your submission, we’re unable to approve your Business Profile at this time because some details need to be updated or clarified.</p><p><strong>What’s next?</strong> Please review the feedback below and make the necessary changes before resubmitting your Business Profile:</p><p><strong>Review Notes:</strong> {{reviewNotes}}</p><p>Once you’ve made the updates, you may resubmit your Business Profile for review. We’ll get back to you within 3–5 working days after your resubmission.</p><p>If you have any questions or need assistance, please contact us at hello@findra.ph.</p><p>Thank you for your understanding, and we look forward to having your business on Findra.<br>The Findra Team</p>`,
+    "subscription-started": `<p>Hi {{contactFirstName}},</p><p>Thank you! Your payment has been successfully received, and your Findra subscription is now active.</p><p>You can continue managing your Business Profile through your Findra account.</p><p><a href="{{dashboardUrl}}">Go to your Findra account</a></p><p>If you have any questions or need assistance, please contact us at hello@findra.ph.</p><p>Thank you for choosing Findra. We’re happy to have you with us!<br>The Findra Team</p>`,
+    "inquiry-received": `<p>Hi {{contactFirstName}},</p><p>Good news! You’ve received a new inquiry from a potential customer on Findra.</p><p>Responding promptly can help turn inquiries into valuable business opportunities.</p><p><a href="{{dashboardUrl}}">View and respond to the inquiry</a></p><p>To make the most of your Findra profile, make sure your business details and contact information are always up to date.</p><p>Thank you for being part of Findra!<br>The Findra Team</p>`,
+    "listing-pending-admin": `<p>Hi Admin,</p><p>A new Business Profile has been submitted on Findra and is awaiting your review.</p><p>Please log in to the admin panel to review the submission and approve it or request changes.</p><p><a href="{{adminUrl}}">Review the Business Profile</a></p><p>Prompt review helps ensure a smooth onboarding experience and allows approved businesses to go live on Findra sooner.</p><p>The Findra Team</p>`,
     "inbox-message-admin": `<p>Hi {{contactFirstName}},</p><p>You have received a new Findra inbox message: <strong>{{businessName}}</strong>.</p><p>Please review the message in the Findra admin workspace.</p><p>Regards,<br>Findra PH System</p>`,
     "subscription-renewal": `<p>Hi {{contactFirstName}},</p><p>Your <strong>{{businessName}}</strong> subscription on Findra PH has <strong>{{daysLeft}} day(s)</strong> left before it expires.</p><p>Renew now to keep your Business Details live and visible to customers without interruption.</p><p><a href="{{dashboardUrl}}">Manage your subscription</a></p><p>Thank you for growing with Findra PH,<br>The Findra PH Team</p>`,
+    "subscription-renewal-7": `<p>Hi {{contactFirstName}},</p><p>Just a reminder that your Findra subscription is set to expire on {{expirationDate}}.</p><p>To keep your Business Profile active on Findra, please renew your subscription before the expiration date through your Findra account.</p><p><a href="{{dashboardUrl}}">Renew Subscription</a></p><p>Once your renewal payment is successfully completed, your subscription will remain active.</p><p>If you need assistance, please contact us at hello@findra.ph.</p><p>Thank you for being part of Findra!<br>The Findra Team</p>`,
+    "subscription-renewal-1": `<p>Hi {{contactFirstName}},</p><p>Just a reminder that your Findra subscription expires tomorrow, {{expirationDate}}.</p><p>To keep your Business Profile active on Findra, please renew your subscription through your Findra account before it expires.</p><p><a href="{{dashboardUrl}}">Renew Subscription</a></p><p>Once your renewal payment is successfully completed, your subscription will remain active.</p><p>If you need assistance, please contact us at hello@findra.ph.</p><p>Thank you for being part of Findra!<br>The Findra Team</p>`,
     "inquiry-reply": `<p>Hi {{contactFirstName}},</p><p><strong>{{replyFrom}}</strong> from <strong>{{businessName}}</strong> replied to your inquiry on Findra PH:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{replyMessage}}</blockquote><p>You can reply directly to this email to continue the conversation.</p><p>Best regards,<br>The Findra PH Team</p>`,
     "inquiry-sent-guest": `<p>Hi {{contactFirstName}},</p><p>Thanks for reaching out to <strong>{{businessName}}</strong> on Findra PH. Here's a copy of your message:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{inquiryMessage}}</blockquote><p>The business has been notified and will get back to you soon.</p><p>Best regards,<br>The Findra PH Team</p>`,
     "inquiry-reply-sent-owner": `<p>Hi {{contactFirstName}},</p><p>Your reply to <strong>{{contactFullName}}</strong>'s inquiry on Findra PH has been sent:</p><blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #0b9147;background:#f2faf5;">{{replyMessage}}</blockquote><p><a href="{{dashboardUrl}}">View the conversation</a></p><p>Best regards,<br>The Findra PH Team</p>`,
@@ -155,6 +173,8 @@ function renderTemplate(value, context = {}, extras = {}) {
     supportEmail: extras.supportEmail || "hello@findra.ph",
     currentYear: new Date().getFullYear(),
     daysLeft: context.daysLeft ?? "",
+    expirationDate: context.expirationDate || "",
+    reviewNotes: context.reviewNotes || "",
     replyFrom: context.replyFrom || "The business",
     replyMessage: context.replyMessage || "",
     inquiryMessage: context.inquiryMessage || "",
