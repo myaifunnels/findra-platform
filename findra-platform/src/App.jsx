@@ -1360,12 +1360,7 @@ function ListingDetail({ go, item }) {
         <div className="detail-meta">
           <div>
             <strong>Category:</strong>
-            <span>
-              {item.category}
-              {(item.subCategories || item.additionalCategories)?.length
-                ? ` / ${(item.subCategories || item.additionalCategories).join(", ")}`
-                : ""}
-            </span>
+            <span>{item.category}</span>
             <strong>Business Address:</strong>
             <span>{item.location || "Not provided"}</span>
             {item.operatingHours && (
