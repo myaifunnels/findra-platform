@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Findra Client Revision Design Spec</title>
+  <style>
+    :root {
+      --green: #1f7a3a;
+      --green-dark: #145528;
+      --ink: #142017;
+      --muted: #4d5b50;
+      --line: #d7e2d8;
+      --wash: #f4f7f4;
+      --gold: #c4a35a;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      color: var(--ink);
+      font: 11.5pt/1.45 "Georgia", "Times New Roman", serif;
+    }
+    h1, h2, h3, h4, .sans, table, .kicker, .cover-meta, nav, th, td, li strong {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    .page { padding: 0 8mm; }
+    .cover {
+      min-height: 240mm;
+      padding: 28mm 10mm 16mm;
+      background: linear-gradient(180deg, #14331c 0%, #1f7a3a 58%, #f4f7f4 58%);
+      color: #fff;
+      break-after: page;
+    }
+    .cover .brand { letter-spacing: 0.28em; font-size: 12pt; font-weight: 700; }
+    .cover h1 {
+      font-size: 32pt;
+      line-height: 1.15;
+      margin: 18mm 0 6mm;
+      max-width: 150mm;
+    }
+    .cover .lede {
+      font-size: 13pt;
+      max-width: 155mm;
+      opacity: 0.92;
+    }
+    .cover-meta {
+      margin-top: 22mm;
+      background: #fff;
+      color: var(--ink);
+      padding: 8mm;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm 10mm;
+      font-size: 9.5pt;
+    }
+    .cover-meta span { display: block; color: var(--muted); font-size: 8pt; text-transform: uppercase; letter-spacing: 0.08em; }
+    h2 {
+      color: var(--green-dark);
+      font-size: 16pt;
+      border-bottom: 2px solid var(--green);
+      padding-bottom: 2mm;
+      margin: 10mm 0 4mm;
+      break-after: avoid;
+    }
+    h3 {
+      font-size: 12pt;
+      margin: 7mm 0 2mm;
+      color: var(--ink);
+      break-after: avoid;
+    }
+    h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; color: var(--green-dark); }
+    p { margin: 0 0 3mm; }
+    .kicker {
+      color: var(--green);
+      font-size: 8.5pt;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .box {
+      background: var(--wash);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--green);
+      padding: 3.5mm 4.5mm;
+      margin: 0 0 4mm;
+      break-inside: avoid;
+    }
+    .box.warn { border-left-color: var(--gold); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+      margin: 0 0 5mm;
+      break-inside: auto;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 2.2mm 2.8mm;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #e8f2ea; color: var(--green-dark); }
+    tr { break-inside: avoid; }
+    ul, ol { margin: 0 0 4mm; padding-left: 5.5mm; }
+    li { margin: 0 0 1.4mm; }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc td:last-child { text-align: right; color: var(--muted); }
+    .spec { break-inside: avoid; margin-bottom: 5mm; }
+    .label { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 9pt; }
+    footer.running {
+      display: none;
+    }
+    @page {
+      size: A4;
+      margin: 16mm 14mm 18mm;
+    }
+    @media print {
+      .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      a { color: inherit; }
+    }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="brand sans">FINDRA.PH</div>
+    <h1>Client revision<br />design specification</h1>
+    <p class="lede">Shipped public-site UX, copy, taxonomy, and content limits based on the client review document. This spec describes what is live — not a proposal.</p>
+    <div class="cover-meta sans">
+      <div><span>Product</span> Findra — business discovery, Philippines</div>
+      <div><span>Live site</span> https://findra.ph</div>
+      <div><span>Source brief</span> Client Google Doc (homepage through FAQ)</div>
+      <div><span>Audience</span> Seekers, listing businesses, client reviewers</div>
+      <div><span>Document type</span> Implementation-accurate design spec</div>
+      <div><span>Date</span> 15 August 2026</div>
+    </div>
+  </section>
+
+  <div class="page">
+    <h2>1. Purpose</h2>
+    <p>This document locks the design of client-requested public-site changes that are already implemented on findra.ph. Use it for client sign-off, QA, and future Claude / designer work without re-deriving the brief.</p>
+    <div class="box">
+      <strong>Source of truth.</strong> Original comments came from the client Google Doc. Behavior below is what engineering shipped. Do not invent new UI from this spec.
+    </div>
+
+    <h3>1.1 Design principles from this round</h3>
+    <ul>
+      <li>Search and browse must respect the user’s category, keyword, and service — never dump the full directory.</li>
+      <li>There is no “Business Type”. Taxonomy is Category → Sub-category → Service.</li>
+      <li>The public site cannot create new top-level categories. Only the five main categories exist at that layer.</li>
+      <li>Filters get more specific as the user chooses; location is useless until the need is identified.</li>
+      <li>Listing content is capped so profile pages stay scannable and consistent.</li>
+      <li>Contact methods (WhatsApp, Viber, email, social) appear only when the business provided them.</li>
+      <li>Footer matches the old website: high-contrast white wordmark on green, brand socials, no account login.</li>
+      <li>Light and dark modes persist in <code>localStorage</code> (<code>findra-theme</code>).</li>
+    </ul>
+
+    <h3>1.2 Sitemap (affected public routes)</h3>
+    <table>
+      <thead><tr><th>Route</th><th>Page</th><th>This revision</th></tr></thead>
+      <tbody>
+        <tr><td><code>/</code></td><td>Home</td><td>Search, categories, featured cards, Be Discovered, footer</td></tr>
+        <tr><td><code>/listings</code></td><td>Businesses</td><td>Breadcrumb, filters, location gating, results empty state</td></tr>
+        <tr><td><code>/listing/:id</code></td><td>Business profile</td><td>Taxonomy, hours, limits, gallery, video, pin, contacts</td></tr>
+        <tr><td><code>/about</code></td><td>About</td><td>Core Purpose, how-it-works copy</td></tr>
+        <tr><td><code>/packages</code></td><td>Packages</td><td>Two Basic cards, inclusion list, guest-visible</td></tr>
+        <tr><td><code>/contact</code></td><td>Contact</td><td>Intro copy reduced; form + thank-you</td></tr>
+        <tr><td><code>/legal</code></td><td>Legal &amp; Policies</td><td>No visual change (client: all good)</td></tr>
+        <tr><td><code>/faq</code></td><td>FAQ</td><td>Not in the Google Doc punch list</td></tr>
+      </tbody>
+    </table>
+
+    <h2>2. Shared visual system</h2>
+    <ul>
+      <li><strong>Brand green</strong> for primary CTAs, kickers, and the public footer band.</li>
+      <li><strong>Header logos:</strong> light-mode logo on light chrome; client-provided dark-mode logo in dark theme.</li>
+      <li><strong>Green footer wordmark:</strong> white, larger, high contrast — not the same color as the footer background (match old website).</li>
+      <li><strong>Social icons:</strong> Facebook and Instagram only, brand-correct (not both pink). Links: Facebook <code>findraph</code>, Instagram <code>findra.ph</code>.</li>
+      <li><strong>Contact:</strong> <code>hello@findra.ph</code>. Do not use <code>info@findra.ph</code>.</li>
+      <li><strong>Listing editor workspace:</strong> desktop form-left / live-preview-right; mobile Edit details / Live preview toggle.</li>
+      <li><strong>Progress bars:</strong> high-contrast tracks in both themes.</li>
+    </ul>
+
+    <h3>2.1 Five main categories (immutable on the public site)</h3>
+    <ol>
+      <li>Products &amp; Suppliers</li>
+      <li>Services &amp; Rentals</li>
+      <li>Professionals</li>
+      <li>Freelancers &amp; Creatives</li>
+      <li>Community &amp; Institutions</li>
+    </ol>
+    <p>Featured listing cards may only show one of these as the category under the tagline. Sub-categories (e.g. Event Coordination, Venues &amp; Rentals) live under a main category and are not new top-level tiles.</p>
+
+    <h2>3. Home</h2>
+    <div class="spec">
+      <h3>3.1 Keyword search</h3>
+      <p class="label">Client request — not suggestive; always goes to businesses</p>
+      <ul>
+        <li>Single field, placeholder <strong>Keyword</strong>, magnifying-glass prefix.</li>
+        <li>No typeahead / listing suggestions while typing.</li>
+        <li>Enter or Search submits to <code>/listings</code>.</li>
+        <li>If keyword present, query includes <code>search=</code>.</li>
+        <li>If a category is chosen, query also includes <code>category=</code>.</li>
+      </ul>
+    </div>
+    <div class="spec">
+      <h3>3.2 Business Category dropdown</h3>
+      <p class="label">Client request — chosen category must filter, not show all</p>
+      <ul>
+        <li>Default option: “Business Category” (empty value).</li>
+        <li>Options: the five main categories only.</li>
+        <li>Search lands on Businesses already filtered to that category.</li>
+      </ul>
+    </div>
+    <div class="spec">
+      <h3>3.3 Category tiles</h3>
+      <ul>
+        <li>Five cards: image, name, short description, <strong>See More</strong>.</li>
+        <li>See More goes to <code>/listings?category=&lt;Name&gt;</code> and must show only that category.</li>
+      </ul>
+    </div>
+    <div class="spec">
+      <h3>3.4 Featured Businesses</h3>
+      <ul>
+        <li>Grid / List toggle; View all → <code>/listings</code>.</li>
+        <li>Category under the tagline is a main category only.</li>
+        <li>Description preview: left-aligned, 2-line clamp, truncated to <strong>120 characters</strong> at a word boundary with an ellipsis (<code>LISTING_SUMMARY_CHAR_LIMIT</code>).</li>
+      </ul>
+    </div>
+    <div class="spec">
+      <h3>3.5 Be Discovered</h3>
+      <p>Heading: <strong>Be Discovered</strong>. Body with the client line break:</p>
+      <div class="box">When visibility means growth,<br />we make sure your business gets noticed by the people who matter.</div>
+      <p>CTA: <strong>Showcase Your Business</strong> → <code>/packages</code>.</p>
+    </div>
+
+    <h2>4. Businesses (<code>/listings</code>)</h2>
+    <h3>4.1 Breadcrumb</h3>
+    <p><strong>Home → Businesses</strong> — never “Search Results”.</p>
+
+    <h3>4.2 When results appear</h3>
+    <p>Do not show matching businesses while Category and Sub-category are both All and there is no keyword or service query. Location alone is not enough.</p>
+    <p>A “selection” is active when any of these is true:</p>
+    <ul>
+      <li>Business Category ≠ All</li>
+      <li>Sub-Category ≠ All</li>
+      <li>Keyword is non-empty</li>
+      <li>Find a Service query is non-empty</li>
+    </ul>
+    <p>Idle copy: “Pick a category, sub-category, service, or keyword above to find matching businesses.” Mobile chip: “Filter to see results”. Count “N matching businesses” only when a selection is active.</p>
+
+    <h3>4.3 Filter rail (top to bottom)</h3>
+    <table>
+      <thead><tr><th>Control</th><th>Behavior</th></tr></thead>
+      <tbody>
+        <tr><td>Keyword (page heading search)</td><td>Filters name, title, category, services, description, location</td></tr>
+        <tr><td>Business Category</td><td>All + five main categories. Removes Business Type entirely.</td></tr>
+        <tr><td>Sub-Category</td><td>Directly under Category. Options from published listings in the selected category. Disabled if none.</td></tr>
+        <tr><td>Find a Service</td><td>Renamed from Business Services. Text field, placeholder “Search”. Filters the result list. No bullet/chip picker under the field.</td></tr>
+        <tr><td>Location</td><td>Google address input. Disabled until a selection exists. Hint: “Choose a category, sub-category, or service first to search by location.” Matches the city/area token against listing location — not every listing regardless of place.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.4 Results chrome</h3>
+    <p>Grid and map view toggle remain. Location active state shows “Searching near {place}” with Clear.</p>
+
+    <h2>5. Business profile (<code>/listing/:id</code>)</h2>
+    <h3>5.1 Identity meta</h3>
+    <ul>
+      <li>No Business Type field.</li>
+      <li>Label is <strong>Category:</strong> (not “Business Category”).</li>
+      <li>Value format: <code>Main category / Sub-category, Sub-category</code>.</li>
+      <li>Client example: <strong>Category: Services &amp; Rentals / Event Coordination, Venues &amp; Rentals</strong>.</li>
+      <li>Then <strong>Business Address</strong>.</li>
+      <li>Then <strong>Operating Hours</strong> only if the listing has hours.</li>
+    </ul>
+
+    <h3>5.2 Content limits</h3>
+    <table>
+      <thead>
+        <tr><th>Field</th><th>Limit</th><th>Enforced in</th><th>Public behavior</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>About us</td><td>200 characters</td><td>Listing editor + live counter</td><td>Render stored text</td></tr>
+        <tr><td>Our services</td><td>3 items, 25 characters each</td><td>Multi-option field</td><td>Service chips</td></tr>
+        <tr><td>Gallery</td><td>6 photos; caption 30 characters</td><td>Uploader</td><td>Click photo → lightbox with caption, prev/next, close</td></tr>
+        <tr><td>Featured video</td><td>1</td><td>Editor</td><td>YouTube embed or uploaded MP4 player with controls</td></tr>
+        <tr><td>Attachment</td><td>1 file</td><td>Uploader</td><td>Single download card (company profile / brochure)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>5.3 Media guidance (editor hints)</h3>
+    <ul>
+      <li>Logo: square JPG/PNG/WebP, up to 12 MB, 500×500 or larger.</li>
+      <li>Featured image: landscape JPG/PNG/WebP, up to 12 MB, 1200×630 or larger.</li>
+      <li>Gallery: JPG/PNG/WebP/GIF, up to 12 MB each, max 6.</li>
+      <li>Featured video: public YouTube URL <em>or</em> one MP4 (H.264, up to 50 MB, 720p recommended). Player must show preview + play, not YouTube-only.</li>
+      <li>Attachment: PDF, JPG, or PNG, up to 12 MB. Suggested: company profile or brochure. Word <code>.doc/.docx</code> not accepted yet.</li>
+    </ul>
+
+    <h3>5.4 Business Pin Location</h3>
+    <p>Section title is <strong>Business Pin Location</strong> (not “Business Location”). Map frame plus “Open in Google Maps” using coordinates when present, otherwise the address string.</p>
+
+    <h3>5.5 Inquiry and platform buttons</h3>
+    <ul>
+      <li>Inquiry form stays on the profile sidebar.</li>
+      <li>WhatsApp button only if a number exists → <code>https://wa.me/&lt;digits&gt;</code>.</li>
+      <li>Viber button only if a number exists → <code>viber://chat?number=+&lt;digits&gt;</code>.</li>
+      <li>Website / Facebook / Instagram / LinkedIn only if URLs exist.</li>
+      <li>Do not show empty platform buttons.</li>
+    </ul>
+    <div class="box warn">
+      <strong>Partial / ops.</strong> Inquiry submit is captured in the product. A full two-way customer–business message thread UI was not part of this visual revision. Document tracking as an inbox/admin capability, not as a new public screen in this spec.
+    </div>
+
+    <h2>6. About</h2>
+    <h3>6.1 Core Purpose (formerly “Why the platform exists”)</h3>
+    <p>Kicker: <strong>CORE PURPOSE</strong>. Heading: Why Findra exists.</p>
+    <div class="box">To create a simpler, more effective way to discover and showcase businesses in the Philippines.</div>
+    <p>Supporting rows (kept, as requested — they name the problems Findra removes):</p>
+    <ul>
+      <li>Too Much Clutter — Endless options, unclear choices.</li>
+      <li>Low Relevance — Wrong matches waste time.</li>
+      <li>Hard to Trust — Incomplete or outdated information.</li>
+    </ul>
+
+    <h3>6.2 Brand values</h3>
+    <p>Kicker BRAND VALUES, title “Guiding principles”. Three cards:</p>
+    <ul>
+      <li>No Noise — Clarity over clutter.</li>
+      <li>Structured Discovery — Organized information.</li>
+      <li>Credibility — Complete and trustworthy profiles.</li>
+    </ul>
+    <p>Layout today is the shared InfoCards treatment. Mission/Vision use the image-card + kicker pattern; values can be polished later to match that chrome without changing copy.</p>
+
+    <h3>6.3 How it works for seekers</h3>
+    <ol>
+      <li><strong>Search</strong> — Find businesses that match your needs.</li>
+      <li><strong>Evaluate</strong> — Review services and key details to make an informed choice.</li>
+      <li><strong>Connect</strong> — Connect with businesses that match your needs. (Client wording. If a build still says “Connect to”, treat “with” as the approved line.)</li>
+    </ol>
+
+    <h3>6.4 How it works for businesses</h3>
+    <ol>
+      <li><strong>Build Your Profile</strong> — Add your business, services, and key details.</li>
+      <li><strong>Discovery</strong> — Your business is found by people based on what you offer and what they’re looking for.</li>
+      <li><strong>Connect</strong> — Make it easy for people to get in touch with your business.</li>
+    </ol>
+
+    <h3>6.5 Newsletter</h3>
+    <p>Signup on About posts to <code>/api/newsletter/subscribe</code> with <code>source: "about-page"</code>. Show success and error messages in-page. Storage and admin access are operational, not a new public page.</p>
+
+    <h2>7. Packages</h2>
+    <p>Guest-visible at <code>/packages</code>. No account required to view or to start listing details.</p>
+    <p>Two Basic cards, side by side:</p>
+    <ul>
+      <li><strong>Basic — Regular Pricing</strong></li>
+      <li><strong>Basic — Early Bird Offer</strong> (featured). May show remaining slots or Sold out.</li>
+    </ul>
+    <p>Price shown as ₱ / month with “(6 months locked in)”.</p>
+    <p>Default inclusion points (unless admin overrides features):</p>
+    <ol>
+      <li>Dedicated Business Profile</li>
+      <li>Secure Business Dashboard</li>
+      <li>SEO-Optimized Business Page</li>
+      <li>Built-in Inquiry Form and Direct Contact Tools</li>
+      <li>Location-Based Search</li>
+      <li>Relevant Category Listing</li>
+    </ol>
+    <p>Flow: view plan → Create Business Profile / start listing as guest → account or sign-in before PayMongo → listing pending admin review.</p>
+    <p>States: “Loading packages…” and “Packages are being updated. Please check back shortly.”</p>
+
+    <h2>8. Contact</h2>
+    <ul>
+      <li>Remove “How Can We Help?”</li>
+      <li>Remove “Have a question about Findra, your business listing, or how the platform works? Our team is here to help.”</li>
+      <li>Keep intro: <strong>Reach out anytime and we’ll get back to you as soon as possible.</strong></li>
+      <li>Form heading: Send a message. Fields: Name*, Email*, Phone (country code + national), Message.</li>
+      <li>Submit <code>POST /api/inquiries</code> → <code>/contact/thank-you</code>.</li>
+    </ul>
+    <p>Messages are stored as inquiries for the team to manage in the product backend — this revision does not add a public ticket portal.</p>
+
+    <h2>9. Legal &amp; Policies</h2>
+    <p>Client marked this page all good. Do not redesign. Keep <code>hello@findra.ph</code> as the contact email.</p>
+
+    <h2>10. Global footer</h2>
+    <ul>
+      <li>Larger white Findra wordmark on the green band (old-website contrast).</li>
+      <li>Follow #Findra: Facebook + Instagram only (not both pink; not an extra Account Login link).</li>
+      <li>Contact: hello@findra.ph</li>
+      <li>Links: About · Legal &amp; Policies · Packages · FAQ</li>
+      <li>Copyright: © 2026 Findra. All rights reserved.</li>
+    </ul>
+    <p>Same footer on Home, Businesses, and other public layouts.</p>
+
+    <h2>11. Traceability (Google Doc → shipped)</h2>
+    <table>
+      <thead><tr><th>Client item</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Home keyword not suggestive; always businesses page</td><td>Shipped</td></tr>
+        <tr><td>Home category dropdown filters listings</td><td>Shipped</td></tr>
+        <tr><td>Category tiles filter listings</td><td>Shipped</td></tr>
+        <tr><td>Featured: 5 categories only; description align + cap</td><td>Shipped (120 chars, left, 2-line clamp)</td></tr>
+        <tr><td>Be Discovered copy distribution</td><td>Shipped</td></tr>
+        <tr><td>Footer logo, socials, remove Account Login</td><td>Shipped</td></tr>
+        <tr><td>Businesses breadcrumb Home → Businesses</td><td>Shipped</td></tr>
+        <tr><td>Don’t list everyone when filters are All</td><td>Shipped</td></tr>
+        <tr><td>Location only after need is identified; more accurate match</td><td>Shipped</td></tr>
+        <tr><td>Remove Business Type; add Sub-Category; Find a Service; remove service bullets</td><td>Shipped</td></tr>
+        <tr><td>Profile: Category + sub-cats; hours; limits; pin title</td><td>Shipped</td></tr>
+        <tr><td>Gallery 6 + caption lightbox; 1 video; 1 attachment</td><td>Shipped</td></tr>
+        <tr><td>Video not YouTube-only (MP4 upload + player)</td><td>Shipped</td></tr>
+        <tr><td>Platform buttons only if available; correct WhatsApp/Viber URLs</td><td>Shipped</td></tr>
+        <tr><td>See/track all customer–business messages as a full thread product</td><td>Open (inquiries captured; no full chat UI in this round)</td></tr>
+        <tr><td>About Core Purpose, how-it-works copy</td><td>Shipped</td></tr>
+        <tr><td>Brand values format identical to Mission/Vision chrome</td><td>Partial (copy locked; card chrome can still match image-cards)</td></tr>
+        <tr><td>Newsletter: where stored</td><td>API subscribe; admin access is ops</td></tr>
+        <tr><td>Packages inclusions + second Basic beside Early Bird</td><td>Shipped</td></tr>
+        <tr><td>Contact intro reductions</td><td>Shipped</td></tr>
+        <tr><td>Contact: where messages go</td><td><code>/api/inquiries</code> + thank-you; manage in backend</td></tr>
+        <tr><td>Legal</td><td>No change</td></tr>
+        <tr><td>FAQ section in the Google Doc</td><td>Blank in the brief — not in this spec</td></tr>
+      </tbody>
+    </table>
+
+    <h2>12. QA checklist (walk findra.ph)</h2>
+    <ol>
+      <li>Home keyword: type without seeing suggestions; Search opens Businesses with that keyword.</li>
+      <li>Home category Search and each category tile open Businesses showing only that category.</li>
+      <li>Featured cards: category is one of the five; descriptions align and truncate evenly.</li>
+      <li>Be Discovered uses the two-line client sentence.</li>
+      <li>Footer: white logo, Facebook + Instagram only, no Account Login.</li>
+      <li>Businesses breadcrumb is Home → Businesses.</li>
+      <li>With Category All and empty keyword/service, no result list / matching count.</li>
+      <li>Location input disabled until category, sub-category, service, or keyword is set.</li>
+      <li>Find a Service filters the grid; no bullet list under it.</li>
+      <li>Profile Category line includes sub-categories; Operating Hours sits under address; map titled Business Pin Location.</li>
+      <li>Editor blocks About at 200, services at 3×25, gallery at 6×30-char captions, one video, one attachment.</li>
+      <li>Gallery photo opens lightbox with caption.</li>
+      <li>MP4 featured video shows a native player; YouTube still embeds.</li>
+      <li>WhatsApp/Viber hidden when empty; correct deep links when present.</li>
+      <li>About Core Purpose sentence and seeker/business steps match this spec.</li>
+      <li>Packages: two Basic cards, six inclusion bullets, visible logged out.</li>
+      <li>Contact intro is only the “Reach out anytime…” sentence.</li>
+    </ol>
+
+    <h2>13. Open items (do not treat as shipped design)</h2>
+    <ul>
+      <li>Full conversation tracking between a business and its customers.</li>
+      <li>Admin newsletter-list runbook / screenshots.</li>
+      <li>Brand values block visually matching Mission/Vision image cards.</li>
+      <li>Seeker Connect line: prefer “Connect with” if any environment still says “Connect to”.</li>
+      <li>Accessibility follow-ups from the Playwright audit (contrast, unnamed selects, duplicate homepage H1 in the accessibility tree, missing alts on category images) are engineering polish, not this client punch list.</li>
+    </ul>
+
+    <p class="sans" style="margin-top:12mm;color:#4d5b50;font-size:9pt;">Findra client revision design spec · 15 August 2026 · Live reference https://findra.ph · Brief: client Google Doc homepage–FAQ comments.</p>
+  </div>
+</body>
+</html>
