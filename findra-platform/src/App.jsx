@@ -1296,7 +1296,7 @@ function ListingsPage({ go, listings }) {
                   <p>Try a broader keyword or category.</p>
                 </div>
               )}
-              {viewMode !== "map" && (
+              {viewMode !== "map" && filtered.length > 0 && (
                 <p className="results-count">
                   Showing 1 to {filtered.length} of {filtered.length} results
                 </p>
@@ -2204,7 +2204,11 @@ function PackageListingCard({ item, featured = false, offer, description, subscr
   return (
     <article className={`package-tier-card ${featured ? "featured" : ""}`}>
       <span className={`package-tier-badge ${soldOut ? "sold-out" : ""}`}>
-        {soldOut ? "Sold out" : "Available now"}
+        {soldOut
+          ? "Sold out"
+          : slotsRemaining != null
+            ? `${slotsRemaining} slot${slotsRemaining === 1 ? "" : "s"} remaining`
+            : "Available now"}
       </span>
       <span className="package-tier-name">
         Basic — {offer}
@@ -2214,11 +2218,6 @@ function PackageListingCard({ item, featured = false, offer, description, subscr
         <small> / month</small>
       </h2>
       <p className="package-tier-lock-in">(6 months locked in)</p>
-      {slotsRemaining != null && (
-        <p className="package-tier-slots">
-          {slotsRemaining} slot{slotsRemaining === 1 ? "" : "s"} remaining
-        </p>
-      )}
       <p className="package-tier-equivalent">{description}</p>
       <ul className="package-tier-features">
         {features.map((feature) => (
