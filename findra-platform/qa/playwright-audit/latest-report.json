@@ -1,0 +1,679 @@
+{
+  "baseURL": "https://findra.ph",
+  "generatedAt": "2026-08-15T19:21:54.453Z",
+  "pages": [
+    {
+      "path": "/",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "Your go-to place to find the business for your needs.Your go-to place tofind the businessfor your needs.",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [
+        "https://findra.ph/assets/products-suppliers.jpg",
+        "https://findra.ph/assets/services-rentals.jpg",
+        "https://findra.ph/assets/professionals.jpg",
+        "https://findra.ph/assets/freelancers-creatives.jpg",
+        "https://findra.ph/assets/community-institutions.jpg",
+        "https://findra.ph/api/media/listings%2Fd0f5e432-c46b-4987-b820-997ad5e1bc62%2Fa17c0d3c-832b-4d59-82b3-ef7eb2f0a4cd-AiFunnels-Portal-Cover-Photo.png",
+        "https://findra.ph/api/media/listings%2F44cac594-fd10-4c57-b3f0-5433191448a7%2F0f11a356-82dc-41b6-9335-de77332dcc4d-519906904_723861700389333_2409315352163639383_n.jpg",
+        "https://findra.ph/api/media/listings%2F8d8ac9d7-f250-49a9-9ca7-577a1afff699%2F5029fdd8-25ac-45c8-b0d6-81134c064929-454849205_473669855515421_2978166720990171380_n-2.png"
+      ],
+      "overflow": false,
+      "overflowWidth": 1280,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 3
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "nodes": 1
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/listings",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "Find the right partner foryour next project.",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [
+        "Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading",
+        "As of March 1st, 2025, google.maps.places.Autocomplete is not available to new customers. Please use google.maps.places.PlaceAutocompleteElement instead. At this time, google.maps.places.Autocomplete is not scheduled to be discontinued, but google.maps.places.PlaceAutocompleteElement is recommended over google.maps.places.Autocomplete. While google.maps.places.Autocomplete will continue to receive bug fixes for any major regressions, existing bugs in google.maps.places.Autocomplete will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/legacy for additional details and https://developers.google.com/maps/documentation/javascript/places-migration-overview for the migration guide."
+      ],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 1280,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 1
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "nodes": 2
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/about",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "ABOUT FINDRA",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 1280,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 6
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/packages",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "BUSINESS LISTING PACKAGES",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 1280,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 1
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/contact",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "CONTACT US",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 1280,
+      "axeViolations": [],
+      "notes": []
+    },
+    {
+      "path": "/faq",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "FREQUENTLY ASKED QUESTIONS",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 1280,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 3
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/legal",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "LEGAL & POLICIES",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 1280,
+      "axeViolations": [],
+      "notes": []
+    },
+    {
+      "path": "/login",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "Get discovered with Findra.",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 1280,
+      "axeViolations": [],
+      "notes": []
+    },
+    {
+      "path": "/add-listing",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "Add New Business",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 1280,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 3
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/listing/12",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "AiFunnels",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [
+        "Unrecognized feature: 'web-share'."
+      ],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [
+        "https://findra.ph/api/media/listings%2Fd0f5e432-c46b-4987-b820-997ad5e1bc62%2Fab730dad-e0d8-4cb9-844e-0f612ac243b1-AiFunnels-Logo.png"
+      ],
+      "overflow": false,
+      "overflowWidth": 1280,
+      "axeViolations": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "help": "Elements must only use supported ARIA attributes",
+          "nodes": 1
+        },
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "nodes": 1
+        },
+        {
+          "id": "button-name",
+          "impact": "critical",
+          "help": "Buttons must have discernible text",
+          "nodes": 1
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 1
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "Your go-to place to find the business for your needs.Your go-to place tofind the businessfor your needs.",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [
+        "https://findra.ph/assets/products-suppliers.jpg",
+        "https://findra.ph/assets/services-rentals.jpg",
+        "https://findra.ph/assets/professionals.jpg",
+        "https://findra.ph/assets/freelancers-creatives.jpg",
+        "https://findra.ph/assets/community-institutions.jpg",
+        "https://findra.ph/api/media/listings%2Fd0f5e432-c46b-4987-b820-997ad5e1bc62%2Fa17c0d3c-832b-4d59-82b3-ef7eb2f0a4cd-AiFunnels-Portal-Cover-Photo.png",
+        "https://findra.ph/api/media/listings%2F44cac594-fd10-4c57-b3f0-5433191448a7%2F0f11a356-82dc-41b6-9335-de77332dcc4d-519906904_723861700389333_2409315352163639383_n.jpg",
+        "https://findra.ph/api/media/listings%2F8d8ac9d7-f250-49a9-9ca7-577a1afff699%2F5029fdd8-25ac-45c8-b0d6-81134c064929-454849205_473669855515421_2978166720990171380_n-2.png"
+      ],
+      "overflow": false,
+      "overflowWidth": 412,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 3
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "nodes": 1
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/listings",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "Find the right partner foryour next project.",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [
+        "Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading",
+        "As of March 1st, 2025, google.maps.places.Autocomplete is not available to new customers. Please use google.maps.places.PlaceAutocompleteElement instead. At this time, google.maps.places.Autocomplete is not scheduled to be discontinued, but google.maps.places.PlaceAutocompleteElement is recommended over google.maps.places.Autocomplete. While google.maps.places.Autocomplete will continue to receive bug fixes for any major regressions, existing bugs in google.maps.places.Autocomplete will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/legacy for additional details and https://developers.google.com/maps/documentation/javascript/places-migration-overview for the migration guide."
+      ],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 412,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 1
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/about",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "ABOUT FINDRA",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 412,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 6
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/packages",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "BUSINESS LISTING PACKAGES",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 412,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 1
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/contact",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "CONTACT US",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 412,
+      "axeViolations": [],
+      "notes": []
+    },
+    {
+      "path": "/faq",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "FREQUENTLY ASKED QUESTIONS",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 412,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 3
+        }
+      ],
+      "notes": []
+    },
+    {
+      "path": "/legal",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "LEGAL & POLICIES",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 412,
+      "axeViolations": [],
+      "notes": []
+    },
+    {
+      "path": "/login",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "Get discovered with Findra.",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 412,
+      "axeViolations": [],
+      "notes": []
+    },
+    {
+      "path": "/add-listing",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Findra — Find the right partner, fast.",
+      "heading": "Add New Business",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 ()"
+      ],
+      "consoleWarnings": [],
+      "failedRequests": [
+        {
+          "url": "https://findra.ph/api/auth/session",
+          "status": 401
+        }
+      ],
+      "brokenImages": [],
+      "missingAlt": [],
+      "overflow": false,
+      "overflowWidth": 412,
+      "axeViolations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": 3
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "extras": {
+    "links": [
+      {
+        "href": "https://findra.ph/",
+        "from": "/",
+        "status": 200
+      },
+      {
+        "href": "https://findra.ph/listings",
+        "from": "/",
+        "status": 200
+      },
+      {
+        "href": "https://findra.ph/about",
+        "from": "/",
+        "status": 200
+      },
+      {
+        "href": "https://findra.ph/packages",
+        "from": "/",
+        "status": 200
+      },
+      {
+        "href": "https://findra.ph/contact",
+        "from": "/",
+        "status": 200
+      },
+      {
+        "href": "https://findra.ph/login",
+        "from": "/",
+        "status": 200
+      },
+      {
+        "href": "https://findra.ph/legal",
+        "from": "/",
+        "status": 200
+      },
+      {
+        "href": "https://findra.ph/faq",
+        "from": "/",
+        "status": 200
+      }
+    ],
+    "checks": [
+      {
+        "ok": true,
+        "name": "Listing detail discovery",
+        "detail": "Opened /listing/12"
+      },
+      {
+        "ok": true,
+        "name": "Instagram footer link",
+        "detail": "Footer should point to https://www.instagram.com/findra.ph/"
+      },
+      {
+        "ok": true,
+        "name": "Support email",
+        "detail": "Public chrome should expose hello@findra.ph"
+      },
+      {
+        "ok": true,
+        "name": "Facebook footer link",
+        "detail": "Footer should point to the Findra Facebook page"
+      },
+      {
+        "ok": true,
+        "name": "Theme toggle",
+        "detail": "theme went from dark to light"
+      },
+      {
+        "ok": true,
+        "name": "Packages visible to guests",
+        "detail": "Guest packages page shows pricing copy"
+      },
+      {
+        "ok": true,
+        "name": "Login form",
+        "detail": "Login page should expose an email field"
+      }
+    ]
+  }
+}
