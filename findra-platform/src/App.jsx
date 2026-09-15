@@ -2173,10 +2173,11 @@ function PackagesPage({ go }) {
               <PackageListingCard
                 item={basic}
                 offer="Regular Pricing"
-                description="A complete Findra presence for customers who are ready to discover and contact your business."
+                description="A complete Findra listing designed to showcase your business."
                 subscription={subscription}
                 onBilling={goToBilling}
                 onStart={() => startListing(basic)}
+                comingSoon
               />
             )}
           </section>
@@ -2196,20 +2197,22 @@ function PackagesPage({ go }) {
   );
 }
 
-function PackageListingCard({ item, featured = false, offer, description, subscription, onBilling, onStart }) {
+function PackageListingCard({ item, featured = false, offer, description, subscription, onBilling, onStart, comingSoon = false }) {
   const monthly = packageMonthlyRate(item);
   const features = item.features?.length ? item.features : listingPackageFeatures;
   const slotsRemaining = item.slotsRemaining;
   const soldOut = slotsRemaining === 0;
   return (
     <article className={`package-tier-card ${featured ? "featured" : ""}`}>
-      <span className={`package-tier-badge ${soldOut ? "sold-out" : ""}`}>
-        {soldOut
-          ? "Sold out"
-          : slotsRemaining != null
-            ? `${slotsRemaining} slot${slotsRemaining === 1 ? "" : "s"} remaining`
-            : "Available now"}
-      </span>
+      {!comingSoon && (
+        <span className={`package-tier-badge ${soldOut ? "sold-out" : ""}`}>
+          {soldOut
+            ? "Sold out"
+            : slotsRemaining != null
+              ? `${slotsRemaining} slot${slotsRemaining === 1 ? "" : "s"} remaining`
+              : "Available now"}
+        </span>
+      )}
       <span className="package-tier-name">
         Basic — {offer}
       </span>
@@ -2231,8 +2234,8 @@ function PackageListingCard({ item, featured = false, offer, description, subscr
           Manage in Billing <ArrowRight />
         </GreenButton>
       ) : (
-        <GreenButton onClick={onStart} disabled={soldOut}>
-          Create Business Profile
+        <GreenButton onClick={onStart} disabled={soldOut || comingSoon}>
+          {comingSoon ? "Coming soon" : "Create Business Profile"}
         </GreenButton>
       )}
     </article>
