@@ -1298,7 +1298,7 @@ function ListingsPage({ go, listings }) {
               )}
               {viewMode !== "map" && filtered.length > 0 && (
                 <p className="results-count">
-                  Showing 1 to {filtered.length} of {filtered.length} results
+                  {filtered.length} {filtered.length === 1 ? "result" : "results"}
                 </p>
               )}
             </>
