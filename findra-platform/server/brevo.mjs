@@ -153,30 +153,67 @@ async function sendTestEmail(request, response) {
   return json(response, 200, { ok: true, messageId: payload.messageId || "queued", recipient });
 }
 
+async function saveSubscriber(email, source, brevoStatus) {
+  await query(
+    `INSERT INTO newsletter_subscribers (email, source, brevo_status) VALUES ($1,$2,$3)
+     ON CONFLICT (email) DO UPDATE SET source=EXCLUDED.source, brevo_status=EXCLUDED.brevo_status, updated_at=NOW()`,
+    [email, source, brevoStatus],
+  );
+}
+
 async function subscribeNewsletter(request, response) {
   const body = await readJson(request);
   const email = String(body.email || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(response, 400, { error: "Enter a valid email address." });
+  const source = String(body.source || "about-page").slice(0, 80);
   const config = await brevoConfig();
-  if (!config.enabled || !config.apiKey) return json(response, 503, { error: "Newsletter signup is temporarily unavailable. Please try again shortly." });
   const listId = Number(config.newsletterListId || 0);
-  const result = await fetch(`${BREVO_API}/contacts`, {
-    method: "POST",
-    headers: { "api-key": config.apiKey, "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ email, updateEnabled: true, ...(listId > 0 ? { listIds: [listId] } : {}) }),
-  });
-  const payload = await result.json().catch(() => ({}));
-  if (!result.ok) return json(response, result.status, { error: payload.message || "We could not add that email right now." });
-  await query(`INSERT INTO newsletter_subscribers (email, source, brevo_status) VALUES ($1,$2,'subscribed') ON CONFLICT (email) DO UPDATE SET brevo_status='subscribed', updated_at=NOW()`, [email, String(body.source || "about-page").slice(0, 80)]);
+  let brevoStatus = "pending";
+  if (config.enabled && config.apiKey) {
+    const result = await fetch(`${BREVO_API}/contacts`, {
+      method: "POST",
+      headers: { "api-key": config.apiKey, "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ email, updateEnabled: true, ...(listId > 0 ? { listIds: [listId] } : {}) }),
+    });
+    const payload = await result.json().catch(() => ({}));
+    if (!result.ok) return json(response, result.status, { error: payload.message || "We could not add that email right now." });
+    brevoStatus = "subscribed";
+  }
+  try {
+    await saveSubscriber(email, source, brevoStatus);
+  } catch (error) {
+    if (brevoStatus !== "subscribed") {
+      return json(response, 503, { error: "Newsletter signup is temporarily unavailable. Please try again shortly." });
+    }
+  }
   return json(response, 201, { ok: true, message: "You’re subscribed. Watch your inbox for Findra updates." });
+}
+
+async function listNewsletterSubscribers(request, response) {
+  const result = await query(
+    `SELECT email, source, brevo_status, subscribed_at, updated_at
+     FROM newsletter_subscribers
+     ORDER BY subscribed_at DESC
+     LIMIT 500`,
+  );
+  return json(response, 200, {
+    subscribers: result.rows,
+    storage:
+      "About-page signups are stored in the Findra database (newsletter_subscribers). When Brevo is connected and a List ID is set, they are also added to that Brevo list.",
+  });
 }
 
 export async function handleBrevoRequest(request, response) {
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
-  if (!url.pathname.startsWith("/api/brevo/") && url.pathname !== "/api/newsletter/subscribe") return false;
+  if (!url.pathname.startsWith("/api/brevo/") && !url.pathname.startsWith("/api/newsletter/")) return false;
   try {
     if (request.method === "POST" && url.pathname === "/api/newsletter/subscribe") {
       await subscribeNewsletter(request, response);
+      return true;
+    }
+    if (request.method === "GET" && url.pathname === "/api/newsletter/subscribers") {
+      if (!await requireAdmin(request, response)) return true;
+      await listNewsletterSubscribers(request, response);
       return true;
     }
     if (request.method === "GET" && url.pathname === "/api/brevo/integration") {
