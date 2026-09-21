@@ -201,6 +201,62 @@ const categories = [
   },
 ];
 
+// Fixed sub-category list for each main category, from the client's Website
+// Prototype document. Businesses pick from these only; custom values are not
+// allowed so the directory filters stay consistent.
+const subCategoryCatalog = {
+  "Products & Suppliers": [
+    "Construction Materials & Hardware",
+    "Printing & Packaging Goods",
+    "Electronics & Appliances",
+    "Furniture, Fixtures & Interiors",
+    "Apparel, Textiles & Accessories",
+    "Food & Beverage (Wholesale)",
+    "Office & Business Supplies",
+    "Home & Garden Products",
+  ],
+  "Services & Rentals": [
+    "Event Coordination, Venues & Rentals",
+    "Logistics, Delivery & Freight",
+    "Cleaning, Maintenance & Facility Services",
+    "IT & Software Services",
+    "Equipment Rentals & Leasing",
+    "Marketing & Advertising Services",
+    "Catering & Food Services",
+    "Real-Estate Services & Property Management",
+  ],
+  Professionals: [
+    "Legal Services",
+    "Accounting & Tax Advisory",
+    "Architecture & Engineering Firms",
+    "Medical & Health Clinics (Private)",
+    "Education & Training Providers (Private)",
+    "Financial Services & Advisory",
+    "Environmental & Safety Consultancy",
+    "Research, Testing & Certification Services",
+  ],
+  "Freelancers & Creatives": [
+    "Graphic Design & Branding",
+    "Web & App Development",
+    "Photography & Videography",
+    "Content Writing & Copywriting",
+    "Social Media & Digital Marketing",
+    "Translation & Virtual Assistance",
+    "UX/UI & Product Design",
+    "Creative Arts & Crafts Services",
+  ],
+  "Community & Institutions": [
+    "Business Associations & Trade Chambers",
+    "Private Training Centres & Academies",
+    "Foundations & NGOs (private)",
+    "Business Hubs, Malls & Commercial Complexes",
+    "Industry Networks & Clubs",
+    "Co-operatives & Private Member Organisations",
+    "Private Schools & Educational Institutions",
+    "Innovation & Startup Incubators",
+  ],
+};
+
 const blankListing = {
   name: "",
   cardTitle: "",
@@ -1167,12 +1223,13 @@ function ListingsPage({ go, listings }) {
   const [subCat, setSubCat] = useState("All");
   const [serviceQuery, setServiceQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const subCategoryOptions = useMemo(() => {
-    const scoped = listings.filter(
-      (l) => l.status === "Published" && (cat === "All" || l.category === cat),
-    );
-    return [...new Set(scoped.flatMap((l) => l.subCategories || l.additionalCategories || []))].sort();
-  }, [listings, cat]);
+  // The filter offers Findra's fixed sub-category list for the chosen main
+  // category (nothing until a category is picked), not whatever free text
+  // older listings happen to contain.
+  const subCategoryOptions = useMemo(
+    () => (cat === "All" ? [] : subCategoryCatalog[cat] || []),
+    [cat],
+  );
   useEffect(() => {
     if (subCat !== "All" && !subCategoryOptions.includes(subCat)) setSubCat("All");
   }, [subCategoryOptions, subCat]);
@@ -1360,7 +1417,11 @@ function ListingDetail({ go, item }) {
         <div className="detail-meta">
           <div>
             <strong>Category:</strong>
-            <span>{item.category}</span>
+            <span>
+              {[item.category, (item.subCategories || item.additionalCategories || []).join(", ")]
+                .filter(Boolean)
+                .join(" / ")}
+            </span>
             <strong>Business Address:</strong>
             <span>{item.location || "Not provided"}</span>
             {item.operatingHours && (
@@ -1843,12 +1904,14 @@ function AboutPage({ go }) {
             <FeatureRows items={aboutVision} />
           </div>
         </section>
-        <InfoCards
-          kicker="BRAND VALUES"
-          title="Guiding principles"
-          intro="We simplify business discovery by focusing on clarity, structure, and trust."
-          items={values}
-        />
+        <section className="about-image-card values-card">
+          <div>
+            <span className="info-kicker">BRAND VALUES</span>
+            <h2>Guiding principles</h2>
+            <p>We simplify business discovery by focusing on clarity, structure, and trust.</p>
+            <FeatureRows items={values} />
+          </div>
+        </section>
         <InfoCards
           kicker="HOW IT WORKS FOR SEEKERS"
           title="Find the right partners - fast"
@@ -2285,10 +2348,6 @@ const faqGroups = [
         "What if I have an issue with a supplier?",
         "If you have a serious concern about a business listed on Findra, you can contact our support team. We’ll review the concern and, where appropriate, may remove the business from the platform. We do not mediate or resolve disputes between customers and businesses.",
       ],
-      [
-        "Can I leave reviews for suppliers?",
-        "Yes. After a transaction or collaboration, you can rate and review suppliers. Reviews are moderated before publication to support fair and authentic feedback.",
-      ],
     ],
   ],
   [
@@ -2297,10 +2356,6 @@ const faqGroups = [
       [
         "How do I join and list my business?",
         "Open the Packages page to review Early Bird and Regular pricing, then select Create Business Profile. Once submitted, your details will be carefully reviewed to ensure completeness and legitimacy before your profile goes live on the platform. You will be notified of any updates or approval status via your registered email address.",
-      ],
-      [
-        "Is there a fee to feature my business?",
-        "Yes. Findra offers Early Bird and Regular Basic listing packages. Early Bird is ₱799/month and Regular Pricing is ₱999/month, both locked in for 6 months. Remaining Early Bird slots are shown on the public Packages page before you register or begin checkout.",
       ],
       [
         "How do I respond to buyer inquiries and RFQs?",
@@ -3108,7 +3163,10 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
         ) : section === "Users" ? (
           <UsersManagement query={query} onNotify={onNotify} />
         ) : section === "Inquiries" ? (
-          <InquiriesPanel role="admin" query={query} onNotify={onNotify} />
+          <>
+            <ConversationStats />
+            <InquiriesPanel role="admin" query={query} onNotify={onNotify} />
+          </>
         ) : section === "Inbox" ? (
           <SupportInboxPanel query={query} onNotify={onNotify} />
         ) : section === "Subscriptions" ? (
@@ -4558,6 +4616,90 @@ function PlanBilling({ listing, go, session, onSave, resumePayment }) {
   );
 }
 
+// Admin-only overview of how many customer conversations each business is
+// getting. It shows counts only; the messages themselves stay private to each
+// business owner.
+function ConversationStats() {
+  const [stats, setStats] = useState(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/inquiries/stats", { credentials: "same-origin" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error();
+        return response.json();
+      })
+      .then((payload) => active && setStats(payload))
+      .catch(() => active && setFailed(true));
+    return () => {
+      active = false;
+    };
+  }, []);
+  const totals = stats?.totals;
+  const rows = stats?.businesses || [];
+  const cards = [
+    ["Conversations", totals?.conversations ?? "—", "Across all businesses", ChatCircleText, "blue"],
+    ["Leads", totals?.leads ?? "—", "Unique people who reached out", UsersThree, "green"],
+    ["Responded", totals?.responded ?? "—", "Conversations replied to", CheckCircle, "violet"],
+  ];
+  return (
+    <div className="admin-content conversation-stats">
+      <section className="welcome-row">
+        <div>
+          <h2>Conversation statistics</h2>
+          <p>How many customers are reaching out to each business. Counts only — message contents stay private to each business.</p>
+        </div>
+      </section>
+      <section className="metric-grid">
+        {cards.map(([label, value, note, Icon, tone]) => (
+          <article key={label}>
+            <div className={`metric-icon ${tone}`}><Icon /></div>
+            <div className="metric-copy">
+              <p>{label}</p>
+              <h3>{value}</h3>
+              <span className="positive">{note}</span>
+            </div>
+          </article>
+        ))}
+      </section>
+      <section className="panel">
+        {failed ? (
+          <div className="admin-empty"><WarningCircle size={38} /><h3>Statistics unavailable</h3><p>We could not load conversation statistics. Please refresh and try again.</p></div>
+        ) : !stats ? (
+          <div className="admin-empty"><p>Loading conversation statistics…</p></div>
+        ) : !rows.length ? (
+          <div className="admin-empty"><Storefront size={38} /><h3>No businesses yet</h3><p>Conversation counts appear here once businesses are listed.</p></div>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Business</th>
+                  <th>Conversations</th>
+                  <th>Leads</th>
+                  <th>Responded</th>
+                  <th>Last inquiry</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.name}</td>
+                    <td>{row.conversations}</td>
+                    <td>{row.leads}</td>
+                    <td>{row.responded}</td>
+                    <td>{row.last_inquiry_at ? new Date(row.last_inquiry_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function InquiriesPanel({ role, listing, query = "", onNotify }) {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -5630,6 +5772,23 @@ const listingServiceOptions = [
   "Web & App Development",
 ];
 
+// Requirements shown above an upload: one "Label: value" line per spec, with
+// a trailing "Note" line for the ownership reminder. Rows may be indented
+// (third value) to nest under the row above, e.g. video Option 2 details.
+function UploadSpecs({ specs }) {
+  return (
+    <ul className="upload-specs">
+      {specs.map(([label, value, nested]) => (
+        <li key={`${label}-${value}`} className={nested ? "nested" : ""}>
+          <strong>{label}:</strong> {value}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const imageOwnershipNote = ["Note", "Please upload images that you own or have permission to use."];
+
 function UploadBox({
   title,
   wide = false,
@@ -5654,7 +5813,7 @@ function UploadBox({
       <label className="upload-title" htmlFor={inputId}>
         {title}
       </label>
-      {hint && <p className="upload-hint">{hint}</p>}
+      {Array.isArray(hint) ? <UploadSpecs specs={hint} /> : hint && <p className="upload-hint">{hint}</p>}
       <label
         className={`drop-zone ${dragging ? "dragging" : ""}`}
         htmlFor={inputId}
@@ -5886,6 +6045,7 @@ function MultiOptionField({
   required = true,
   maxValues,
   maxLength,
+  allowCustom = true,
 }) {
   const [customMode, setCustomMode] = useState(false);
   const [draft, setDraft] = useState("");
@@ -5930,10 +6090,10 @@ function MultiOptionField({
             .map((option) => (
               <option key={option}>{option}</option>
             ))}
-          <option value="__custom__">＋ Add your own</option>
+          {allowCustom && <option value="__custom__">＋ Add your own</option>}
         </select>
       )}
-      {customMode && !atMax && (
+      {allowCustom && customMode && !atMax && (
         <div className="multi-option-custom">
           <input
             autoFocus
@@ -5973,8 +6133,8 @@ function MultiOptionField({
       )}
       <small>
         {maxValues
-          ? `Up to ${maxValues} ${maxValues === 1 ? "entry" : "entries"}${maxLength ? `, ${maxLength} characters max each` : ""}. Choose "Add your own" for an unlisted value.`
-          : 'Select as many as needed. Choose "Add your own" for an unlisted value.'}
+          ? `Up to ${maxValues} ${maxValues === 1 ? "entry" : "entries"}${maxLength ? `, ${maxLength} characters max each` : ""}.${allowCustom ? ' Choose "Add your own" for an unlisted value.' : ""}`
+          : `Select as many as needed.${allowCustom ? ' Choose "Add your own" for an unlisted value.' : ""}`}
       </small>
       {values.length > 0 && (
         <div className="multi-value-tags" aria-live="polite">
@@ -6523,8 +6683,9 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                         value={form.cardTitle || ""}
                         onChange={change("cardTitle")}
                         maxLength="70"
-                        placeholder="The name that appears publicly on the website"
+                        placeholder="Enter the name shown on your listing"
                       />
+                      <small className="field-hint">The name that appears publicly on the website.</small>
                       <small>{(form.cardTitle || "").length}/70 characters</small>
                     </label>
                     <label>
@@ -6594,7 +6755,22 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                       <select
                         required
                         value={form.category}
-                        onChange={change("category")}
+                        onChange={(event) => {
+                          const nextCategory = event.target.value;
+                          const allowed = subCategoryCatalog[nextCategory] || [];
+                          setStepError("");
+                          setForm((current) => {
+                            // Sub-categories belong to one main category, so
+                            // drop any that don't exist under the new choice.
+                            const subCategories = (current.subCategories || []).filter((value) => allowed.includes(value));
+                            return {
+                              ...current,
+                              category: nextCategory,
+                              subCategories,
+                              additionalCategories: subCategories,
+                            };
+                          });
+                        }}
                       >
                         <option value="" disabled>
                           Choose a business category
@@ -6613,9 +6789,9 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                     </label>
                     <MultiOptionField
                       label="Sub-Category"
-                      placeholder="Add a sub-category"
-                      customPlaceholder="Type one or more sub-categories, separated by commas"
-                      options={[]}
+                      placeholder="Choose a sub-category"
+                      options={subCategoryCatalog[form.category] || []}
+                      allowCustom={false}
                       required
                       values={form.subCategories || []}
                       onChange={(values) =>
@@ -6760,7 +6936,12 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                   <div className="media-grid">
                     <UploadBox
                       title="Business Logo *"
-                      hint="Square JPG, PNG, or WebP, up to 12 MB. 500×500px or larger looks best."
+                      hint={[
+                        ["File type", "JPG, PNG, or WebP"],
+                        ["Dimensions", "500×500 px or larger (square)"],
+                        ["File size", "Up to 12 MB"],
+                        imageOwnershipNote,
+                      ]}
                       files={uploads.logo}
                       onFiles={setFiles("logo")}
                       onRemove={removeUpload("logo")}
@@ -6768,7 +6949,12 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                     />
                     <UploadBox
                       title="Business Cover Photo *"
-                      hint="Landscape JPG, PNG, or WebP, up to 12 MB. 1200×630px or larger recommended."
+                      hint={[
+                        ["File type", "JPG, PNG, or WebP"],
+                        ["Dimensions", "1200×630 px or larger (landscape)"],
+                        ["File size", "Up to 12 MB"],
+                        imageOwnershipNote,
+                      ]}
                       files={uploads.featured}
                       onFiles={setFeatured}
                       onRemove={removeFeatured}
@@ -6776,7 +6962,13 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                     />
                     <UploadBox
                       title="Business Gallery"
-                      hint="Up to 6 photos — JPG, PNG, WebP, or GIF, up to 12 MB each."
+                      hint={[
+                        ["File type", "JPG, PNG, WebP, or GIF"],
+                        ["Dimensions", "800×800 px or larger (any orientation)"],
+                        ["File size", "Up to 12 MB each"],
+                        ["Photo limit", "Up to 6 photos"],
+                        imageOwnershipNote,
+                      ]}
                       wide
                       multiple
                       files={uploads.gallery}
@@ -6796,7 +6988,16 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                   </div>
                   <label className="video-field">
                     <FieldLabel>Featured Video (1 max)</FieldLabel>
-                    <span>Paste a public YouTube URL, or upload one MP4 (H.264 recommended, up to 50 MB; 720p recommended).</span>
+                    <UploadSpecs
+                      specs={[
+                        ["Video limit", "1 video"],
+                        ["Option 1", "Paste a public YouTube URL"],
+                        ["Option 2", "Upload an MP4 (H.264 recommended)"],
+                        ["File size", "Up to 50 MB", true],
+                        ["Resolution", "720p recommended", true],
+                        ["Note", "Please upload videos that you own or have permission to use."],
+                      ]}
+                    />
                     <input
                       type="url"
                       value={isUploadedVideo ? "" : form.video}
@@ -6891,12 +7092,15 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
                 </section>
                 <section className="form-block attachments-block">
                   <SectionLabel>Attachments</SectionLabel>
-                  <p className="media-guidance">
-                    Add one company profile or brochure as a PDF, JPG, or PNG (up to 12 MB). Word documents (.doc/.docx) are not currently supported.
-                  </p>
                   <UploadBox
                     title="Attachments"
-                    hint="1 file only — PDF, JPG, or PNG, up to 12 MB. Suggested: your company profile or brochure. Word docs (.doc/.docx) are not accepted for upload yet."
+                    hint={[
+                      ["File type", "PDF, JPG, or PNG"],
+                      ["File size", "Up to 12 MB"],
+                      ["File limit", "1 file"],
+                      ["Suggested", "Company profile or brochure"],
+                      ["Note", "Please upload files that you own or have permission to use. Word documents (.DOC/.DOCX) are not currently supported."],
+                    ]}
                     wide
                     accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
                     files={uploads.attachments.slice(0, 1)}

@@ -90,6 +90,33 @@ async function list(request, response, user) {
   return json(response, 200, { inquiries: result.rows.map(decryptInquiry) });
 }
 
+// Per-business conversation counts for the admin dashboard. Counts only:
+// message contents stay private to each business, so nothing here exposes
+// who said what.
+async function conversationStats(response) {
+  const result = await query(
+    `SELECT listings.id, listings.name, listings.status,
+        COUNT(inquiries.id)::int AS conversations,
+        COUNT(DISTINCT inquiries.email)::int AS leads,
+        COUNT(inquiries.id) FILTER (WHERE inquiries.status = 'Responded')::int AS responded,
+        MAX(inquiries.created_at) AS last_inquiry_at
+       FROM listings
+       LEFT JOIN inquiries ON inquiries.listing_id = listings.id AND inquiries.target = 'business'
+       GROUP BY listings.id
+       ORDER BY conversations DESC, listings.name ASC
+       LIMIT 200`,
+  );
+  const businesses = result.rows;
+  return json(response, 200, {
+    totals: {
+      conversations: businesses.reduce((sum, row) => sum + row.conversations, 0),
+      leads: businesses.reduce((sum, row) => sum + row.leads, 0),
+      responded: businesses.reduce((sum, row) => sum + row.responded, 0),
+    },
+    businesses,
+  });
+}
+
 async function findAccessibleInquiry(id, user) {
   const result =
     user.role === "admin"
@@ -154,6 +181,12 @@ export async function handleInquiriesRequest(request, response) {
 
     if (request.method === "GET" && url.pathname === "/api/inquiries") {
       await list(request, response, user);
+      return true;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/inquiries/stats") {
+      if (user.role !== "admin") return json(response, 403, { error: "Admin access required." }), true;
+      await conversationStats(response);
       return true;
     }
 

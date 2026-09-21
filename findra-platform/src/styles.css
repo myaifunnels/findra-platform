@@ -9903,6 +9903,23 @@ th {
     ),
     url("/assets/about-vision.png");
 }
+/* Brand Values mirrors the Mission card: text on the right, photo on the left. */
+.values-card {
+  position: relative;
+  justify-content: flex-end;
+  background: #fff;
+}
+.values-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/assets/about-vision.png") center / cover no-repeat;
+  transform: scaleX(-1);
+}
+.values-card > div {
+  position: relative;
+  z-index: 1;
+}
 .info-kicker {
   color: #0f9550;
   font-size: 12px;
@@ -11198,6 +11215,17 @@ th {
       ),
       url("/assets/about-vision.png");
   }
+  .values-card::before {
+    transform: none;
+    background-image:
+      linear-gradient(
+        #fff 0 47%,
+        rgba(255, 255, 255, 0.88) 62%,
+        rgba(255, 255, 255, 0.1) 88%
+      ),
+      url("/assets/about-vision.png");
+    background-size: cover;
+  }
   .info-feature-list {
     width: 100%;
   }
@@ -11848,3 +11876,40 @@ th {
 .appearance-preview.light { background: linear-gradient(135deg, #f7fbf8, #dcefe3); border: 1px solid #cfe3d6; }
 .appearance-preview.dark { background: linear-gradient(135deg, #102018, #06140e); border: 1px solid #1d3a2a; }
 .settings-profile-card h3 { margin-bottom: 4px; }
+
+/* Listing editor: fields inside a form grid line up on the same row. The
+   global "label + label" spacing is for stacked fields and pushed the second
+   and third grid columns down. The grid's own gap handles the spacing. */
+.long-listing-form .form-grid > label {
+  margin-top: 0 !important;
+}
+.profile-copy-fields label > small.field-hint {
+  justify-self: start;
+  margin-top: 0;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Upload requirements: one "Label: value" line each (file type, dimensions,
+   size, note), matching the client's wording. */
+.upload-specs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--surface-muted, #5b6f67);
+  font-weight: 500;
+}
+.upload-specs strong {
+  color: var(--surface-text, #12211c);
+  font-weight: 700;
+}
+.upload-specs li.nested {
+  padding-left: 18px;
+}
+.video-field > .upload-specs {
+  margin-bottom: 4px;
+}
