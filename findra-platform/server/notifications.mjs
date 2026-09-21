@@ -20,6 +20,7 @@ const copy = {
   "inquiry-sent-guest": ["We received your inquiry on Findra PH", "Your message has been sent. The business will get back to you soon."],
   "inquiry-reply-sent-owner": ["Your reply was sent on Findra PH", "Your reply was delivered to the customer by email."],
   "inbox-message-reply": ["Findra support replied to your message", "The Findra admin team has responded to your inbox message. Check your email for their reply."],
+  "newsletter-signup-admin": ["New newsletter subscriber", "Someone subscribed to Findra updates. View the full list in the admin Inbox."],
 };
 const templateNames = {
   "new-user": "New user welcome",
@@ -37,6 +38,7 @@ const templateNames = {
   "inquiry-sent-guest": "Inquiry confirmation to guest",
   "inquiry-reply-sent-owner": "Reply confirmation to business owner",
   "inbox-message-reply": "Admin reply to support message",
+  "newsletter-signup-admin": "New newsletter subscriber (admin)",
 };
 const smsCopy = {
   "new-user": `Hi {{contactFirstName}},
@@ -122,8 +124,10 @@ function defaultsFor(event) {
     "inquiry-sent-guest": "We received your inquiry on Findra PH",
     "inquiry-reply-sent-owner": "Your reply was sent to {{contactFullName}}",
     "inbox-message-reply": "{{replyFrom}} replied to your Findra message",
+    "newsletter-signup-admin": "New newsletter subscriber on Findra",
   };
   const clientBodies = {
+    "newsletter-signup-admin": `<p>Hi {{contactFirstName}},</p><p>A new visitor subscribed to Findra updates: <strong>{{contactEmail}}</strong>.</p><p>You can see everyone who has subscribed in the <a href="{{adminUrl}}">Findra admin workspace</a> under Inbox &rsaquo; Newsletter subscribers. Email campaigns to this list are sent from Brevo.</p><p>Regards,<br>Findra PH System</p>`,
     "new-user": `<p>Hi {{contactFirstName}},</p><p>Welcome to Findra!</p><p>We’re excited to have you on board. Your registration is officially confirmed.</p><p><strong>Next step:</strong> Complete and submit your Business Profile through your dashboard for review and approval:</p><p><a href="{{dashboardUrl}}">Complete your Business Profile</a></p><p>Once your profile is approved, we’ll notify you and send the payment link for your chosen package. Your business will go live on Findra once payment is completed.</p><p>If you need help or have any questions, contact us at hello@findra.ph.</p><p>Welcome aboard!<br>The Findra Team</p>`,
     "listing-submitted": `<p>Hi {{contactFirstName}},</p><p>Thanks for submitting your Business Profile on Findra!</p><p>We’ve received your submission, and it’s now under review by our team.</p><p>Here’s what happens next:</p><ul><li>We’ll review your Business Profile for accuracy and completeness.</li><li>We’ll get back to you within 3–5 working days once the review is completed.</li><li>Once approved, we’ll notify you and send the payment link for your chosen package.</li><li>Your business will go live on Findra once payment is completed.</li></ul><p>If you have any questions or need assistance, please contact us at hello@findra.ph.</p><p>Thanks for choosing Findra!<br>The Findra Team</p>`,
     "listing-approved": `<p>Hi {{contactFirstName}},</p><p>Great news — <strong>{{businessName}}</strong> has been approved and is now live on Findra PH!</p><p>Customers can now discover your business and send inquiries directly through the platform.</p><p>Here’s what you can do next:</p><ul><li>Review your Business Details to make sure everything looks accurate.</li><li>Keep your information updated to attract more customers.</li><li>Watch out for inquiries and respond promptly.</li></ul><p><a href="{{businessUrl}}">View your public business listing</a></p><p>We’re excited to support your growth!<br>The Findra PH Team</p>`,

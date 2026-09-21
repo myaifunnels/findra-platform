@@ -1,4 +1,5 @@
 import { query } from "./db.mjs";
+import { notifyAdmins } from "./notifications.mjs";
 import {
   hintFor,
   readIntegration,
@@ -153,6 +154,11 @@ async function sendTestEmail(request, response) {
   return json(response, 200, { ok: true, messageId: payload.messageId || "queued", recipient });
 }
 
+async function listNewsletterSubscribers(response) {
+  const result = await query("SELECT id, email, source, brevo_status, subscribed_at FROM newsletter_subscribers ORDER BY subscribed_at DESC LIMIT 500");
+  return json(response, 200, { subscribers: result.rows });
+}
+
 async function subscribeNewsletter(request, response) {
   const body = await readJson(request);
   const email = String(body.email || "").trim().toLowerCase();
@@ -167,16 +173,24 @@ async function subscribeNewsletter(request, response) {
   });
   const payload = await result.json().catch(() => ({}));
   if (!result.ok) return json(response, result.status, { error: payload.message || "We could not add that email right now." });
-  await query(`INSERT INTO newsletter_subscribers (email, source, brevo_status) VALUES ($1,$2,'subscribed') ON CONFLICT (email) DO UPDATE SET brevo_status='subscribed', updated_at=NOW()`, [email, String(body.source || "about-page").slice(0, 80)]);
+  const saved = await query(`INSERT INTO newsletter_subscribers (email, source, brevo_status) VALUES ($1,$2,'subscribed') ON CONFLICT (email) DO UPDATE SET brevo_status='subscribed', updated_at=NOW() RETURNING (xmax = 0) AS inserted`, [email, String(body.source || "about-page").slice(0, 80)]);
+  // Alert the admin team (email + in-app notification) the first time an
+  // address subscribes; repeat signups from the same email stay quiet.
+  if (saved.rows[0]?.inserted) notifyAdmins("newsletter-signup-admin", { contactEmail: email, businessName: String(body.source || "about-page") }).catch(() => {});
   return json(response, 201, { ok: true, message: "You’re subscribed. Watch your inbox for Findra updates." });
 }
 
 export async function handleBrevoRequest(request, response) {
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
-  if (!url.pathname.startsWith("/api/brevo/") && url.pathname !== "/api/newsletter/subscribe") return false;
+  if (!url.pathname.startsWith("/api/brevo/") && url.pathname !== "/api/newsletter/subscribe" && url.pathname !== "/api/newsletter/subscribers") return false;
   try {
     if (request.method === "POST" && url.pathname === "/api/newsletter/subscribe") {
       await subscribeNewsletter(request, response);
+      return true;
+    }
+    if (request.method === "GET" && url.pathname === "/api/newsletter/subscribers") {
+      if (!await requireAdmin(request, response)) return true;
+      await listNewsletterSubscribers(response);
       return true;
     }
     if (request.method === "GET" && url.pathname === "/api/brevo/integration") {

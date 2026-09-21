@@ -2685,6 +2685,12 @@ function sectionLabel(name) {
   return name === "Overview" ? "Dashboard" : name;
 }
 
+// The admin "Inquiries" workspace is where Contact Us messages arrive, so it
+// is labelled "Messages" in the admin sidebar and page heading.
+function adminSectionLabel(name) {
+  return name === "Inquiries" ? "Messages" : sectionLabel(name);
+}
+
 const sideItems = [
   ["Overview", SquaresFour],
   ["Listings", Buildings],
@@ -3084,7 +3090,7 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
               }}
             >
               <Icon />
-              {sectionLabel(name)}
+              {adminSectionLabel(name)}
               {name === "Listings" && <span>2</span>}
             </button>
           ))}
@@ -3108,7 +3114,7 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
           </button>
           <div>
             <p>Admin workspace</p>
-            <h1>{sectionLabel(section)}</h1>
+            <h1>{adminSectionLabel(section)}</h1>
           </div>
           <div className="admin-actions">
             <label>
@@ -3168,7 +3174,10 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
             <InquiriesPanel role="admin" query={query} onNotify={onNotify} />
           </>
         ) : section === "Inbox" ? (
-          <SupportInboxPanel query={query} onNotify={onNotify} />
+          <>
+            <NewsletterSubscribers />
+            <SupportInboxPanel query={query} onNotify={onNotify} />
+          </>
         ) : section === "Subscriptions" ? (
           <SubscriptionsManagement onNotify={onNotify} />
         ) : section === "Automation" ? (
@@ -4689,6 +4698,64 @@ function ConversationStats() {
                     <td>{row.leads}</td>
                     <td>{row.responded}</td>
                     <td>{row.last_inquiry_at ? new Date(row.last_inquiry_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+// Admin-only list of everyone who signed up for updates on the About page.
+// The same addresses are added to the Brevo contact list, where campaigns go out.
+function NewsletterSubscribers() {
+  const [subscribers, setSubscribers] = useState(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/newsletter/subscribers", { credentials: "same-origin" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error();
+        return response.json();
+      })
+      .then((payload) => active && setSubscribers(payload.subscribers || []))
+      .catch(() => active && setFailed(true));
+    return () => {
+      active = false;
+    };
+  }, []);
+  return (
+    <div className="admin-content newsletter-subscribers">
+      <section className="welcome-row">
+        <div>
+          <h2>Newsletter subscribers</h2>
+          <p>People who signed up for Findra updates. They are also added to the Brevo contact list, where email campaigns are sent.</p>
+        </div>
+        <span className="status">{subscribers ? `${subscribers.length} subscribed` : ""}</span>
+      </section>
+      <section className="panel">
+        {failed ? (
+          <div className="admin-empty"><WarningCircle size={38} /><h3>Subscribers unavailable</h3><p>We could not load the subscriber list. Please refresh and try again.</p></div>
+        ) : !subscribers ? (
+          <div className="admin-empty"><p>Loading subscribers…</p></div>
+        ) : !subscribers.length ? (
+          <div className="admin-empty"><EnvelopeSimple size={38} /><h3>No subscribers yet</h3><p>Sign-ups from the About page will appear here.</p></div>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Email</th><th>Source</th><th>Brevo</th><th>Subscribed</th></tr>
+              </thead>
+              <tbody>
+                {subscribers.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.email}</td>
+                    <td>{row.source}</td>
+                    <td>{row.brevo_status}</td>
+                    <td>{new Date(row.subscribed_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}</td>
                   </tr>
                 ))}
               </tbody>
