@@ -2,6 +2,7 @@ import { query } from "./db.mjs";
 import { readSession } from "./auth.mjs";
 import { notify, notifyAdmins } from "./notifications.mjs";
 import { publicAppUrl, readIntegration } from "./integrations.mjs";
+import { activePackageById } from "./packages.mjs";
 
 async function listingPublicUrl(id) {
   const paymongo = await readIntegration("paymongo");
@@ -42,6 +43,55 @@ export function subscriptionDaysLeft(subscription, createdAt) {
   const start = new Date(subscription.startDate || createdAt);
   const expires = new Date(start.getTime() + billingCycleDays(subscription.billing) * 86_400_000);
   return Math.ceil((expires.getTime() - Date.now()) / 86_400_000);
+}
+
+// A listing moves Pending -> Approved (admin approves the profile) ->
+// Published (server-verified payment). The package a business picked is stored
+// as an "Awaiting payment" subscription until PayMongo confirms the charge.
+async function pendingSubscription(packageId) {
+  const plan = await activePackageById(packageId);
+  if (!plan) return undefined;
+  return { plan: plan.name, packageId: plan.id, amount: plan.price, billing: plan.interval, status: "Awaiting payment" };
+}
+
+// Called once PayMongo confirms a checkout session as paid. Only the server
+// can activate a subscription or publish an approved listing.
+export async function activateListingAfterPayment({ listingId, accountEmail, packageId, payment }) {
+  const found = await query(
+    `SELECT listings.*, users.email AS owner_email FROM listings
+       LEFT JOIN users ON users.id = listings.owner_id WHERE listings.id = $1`,
+    [listingId],
+  );
+  const row = found.rows[0];
+  if (!row || String(row.owner_email || "").toLowerCase() !== String(accountEmail || "").toLowerCase()) return null;
+  if (row.data?.subscription?.paymentSessionId === payment.sessionId) return null;
+  const plan = await activePackageById(packageId);
+  if (!plan) return null;
+  const subscription = {
+    plan: plan.name,
+    packageId: plan.id,
+    amount: plan.price,
+    billing: plan.interval,
+    status: "Active",
+    paymentMethod: payment.method || "paymongo",
+    paymentReference: payment.reference || "PayMongo payment",
+    paymentSessionId: payment.sessionId,
+    startDate: new Date().toISOString(),
+  };
+  const goLive = row.status === "Approved";
+  const updated = await query(
+    "UPDATE listings SET status = $1, data = $2::jsonb, updated_at = NOW() WHERE id = $3 RETURNING *",
+    [goLive ? "Published" : row.status, JSON.stringify({ ...(row.data || {}), subscription }), listingId],
+  );
+  if (goLive) {
+    notify({
+      userId: row.owner_id,
+      email: row.data?.email || row.owner_email,
+      event: "listing-approved",
+      context: { businessName: row.name, contactPhone: row.data?.phone || "", businessUrl: await listingPublicUrl(listingId) },
+    }).catch(() => {});
+  }
+  return updated.rows[0];
 }
 
 function publicRecord(row) {
@@ -120,11 +170,19 @@ async function create(request, response) {
   if (!name) return json(response, 400, { error: "Business name is required." });
   await assertUniqueBusinessContact(record);
   const status = user.role === "admin" && record.status ? String(record.status) : "Pending";
+  const { selectedPackageId, ...saved } = record;
+  if (user.role !== "admin") {
+    // Owners never set their own subscription; it comes from the package they
+    // picked and only becomes Active after server-verified payment.
+    const subscription = await pendingSubscription(selectedPackageId);
+    if (subscription) saved.subscription = subscription;
+    else delete saved.subscription;
+  }
   const result = await query(
     `INSERT INTO listings (owner_id, status, name, category, location, data)
      VALUES ($1, $2, $3, $4, $5, $6::jsonb)
      RETURNING *`,
-    [user.id, status, name, String(record.category || ""), String(record.location || ""), JSON.stringify(record)],
+    [user.id, status, name, String(record.category || ""), String(record.location || ""), JSON.stringify(saved)],
   );
   const created = result.rows[0];
   const notificationContext = { businessName: name, contactPhone: record.phone || record.whatsapp || record.viber || "", businessUrl: await listingPublicUrl(created.id) };
@@ -147,6 +205,11 @@ async function update(request, response, id) {
   if (user.role !== "admin" && listing.owner_id !== user.id)
     return json(response, 403, { error: "You do not own this listing." });
   const nextData = { ...(listing.data || {}), ...record };
+  delete nextData.selectedPackageId;
+  if (user.role !== "admin") {
+    if (listing.data?.subscription) nextData.subscription = listing.data.subscription;
+    else delete nextData.subscription;
+  }
   const name = String(nextData.name || listing.name).trim();
   await assertUniqueBusinessContact(nextData, Number(id));
   const nextStatus = user.role === "admin" && record.status ? String(record.status) : listing.status;
@@ -156,7 +219,7 @@ async function update(request, response, id) {
     [name, String(nextData.category || listing.category || ""), String(nextData.location || listing.location || ""), nextStatus, JSON.stringify(nextData), id],
   );
   if (user.role === "admin" && listing.status !== nextStatus) {
-    const event = nextStatus === "Published" ? "listing-approved" : nextStatus === "Declined" ? "listing-declined" : null;
+    const event = nextStatus === "Published" ? "listing-approved" : nextStatus === "Approved" ? "listing-payment-requested" : nextStatus === "Declined" ? "listing-declined" : null;
     if (event) notify({ userId: listing.owner_id, email: listing.data?.email, event, context: { businessName: name, contactPhone: nextData.phone || nextData.whatsapp || nextData.viber || "", businessUrl: await listingPublicUrl(id) } }).catch(() => {});
   }
   return json(response, 200, { listing: publicRecord({ ...result.rows[0], owner_name: user.display_name }) });

@@ -8,8 +8,9 @@ const copy = {
   "new-user": ["Welcome to Findra PH! 👋", "Your account is active. Complete and submit your Business Details from your dashboard."],
   "listing-submitted": ["We’re Reviewing Your Business Details", "We received your submission and it is now under review. We’ll update you within 3–4 business days."],
   "listing-approved": ["Your Business Details are now live 🎉", "Great news — customers can now discover your business and send inquiries on Findra PH."],
+  "listing-payment-requested": ["Your Business Profile is approved — complete payment to go live", "Your Business Profile has been approved. Complete your payment from your dashboard to make it live on Findra PH."],
   "listing-declined": ["Action needed: Update your Business Details", "A few updates are needed before your business can go live. Please review and resubmit from your dashboard."],
-  "subscription-started": ["Your Findra PH subscription is now active", "Your payment was successful. Your Business Details have been submitted for review."],
+  "subscription-started": ["Your Findra PH subscription is now active", "Your payment was successful. Your Business Profile is now live on Findra PH."],
   "inquiry-received": ["You have a new inquiry on Findra PH", "A potential customer sent you an inquiry. Respond promptly to turn it into an opportunity."],
   "listing-pending-admin": ["New business listing needs review", "A business owner submitted a listing. Review its details and publish or decline it from the Findra admin workspace."],
   "inbox-message-admin": ["New Findra inbox message", "A business owner has sent a message to the Findra admin team."],
@@ -26,6 +27,7 @@ const templateNames = {
   "new-user": "New user welcome",
   "listing-submitted": "Listing submitted for review",
   "listing-approved": "Listing approved — now live",
+  "listing-payment-requested": "Listing approved — payment requested",
   "listing-declined": "Listing declined — action required",
   "subscription-started": "Subscription payment successful",
   "inquiry-received": "New inquiry received",
@@ -54,6 +56,11 @@ Check your email for full details.`,
   "listing-approved": `Great news, {{contactFirstName}}!
 
 {{businessName}} is now live on Findra PH.
+
+Check your email for full details.`,
+  "listing-payment-requested": `Hi {{contactFirstName}},
+
+{{businessName}} is approved. Complete your payment to go live on Findra PH.
 
 Check your email for full details.`,
   "listing-declined": `Hi {{contactFirstName}},
@@ -112,6 +119,7 @@ function defaultsFor(event) {
     "new-user": "Welcome to Findra — Registration Confirmed",
     "listing-submitted": "We’re Reviewing Your Business Details",
     "listing-approved": "Your Business Details are now live",
+    "listing-payment-requested": "Your Business Profile Is Approved — Complete Payment to Go Live",
     "listing-declined": "Action Required — Updates Needed for Your Business Profile",
     "subscription-started": "Payment Confirmed — Your Findra Subscription Is Active",
     "inquiry-received": "New Customer Inquiry on Findra",
@@ -131,6 +139,7 @@ function defaultsFor(event) {
     "new-user": `<p>Hi {{contactFirstName}},</p><p>Welcome to Findra!</p><p>We’re excited to have you on board. Your registration is officially confirmed.</p><p><strong>Next step:</strong> Complete and submit your Business Profile through your dashboard for review and approval:</p><p><a href="{{dashboardUrl}}">Complete your Business Profile</a></p><p>Once your profile is approved, we’ll notify you and send the payment link for your chosen package. Your business will go live on Findra once payment is completed.</p><p>If you need help or have any questions, contact us at hello@findra.ph.</p><p>Welcome aboard!<br>The Findra Team</p>`,
     "listing-submitted": `<p>Hi {{contactFirstName}},</p><p>Thanks for submitting your Business Profile on Findra!</p><p>We’ve received your submission, and it’s now under review by our team.</p><p>Here’s what happens next:</p><ul><li>We’ll review your Business Profile for accuracy and completeness.</li><li>We’ll get back to you within 3–5 working days once the review is completed.</li><li>Once approved, we’ll notify you and send the payment link for your chosen package.</li><li>Your business will go live on Findra once payment is completed.</li></ul><p>If you have any questions or need assistance, please contact us at hello@findra.ph.</p><p>Thanks for choosing Findra!<br>The Findra Team</p>`,
     "listing-approved": `<p>Hi {{contactFirstName}},</p><p>Great news — <strong>{{businessName}}</strong> has been approved and is now live on Findra PH!</p><p>Customers can now discover your business and send inquiries directly through the platform.</p><p>Here’s what you can do next:</p><ul><li>Review your Business Details to make sure everything looks accurate.</li><li>Keep your information updated to attract more customers.</li><li>Watch out for inquiries and respond promptly.</li></ul><p><a href="{{businessUrl}}">View your public business listing</a></p><p>We’re excited to support your growth!<br>The Findra PH Team</p>`,
+    "listing-payment-requested": `<p>Hi {{contactFirstName}},</p><p>Great news — <strong>{{businessName}}</strong> has been reviewed and approved.</p><p><strong>Next step:</strong> complete your payment for your chosen package so your Business Profile can go live on Findra.</p><p><a href="{{dashboardUrl}}">Complete your payment</a></p><p>Your business will be visible to customers as soon as your payment is confirmed. If you have any questions, contact us at hello@findra.ph.</p><p>Thanks for choosing Findra!<br>The Findra Team</p>`,
     "listing-declined": `<p>Hi {{contactFirstName}},</p><p>Thank you for submitting your Business Profile on Findra.</p><p>After reviewing your submission, we’re unable to approve your Business Profile at this time because some details need to be updated or clarified.</p><p><strong>What’s next?</strong> Please review the feedback below and make the necessary changes before resubmitting your Business Profile:</p><p><strong>Review Notes:</strong> {{reviewNotes}}</p><p>Once you’ve made the updates, you may resubmit your Business Profile for review. We’ll get back to you within 3–5 working days after your resubmission.</p><p>If you have any questions or need assistance, please contact us at hello@findra.ph.</p><p>Thank you for your understanding, and we look forward to having your business on Findra.<br>The Findra Team</p>`,
     "subscription-started": `<p>Hi {{contactFirstName}},</p><p>Thank you! Your payment has been successfully received, and your Findra subscription is now active.</p><p>You can continue managing your Business Profile through your Findra account.</p><p><a href="{{dashboardUrl}}">Go to your Findra account</a></p><p>If you have any questions or need assistance, please contact us at hello@findra.ph.</p><p>Thank you for choosing Findra. We’re happy to have you with us!<br>The Findra Team</p>`,
     "inquiry-received": `<p>Hi {{contactFirstName}},</p><p>Good news! You’ve received a new inquiry from a potential customer on Findra.</p><p>Responding promptly can help turn inquiries into valuable business opportunities.</p><p><a href="{{dashboardUrl}}">View and respond to the inquiry</a></p><p>To make the most of your Findra profile, make sure your business details and contact information are always up to date.</p><p>Thank you for being part of Findra!<br>The Findra Team</p>`,

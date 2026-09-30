@@ -1,6 +1,7 @@
 import { activePackage, activePackageById } from "./packages.mjs";
 import { query } from "./db.mjs";
 import { notify } from "./notifications.mjs";
+import { activateListingAfterPayment } from "./listings.mjs";
 import {
   hintFor,
   publicAppUrl,
@@ -262,6 +263,20 @@ async function retrieveCheckoutSession(request, response, id) {
     attributes.payment_intent?.attributes?.status === "succeeded";
   if (paid) {
     const email = String(attributes.metadata?.account_email || "").toLowerCase();
+    const listingId = Number(attributes.metadata?.listing_id);
+    if (email && listingId) {
+      // Activation is server-side only: the browser cannot mark itself paid.
+      await activateListingAfterPayment({
+        listingId,
+        accountEmail: email,
+        packageId: attributes.metadata?.package_id,
+        payment: {
+          sessionId: session.id,
+          method: payment?.attributes?.source?.type || "paymongo",
+          reference: payment?.id || attributes.reference_number || session.id,
+        },
+      }).catch(() => {});
+    }
     if (email) {
       const userResult = await query("SELECT id, email FROM users WHERE email = $1", [email]);
       const user = userResult.rows[0];

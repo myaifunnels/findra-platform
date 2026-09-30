@@ -121,6 +121,7 @@ const triggerOptions = [
   ["new-user", "New user welcome"],
   ["listing-submitted", "Business listing submitted"],
   ["listing-pending-admin", "Listing pending moderator review"],
+  ["listing-payment-requested", "Business approved — payment requested"],
   ["listing-approved", "Business listing approved"],
   ["listing-declined", "Business listing declined"],
   ["subscription-started", "Subscription payment successful"],

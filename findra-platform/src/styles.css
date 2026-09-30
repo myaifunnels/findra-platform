@@ -9503,6 +9503,12 @@ th {
 .status.pending { background: #fff0ce; border-color: #f0c96e; color: #714200; }
 .status.declined { background: #ffe2e2; border-color: #eea0a0; color: #8a2424; }
 .status.draft { background: #e9efec; border-color: #b9c8c1; color: #385047; }
+.status.approved { background: #dbeafe; border-color: #93bbf0; color: #17408a; }
+[data-theme="dark"] .status.approved { background: #17325f; border-color: #4f7fd1; color: #d4e4ff; }
+.payment-due-card { align-items: flex-start; }
+.payment-due-card h3 small { color: var(--muted); font-size: 13px; font-weight: 600; }
+.payment-due-card p { margin: 6px 0 12px; max-width: 62ch; }
+.payment-due-card .plan-upgrade-methods { margin-bottom: 12px; }
 [data-theme="dark"] .status.published { background: #164c31; border-color: #3c9a61; color: #c8ffdb; }
 [data-theme="dark"] .status.pending { background: #5a4012; border-color: #bb8530; color: #fff0bf; }
 [data-theme="dark"] .status.declined { background: #57282a; border-color: #bb6267; color: #ffd9dc; }

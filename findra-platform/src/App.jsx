@@ -26,6 +26,7 @@ import {
   List,
   MagnifyingGlass,
   MapPin,
+  Package,
   PencilSimple,
   Phone,
   Plug,
@@ -2202,8 +2203,8 @@ function PackagesPage({ go }) {
           <span className="info-kicker">Simple, transparent pricing</span>
           <h2>Choose the plan that fits your business.</h2>
           <p>
-            You do not need an account to start. Complete your business
-            details first, then create or sign in right before secure checkout.
+            Choose your package, create your account, then build your business
+            profile. Payment is only requested after Findra approves your profile.
           </p>
         </section>
         {subscription && (
@@ -2246,15 +2247,10 @@ function PackagesPage({ go }) {
           </section>
         )}
         <section className="package-clarity-row">
-          <article><ShieldCheck /><div><strong>Fill in your details first</strong><p>Your business details come first — no account needed to start.</p></div></article>
-          <article><CreditCard /><div><strong>Secure PayMongo checkout</strong><p>Pay your 6-month listing fee only once your listing is ready.</p></div></article>
-          <article><CheckCircle /><div><strong>Reviewed before publishing</strong><p>Your paid listing enters Findra’s approval workflow before going live.</p></div></article>
+          <article><Package /><div><strong>1. Choose a package</strong><p>Pick the listing plan that fits your business.</p></div></article>
+          <article><UserCircle /><div><strong>2. Create your account</strong><p>Register or sign in so your profile is saved as you build it.</p></div></article>
+          <article><ShieldCheck /><div><strong>3. Submit your profile for approval</strong><p>Findra reviews it first. You pay only once it is approved, then your listing goes live.</p></div></article>
         </section>
-        <p className="packages-footnote">
-          You can start filling in your business details as a guest, but
-          creating your account early is what actually saves your draft —
-          uploading media or leaving before checkout requires an account.
-        </p>
       </main>
     </PublicLayout>
   );
@@ -3219,7 +3215,7 @@ function AdminDashboard({ go, listings, setListings, onLogout, onNotify, session
         <ListingActionConfirm
           action={confirmation}
           close={() => setConfirmation(null)}
-          confirm={() => confirmation.type === "publish" ? update(confirmation.item.id, "Published") : removeListing(confirmation.item)}
+          confirm={() => confirmation.type === "publish" ? update(confirmation.item.id, approvalTarget(confirmation.item)) : removeListing(confirmation.item)}
         />
       )}
     </div>
@@ -3355,19 +3351,29 @@ function Overview(props) {
   );
 }
 
+// Approving a listing whose subscription is still unpaid moves it to
+// "Approved" (payment requested); the server publishes it once PayMongo
+// confirms payment. Listings that are already paid (or legacy ones without a
+// package) are published directly.
+function approvalTarget(item) {
+  return item?.status !== "Approved" && item?.subscription?.status === "Awaiting payment" ? "Approved" : "Published";
+}
+
 function StatusPill({ status }) {
   const Icon =
     status === "Published"
       ? CheckCircle
       : status === "Pending"
         ? Clock
-        : status === "Declined"
-          ? XCircle
-          : FileText;
+        : status === "Approved"
+          ? CreditCard
+          : status === "Declined"
+            ? XCircle
+            : FileText;
   return (
     <span className={`status ${status.toLowerCase()}`}>
       <Icon weight="fill" />
-      {status}
+      {status === "Approved" ? "Approved · Payment due" : status}
     </span>
   );
 }
@@ -3430,8 +3436,8 @@ function ListingTable({ rows, setSelected, setEditing, update, remove }) {
                   )}
                   {update && item.status !== "Published" && (
                     <button
-                      title="Publish listing"
-                      aria-label={`Publish ${item.name}`}
+                      title={approvalTarget(item) === "Approved" ? "Approve & request payment" : "Publish listing"}
+                      aria-label={`${approvalTarget(item) === "Approved" ? "Approve" : "Publish"} ${item.name}`}
                       onClick={() => update(item.id, "Published")}
                     >
                       <Check />
@@ -3505,6 +3511,7 @@ function ListingsAdmin({
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option>All</option>
             <option>Published</option>
+            <option>Approved</option>
             <option>Pending</option>
             <option>Draft</option>
             <option>Declined</option>
@@ -3524,7 +3531,7 @@ function ListingsAdmin({
             <p>{rows.length} {rows.length === 1 ? "listing" : "listings"} shown</p>
           </div>
           <div className="status-tabs" aria-label="Filter listings by status">
-            {["All", "Published", "Pending", "Draft", "Declined"].map((x) => (
+            {["All", "Published", "Approved", "Pending", "Draft", "Declined"].map((x) => (
               <button
                 className={status === x ? "active" : ""}
                 onClick={() => setStatus(x)}
@@ -4076,7 +4083,7 @@ function UserDashboardLegacyTwo({ go, listing, onSave, onLogout }) {
   );
 }
 
-function UserDashboard({ go, listing, onSave, onLogout, session }) {
+function UserDashboard({ go, listing, onSave, onRefresh, onLogout, session }) {
   const [section, setSection] = usePersistedDashboardSection("findra-user-section", "Overview");
   const [mobileSide, setMobileSide] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -4098,12 +4105,11 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
   const displayName = session?.name || "Business Owner";
   const firstName = displayName.split(" ")[0];
   const current = listing || { ...blankListing, owner: displayName };
-  const pendingPayment = useMemo(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem("findra-paymongo-pending"));
-    } catch {
-      return null;
-    }
+  useEffect(() => {
+    // Returning from PayMongo lands on /user?payment=...; show the billing tab
+    // so the payment can be verified.
+    if (new URLSearchParams(window.location.search).get("payment")) setSection("Plan & Billing");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const openListingFlow = () => {
     if (listing) {
@@ -4217,16 +4223,22 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
             Your listing is live and its details are locked. Contact support to request changes.
           </div>
         )}
-        {pendingPayment && (
+        {listing && (listing.status === "Pending" || listing.status === "Approved") && section !== "Plan & Billing" && (
           <section className="admin-content">
             <div className="panel billing-card">
-              <div className="billing-icon"><CreditCard /></div>
+              <div className="billing-icon">{listing.status === "Approved" ? <CreditCard /> : <Clock />}</div>
               <div>
-                <span>PAYMENT NOT FINISHED</span>
-                <h3>Finish checkout for {pendingPayment.draft?.name || "your listing"}</h3>
-                <p>Your business details and uploaded media are safe. Complete payment to submit the listing for review.</p>
+                <span>{listing.status === "Approved" ? "PAYMENT DUE" : "UNDER REVIEW"}</span>
+                <h3>{listing.status === "Approved" ? `${listing.name} is approved` : `${listing.name} is being reviewed`}</h3>
+                <p>
+                  {listing.status === "Approved"
+                    ? "Complete your payment to make your business profile live on Findra."
+                    : "Findra is reviewing your business profile (3–5 working days). Payment is requested only after it is approved."}
+                </p>
               </div>
-              <button className="admin-primary" onClick={() => go("/add-listing")}>Continue payment <ArrowRight /></button>
+              {listing.status === "Approved" && (
+                <button className="admin-primary" onClick={() => setSection("Plan & Billing")}>Complete payment <ArrowRight /></button>
+              )}
             </div>
           </section>
         )}
@@ -4351,7 +4363,7 @@ function UserDashboard({ go, listing, onSave, onLogout, session }) {
             )}
           </div>
         ) : section === "Plan & Billing" ? (
-          <PlanBilling listing={listing} go={go} session={session} onSave={onSave} resumePayment={pendingPayment ? () => go("/add-listing") : null} />
+          <PlanBilling listing={listing} go={go} session={session} onSave={onSave} onRefresh={onRefresh} />
         ) : section === "Inbox" ? (
           <UserInbox />
         ) : section === "Inquiries" ? (
@@ -4378,8 +4390,11 @@ const upgradePaymentMethods = [
   ["dob", "Online banking"],
 ];
 
-function PlanBilling({ listing, go, session, onSave, resumePayment }) {
-  const subscription = listing?.subscription;
+function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment }) {
+  // "Awaiting payment" means a package was chosen but Findra has not been paid
+  // yet: the profile is under review, or approved and payment is due.
+  const awaiting = listing?.subscription?.status === "Awaiting payment" ? listing.subscription : null;
+  const subscription = awaiting ? null : listing?.subscription;
   const [packages, setPackages] = useState([]);
   const [upgradeTarget, setUpgradeTarget] = useState(null);
   const [method, setMethod] = useState("gcash");
@@ -4392,8 +4407,13 @@ function PlanBilling({ listing, go, session, onSave, resumePayment }) {
       .then((payload) => setPackages(payload?.packages || []))
       .catch(() => {});
   }, []);
-  // Resolve the return trip from PayMongo after an upgrade attempt: apply
-  // the new subscription to the listing once payment is verified.
+  const awaitingPackage = awaiting
+    ? packages.find((item) => item.id === awaiting.packageId)
+      || packages.find((item) => item.name === awaiting.plan && item.interval === awaiting.billing)
+    : null;
+  // Resolve the return trip from PayMongo: the server verifies the payment and
+  // activates the subscription (publishing an approved listing), then we
+  // reload the latest listing.
   useEffect(() => {
     const paymentResult = new URLSearchParams(window.location.search).get("payment");
     if (!paymentResult) return undefined;
@@ -4419,19 +4439,13 @@ function PlanBilling({ listing, go, session, onSave, resumePayment }) {
         if (!response.ok) throw new Error(result.error);
         if (!result.paid) throw new Error("Payment was not completed.");
         if (!active) return;
-        const nextSubscription = {
-          plan: pending.plan.name,
-          amount: pending.plan.price,
-          billing: pending.plan.interval,
-          status: "Active",
-          paymentMethod: pending.method,
-          paymentReference: result.referenceNumber,
-          paymentSessionId: pending.sessionId,
-          startDate: new Date().toISOString(),
-        };
-        const saved = await onSave?.({ ...listing, subscription: nextSubscription });
-        if (saved === false) throw new Error("Payment succeeded, but the new plan could not be saved. Please contact Findra support.");
-        setStatus({ type: "success", message: `You're now on the ${pending.plan.name} plan.` });
+        await onRefresh?.();
+        setStatus({
+          type: "success",
+          message: pending.activation
+            ? "Payment confirmed — your business profile is now live on Findra."
+            : `You're now on the ${pending.plan.name} plan.`,
+        });
       })
       .catch((error) => setStatus({ type: "error", message: error.message || "We could not verify the upgrade payment." }))
       .finally(() => sessionStorage.removeItem("findra-plan-upgrade-pending"));
@@ -4462,7 +4476,7 @@ function PlanBilling({ listing, go, session, onSave, resumePayment }) {
       if (!response.ok || !checkout.checkoutUrl) throw new Error(checkout.error || "PayMongo checkout could not be started.");
       sessionStorage.setItem(
         "findra-plan-upgrade-pending",
-        JSON.stringify({ sessionId: checkout.id, method, plan: checkout.plan }),
+        JSON.stringify({ sessionId: checkout.id, method, plan: checkout.plan, activation: Boolean(awaiting) }),
       );
       window.location.assign(checkout.checkoutUrl);
     } catch (error) {
@@ -4485,6 +4499,56 @@ function PlanBilling({ listing, go, session, onSave, resumePayment }) {
         </div>
         {subscription && <StatusPill status={subscription.status} />}
       </section>
+      {awaiting && (
+        <section className="panel billing-card payment-due-card">
+          <div className="billing-icon">
+            <CreditCard />
+          </div>
+          <div>
+            <span>{listing.status === "Approved" ? "PAYMENT DUE" : "PAYMENT OPENS AFTER APPROVAL"}</span>
+            <h3>
+              {awaiting.plan} · ₱{Number(awaiting.amount).toLocaleString()} <small>/ {String(awaiting.billing).toLowerCase()}</small>
+            </h3>
+            {listing.status === "Approved" ? (
+              <>
+                <p>
+                  Your business profile is approved. Pay to make it live on Findra. Packages are paid in full for the{" "}
+                  {String(awaiting.billing).toLowerCase()} term and cannot be cancelled once paid.
+                </p>
+                <div className="plan-upgrade-methods">
+                  {upgradePaymentMethods.map(([value, label]) => (
+                    <label key={value} className={method === value ? "selected" : ""}>
+                      <input
+                        type="radio"
+                        name="payment-due-method"
+                        value={value}
+                        checked={method === value}
+                        onChange={(event) => setMethod(event.target.value)}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                {upgradeError && <p className="inquiry-form-error">{upgradeError}</p>}
+                <button
+                  type="button"
+                  className="admin-primary"
+                  disabled={submitting || !awaitingPackage}
+                  onClick={() => startUpgrade(awaitingPackage)}
+                >
+                  {submitting ? "Redirecting…" : "Pay with PayMongo"} <ArrowRight />
+                </button>
+              </>
+            ) : (
+              <p>
+                {listing.status === "Declined"
+                  ? "Your profile needs a few updates before it can be approved. Please review the email we sent and resubmit."
+                  : "Your profile is under review (3–5 working days). We will email you a payment link once it is approved. Nothing is charged until then."}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
       {subscription && (
         <section className="panel billing-card">
           <div className="billing-icon">
@@ -4532,6 +4596,7 @@ function PlanBilling({ listing, go, session, onSave, resumePayment }) {
           </dl>
         </section>
       )}
+      {!awaiting && (<>
       <section className="welcome-row">
         <div>
           <h3>{subscription ? "Available packages" : "Choose a package to get started"}</h3>
@@ -4615,12 +4680,25 @@ function PlanBilling({ listing, go, session, onSave, resumePayment }) {
               ) : resumePayment ? (
                 <button className="admin-primary" onClick={resumePayment}>Continue payment <ArrowRight /></button>
               ) : (
-                <button className="admin-primary" onClick={() => go?.("/add-listing")}>Subscribe <ArrowRight /></button>
+                <button
+                  className="admin-primary"
+                  onClick={() => {
+                    try {
+                      sessionStorage.setItem("findra-selected-package-id", String(item.id));
+                    } catch {
+                      // ignore
+                    }
+                    go?.("/add-listing");
+                  }}
+                >
+                  Choose this package <ArrowRight />
+                </button>
               )}
             </article>
           );
         })}
       </section>
+      </>)}
     </div>
   );
 }
@@ -5550,17 +5628,18 @@ function SettingsAdmin({ session, onNotify, onOpenIntegrations }) {
 
 function ListingActionConfirm({ action, close, confirm }) {
   const publishing = action.type === "publish";
+  const requestPayment = publishing && approvalTarget(action.item) === "Approved";
   return (
     <div className="modal-backdrop" onClick={close}>
       <article className="listing-action-confirm" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="listing-action-title">
         <button className="listing-action-close" onClick={close} aria-label="Close confirmation"><X /></button>
         <div className={`listing-action-icon ${publishing ? "publish" : "delete"}`}>{publishing ? <CheckCircle weight="fill" /> : <Trash weight="fill" />}</div>
-        <span>{publishing ? "Ready to publish" : "Delete listing"}</span>
-        <h2 id="listing-action-title">{publishing ? `Publish ${action.item.name}?` : `Delete ${action.item.name}?`}</h2>
-        <p>{publishing ? "The listing will become publicly visible. Its owner will receive an in-app notification and a Brevo email when delivery is configured." : "This permanently removes the listing from Findra. This action cannot be undone."}</p>
+        <span>{publishing ? (requestPayment ? "Ready to approve" : "Ready to publish") : "Delete listing"}</span>
+        <h2 id="listing-action-title">{publishing ? `${requestPayment ? "Approve" : "Publish"} ${action.item.name}?` : `Delete ${action.item.name}?`}</h2>
+        <p>{publishing ? (requestPayment ? "The profile will be marked approved and its owner will be asked to complete payment. It goes live automatically once PayMongo confirms the payment." : "The listing will become publicly visible. Its owner will receive an in-app notification and a Brevo email when delivery is configured.") : "This permanently removes the listing from Findra. This action cannot be undone."}</p>
         <footer>
           <button className="secondary-button" onClick={close}>Cancel</button>
-          <button className={publishing ? "admin-primary" : "danger-button"} onClick={confirm}>{publishing ? "Publish listing" : "Delete listing"}</button>
+          <button className={publishing ? "admin-primary" : "danger-button"} onClick={confirm}>{publishing ? (requestPayment ? "Approve & request payment" : "Publish listing") : "Delete listing"}</button>
         </footer>
       </article>
     </div>
@@ -5644,7 +5723,7 @@ function ListingModal({ item, close, update, edit, remove }) {
               className="admin-primary"
               onClick={() => update(item.id, "Published")}
             >
-              <Check /> Approve & publish
+              <Check /> {approvalTarget(item) === "Approved" ? "Approve & request payment" : "Approve & publish"}
             </button>
           )}
         </footer>
@@ -6655,9 +6734,13 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
         {planNotice && (
           <div className="guest-plan-notice">
             <div>
-              <span>YOUR LISTING PACKAGE</span>
-              <strong>Findra Basic Listing</strong>
-              <small>You can browse and fill in your listing as a guest. Your selected package is saved, and creating an account is required before you can upload media or check out.</small>
+              <span>YOUR SELECTED PACKAGE</span>
+              <strong>
+                {typeof planNotice === "object" && planNotice.name
+                  ? `${planNotice.name} · ₱${packageMonthlyRate(planNotice).toLocaleString()}/month`
+                  : "Findra Business Listing"}
+              </strong>
+              <small>Submit your business profile for review. Payment is requested only after Findra approves it, and your listing goes live once payment is confirmed.</small>
             </div>
             <button type="button" onClick={onViewPackage}>View package details</button>
           </div>
@@ -7300,7 +7383,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
             </button>
           ) : (
             <button type="submit" className="admin-primary">
-              {item.id ? "Save Your Business" : "Continue to Account"}
+              {item.id ? "Save Your Business" : "Submit for Review"}
               <ArrowRight />
             </button>
           )}
@@ -7310,7 +7393,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
   );
 }
 
-function GuestAccountGate({ draft, go, createAccount, onReady }) {
+function GuestAccountGate({ go, createAccount, onReady, packageName }) {
   const [mode, setMode] = useState("register");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -7332,35 +7415,33 @@ function GuestAccountGate({ draft, go, createAccount, onReady }) {
     <div className="guest-gate-page">
       <div className="guest-orb guest-orb-one" />
       <div className="guest-orb guest-orb-two" />
-      <button className="guest-back" onClick={() => go("/")}>
-        <ArrowLeft /> Back to main site
+      <button className="guest-back" onClick={() => go("/packages")}>
+        <ArrowLeft /> Back to packages
       </button>
       <main className="guest-account-card">
         <div className="guest-progress">
           <span className="done">
-            <Check /> Business details
+            <Check /> Choose package
           </span>
           <i />
           <span className="active">2</span>
-          <strong>Your account</strong>
+          <strong>Create account</strong>
           <i />
           <span>3</span>
-          <strong>Checkout</strong>
+          <strong>Business profile</strong>
         </div>
         <div className="guest-summary">
-          <span>Almost there</span>
-          <h1>Keep control of {draft.name}</h1>
+          <span>Step 2 of 3</span>
+          <h1>Create your Findra account</h1>
           <p>
-            Your listing is ready. Create an account or sign in so you can edit
-            it, receive inquiries, and track its approval.
+            Register or sign in first so your business profile is saved as you
+            build it. Findra reviews your profile before any payment is requested.
           </p>
           <div>
             <Storefront />
             <span>
-              <strong>{draft.name}</strong>
-              <small>
-                {draft.category} · {draft.location}
-              </small>
+              <strong>{packageName ? `${packageName} package selected` : "Package selected"}</strong>
+              <small>Payment is requested only after your profile is approved</small>
             </span>
           </div>
         </div>
@@ -7439,7 +7520,7 @@ function GuestAccountGate({ draft, go, createAccount, onReady }) {
                   : "Sign in & continue"}
             </GreenButton>
             <small className="guest-privacy">
-              Your listing stays saved while you continue to secure checkout.
+              Next you will build your business profile. It is saved to your account.
             </small>
           </form>
         </div>
@@ -7448,453 +7529,47 @@ function GuestAccountGate({ draft, go, createAccount, onReady }) {
   );
 }
 
-const findraPlan = {
-  name: "Early Bird",
-  amount: 4794,
-  price: 4794,
-  billing: "6 Months",
-  interval: "6 Months",
-  features: listingPackageFeatures,
-};
-
-function PayMongoCheckout({ draft, account, back, complete, plan = findraPlan }) {
-  const [method, setMethod] = useState("gcash");
-  const [processing, setProcessing] = useState(false);
-  const [paymentError, setPaymentError] = useState("");
-  const [testMode, setTestMode] = useState(false);
-  const methods = [
-    ["gcash", "GCash", "Mobile wallet"],
-    ["card", "Credit / debit card", "Visa or Mastercard"],
-    ["qrph", "QRPh", "Scan to pay with any QR Ph app"],
-    ["dob", "Online banking", "BPI or UnionBank"],
-  ];
+// New-listing flow: package -> account -> business profile submitted for
+// review. Payment is requested from the dashboard only after admin approval.
+function GuestListingPage({ go, session, submitListing, createAccount }) {
+  const [account, setAccount] = useState(session?.role === "user" ? session : null);
+  const [selectedPackage, setSelectedPackage] = useState(null);
   useEffect(() => {
-    fetch("/api/paymongo/integration", { credentials: "same-origin" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((status) => setTestMode(status?.mode === "test"))
-      .catch(() => {});
-  }, []);
+    if (session?.role === "user") setAccount(session);
+  }, [session]);
   useEffect(() => {
-    const paymentResult = new URLSearchParams(window.location.search).get(
-      "payment",
-    );
-    if (!paymentResult) return undefined;
-    if (paymentResult === "cancelled") {
-      setPaymentError(
-        "Payment was cancelled. Your listing is still saved and you can try again.",
-      );
-      window.history.replaceState({}, "", "/add-listing");
-      return undefined;
-    }
-    const pending = (() => {
-      try {
-        return JSON.parse(sessionStorage.getItem("findra-paymongo-pending"));
-      } catch {
-        return null;
-      }
-    })();
-    if (paymentResult !== "success" || !pending?.sessionId) {
-      setPaymentError(
-        "We could not find the pending PayMongo session. Please start checkout again.",
-      );
-      return undefined;
-    }
-    let active = true;
-    setProcessing(true);
-    fetch(`/api/paymongo/checkout-sessions/${pending.sessionId}`, {
-      headers: { Accept: "application/json" },
-    })
-      .then(async (response) => {
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error);
-        if (!result.paid)
-          throw new Error(
-            "PayMongo has not confirmed this payment yet. Please wait a moment and refresh this page.",
-          );
-        const completionError = await complete(pending.draft, {
-          account: pending.account,
-          payment: {
-            amount: (result.amount || Number(plan.amount || plan.price) * 100) / 100,
-            method: pending.method,
-            reference: result.paymentId || result.referenceNumber,
-            sessionId: result.id,
-            plan: pending.plan || plan,
-          },
-        });
-        if (completionError) throw new Error(completionError);
-        sessionStorage.removeItem("findra-paymongo-pending");
-      })
-      .catch((error) => {
-        if (active)
-          setPaymentError(
-            error.message || "We could not verify the PayMongo payment.",
-          );
-      })
-      .finally(() => {
-        if (active) setProcessing(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [complete]);
-  const pay = async (event) => {
-    event.preventDefault();
-    setProcessing(true);
-    setPaymentError("");
-    try {
-      const response = await fetch("/api/paymongo/checkout-sessions", {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          accountEmail: draft.email || account?.email || account?.username,
-          accountName: account?.name,
-          listingName: draft.name,
-          method,
-          packageId: plan.id,
-        }),
-      });
-      const checkout = await response.json();
-      if (!response.ok || !checkout.checkoutUrl)
-        throw new Error(
-          checkout.error || "PayMongo checkout could not be started.",
-        );
-      sessionStorage.setItem(
-        "findra-paymongo-pending",
-        JSON.stringify({
-          account,
-          draft,
-          method,
-          plan,
-          referenceNumber: checkout.referenceNumber,
-          sessionId: checkout.id,
-        }),
-      );
-      window.location.assign(checkout.checkoutUrl);
-    } catch (error) {
-      setPaymentError(
-        error.message || "PayMongo checkout could not be started.",
-      );
-      setProcessing(false);
-    }
-  };
-  return (
-    <div className="checkout-page">
-      <div className="guest-orb guest-orb-one" />
-      <div className="guest-orb guest-orb-two" />
-      <header className="checkout-header">
-        <BrandLogo />
-        <ThemeToggle />
-      </header>
-      <main className="checkout-shell">
-        <div className="checkout-progress">
-          <span className="done">
-            <Check /> Listing
-          </span>
-          <i />
-          <span className="done">
-            <Check /> Account
-          </span>
-          <i />
-          <span className="active">3</span>
-          <strong>Secure checkout</strong>
-        </div>
-        <section className="checkout-main">
-          <button className="checkout-back" type="button" onClick={back}>
-            <ArrowLeft /> Back to account
-          </button>
-          <span className="checkout-kicker">Complete your subscription</span>
-          {testMode && <div className="paymongo-note"><CheckCircle weight="fill" /><span><strong>PayMongo test mode</strong><small>This is a sandbox checkout. No live customer payment should be used here.</small></span></div>}
-          <h1>Get {draft.name} discovered.</h1>
-          <p>
-            Select how you want to pay through PayMongo. Your listing will be
-            submitted for review once payment is confirmed.
-          </p>
-          <form className="payment-methods" onSubmit={pay}>
-            <fieldset>
-              <legend>Payment method</legend>
-              {methods.map(([value, label, note]) => (
-                <label
-                  className={method === value ? "selected" : ""}
-                  key={value}
-                >
-                  <input
-                    type="radio"
-                    name="payment-method"
-                    value={value}
-                    checked={method === value}
-                    onChange={(event) => setMethod(event.target.value)}
-                  />
-                  <span className={`payment-mark ${value}`}>
-                    {value === "card" ? <CreditCard /> : label.slice(0, 1)}
-                  </span>
-                  <span>
-                    <strong>{label}</strong>
-                    <small>{note}</small>
-                  </span>
-                  <CheckCircle weight="fill" />
-                </label>
-              ))}
-            </fieldset>
-            <div className="paymongo-note">
-              <CheckCircle weight="fill" />
-              <span>
-                <strong>Secure payments by PayMongo</strong>
-                <small>
-                  You will continue to PayMongo's hosted checkout. Findra only
-                  activates the listing after the server verifies payment.
-                </small>
-              </span>
-            </div>
-            {paymentError && (
-              <div className="checkout-error" role="alert">
-                <WarningCircle weight="fill" /> {paymentError}
-              </div>
-            )}
-            <button
-              className="paymongo-button"
-              disabled={processing}
-              type="submit"
-            >
-              {processing
-                ? "Connecting to PayMongo..."
-                : `Pay ₱${Number(plan.amount || plan.price || 0).toLocaleString()}`}{" "}
-              <ArrowRight />
-            </button>
-            <small className="checkout-terms">
-              By continuing, you agree to the Findra Terms of Use and
-              subscription policy.
-            </small>
-          </form>
-        </section>
-        <aside className="order-summary">
-          <span>ORDER SUMMARY</span>
-          <div className="order-business">
-            <Storefront />
-            <div>
-              <strong>{draft.name}</strong>
-              <small>
-                {draft.category} · {draft.location}
-              </small>
-            </div>
-          </div>
-          <h2>{plan.name}</h2>
-          <ul>
-            {(plan.features?.length ? plan.features : listingPackageFeatures).map((feature) => <li key={feature}><Check /> {feature}</li>)}
-          </ul>
-          <dl>
-            <div>
-              <dt>{plan.billing || plan.interval || "Subscription"} listing</dt>
-              <dd>₱{Number(plan.amount || plan.price || 0).toLocaleString()}</dd>
-            </div>
-            <div>
-              <dt>Processing fee</dt>
-              <dd>₱0</dd>
-            </div>
-            <div>
-              <dt>Total due today</dt>
-              <dd>₱{Number(plan.amount || plan.price || 0).toLocaleString()}</dd>
-            </div>
-          </dl>
-          <small>
-            Renews every {String(plan.billing || plan.interval || "year").toLowerCase()}. You can manage your subscription from your account.
-          </small>
-        </aside>
-      </main>
-    </div>
-  );
-}
-
-function GuestListingPage({ go, session, complete, createAccount }) {
-  const pendingCheckout = useMemo(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem("findra-paymongo-pending"));
-    } catch {
-      return null;
-    }
-  }, []);
-  const [draft, setDraft] = useState(pendingCheckout?.draft || null);
-  const [plan, setPlan] = useState(() => pendingCheckout?.plan || findraPlan);
-  const [planTiers, setPlanTiers] = useState([]);
-  const [account, setAccount] = useState(
-    session?.role === "user" ? session : pendingCheckout?.account || null,
-  );
-  // Duration (3/6/12 months) is chosen in its own "plan" stage, as the last
-  // step of the flow, right before account creation and checkout — not
-  // up front on the Packages page.
-  const [stage, setStage] = useState(pendingCheckout ? "checkout" : "listing");
-  useEffect(() => {
-    // A resumed checkout already has its billing cycle locked in from when it
-    // was started; don't let this refetch silently swap it to another tier.
-    if (pendingCheckout?.plan) return;
     fetch("/api/packages", { credentials: "same-origin" })
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
-        const packages = payload?.packages || [];
-        if (!packages.length) return;
-        const listingPlans = packages.filter((item) => item.name === "Early Bird" || item.name === "Basic");
-        const pool = listingPlans.length ? listingPlans : packages;
-        setPlanTiers(pool);
+        const packages = (payload?.packages || []).filter((item) => item.name === "Early Bird" || item.name === "Basic");
+        const available = packages.filter((item) => item.slotsRemaining !== 0);
         const selectedId = Number(sessionStorage.getItem("findra-selected-package-id"));
-        const selected = pool.find((item) => item.id === selectedId);
-        const available = pool.filter((item) => item.slotsRemaining !== 0);
-        const active = (selected && selected.slotsRemaining !== 0 ? selected : null)
-          || available.find((item) => item.featured)
-          || available[0]
-          || pool[0];
-        const nextPlan = { ...active, amount: active.price, billing: active.interval };
-        Object.assign(findraPlan, nextPlan);
-        setPlan(nextPlan);
+        setSelectedPackage(
+          available.find((item) => item.id === selectedId)
+            || available.find((item) => item.featured)
+            || available[0]
+            || null,
+        );
       })
       .catch(() => {});
   }, []);
-  const submit = (record) => {
-    setDraft(record);
-    setStage(account ? "checkout" : "account");
-  };
-  if (draft && stage === "plan")
-    return (
-      <PlanDurationStep
-        tiers={planTiers}
-        plan={plan}
-        onBack={() => setStage("listing")}
-        onContinue={(nextPlan) => {
-          Object.assign(findraPlan, nextPlan);
-          setPlan(nextPlan);
-          setStage(account ? "checkout" : "account");
-        }}
-      />
-    );
-  if (draft && stage === "account")
+  if (!account)
     return (
       <GuestAccountGate
-        draft={draft}
         go={go}
         createAccount={createAccount}
-        onReady={(nextAccount) => {
-          setAccount(nextAccount);
-          setStage("checkout");
-        }}
-      />
-    );
-  if (draft && stage === "checkout")
-    return (
-      <PayMongoCheckout
-        draft={draft}
-        account={account}
-        back={() => setStage("account")}
-        complete={complete}
-        plan={plan}
+        packageName={selectedPackage?.name}
+        onReady={setAccount}
       />
     );
   return (
     <ListingEditor
       item={{ ...blankListing, status: "Draft" }}
-      close={() => go("/")}
-      save={submit}
-      planNotice
+      close={() => go("/packages")}
+      save={(record) => submitListing({ ...record, selectedPackageId: selectedPackage?.id })}
+      planNotice={selectedPackage || true}
       onViewPackage={() => go("/packages")}
     />
-  );
-}
-
-// Final step of the guest listing flow: pick a billing duration (the real
-// Monthly/6 Months/Annually packages) right before account creation and
-// checkout. Kept separate from the Packages page, which now only presents
-// the Basic vs. Premium plan choice.
-function PlanDurationStep({ tiers, plan, onBack, onContinue }) {
-  const sorted = useMemo(
-    () =>
-      [...tiers].sort(
-        (a, b) => packageTierOrder.indexOf(a.interval) - packageTierOrder.indexOf(b.interval),
-      ),
-    [tiers],
-  );
-  const monthly = sorted.find((item) => item.interval === "Monthly");
-  const [selectedId, setSelectedId] = useState(plan?.id ?? null);
-  const selected = sorted.find((item) => item.id === selectedId) || sorted[0];
-  return (
-    <div className="listing-editor-screen" role="dialog" aria-modal="true" aria-label="Choose your billing duration">
-      <header className="listing-editor-top">
-        <div>
-          <span>Business listings</span>
-          <h1>Choose your billing duration</h1>
-        </div>
-        <div className="listing-editor-actions">
-          <ThemeToggle />
-          <button type="button" onClick={onBack}>
-            <ArrowLeft /> Back to listing
-          </button>
-        </div>
-      </header>
-      <main className="packages-page plan-duration-step">
-        <section className="packages-intro">
-          <span className="info-kicker">Last step before payment</span>
-          <h2>Your business details are saved. Pick a duration to continue.</h2>
-          <p>You'll create or sign in to your account next, then pay securely through PayMongo.</p>
-        </section>
-        {!sorted.length ? (
-          <section className="panel admin-empty"><p>Packages are being updated. Please check back shortly.</p></section>
-        ) : (
-          <section className="package-tier-grid">
-            {sorted.map((pkg) => {
-              const months = packageTierMonths[pkg.interval] || 1;
-              const regularTotal = monthly ? monthly.price * months : null;
-              const savings = regularTotal ? Math.round((1 - pkg.price / regularTotal) * 100) : 0;
-              const monthlyEquivalent = Math.round(pkg.price / months);
-              const isSelected = selected?.id === pkg.id;
-              return (
-                <article
-                  key={pkg.id}
-                  className={`package-tier-card ${pkg.featured ? "featured" : ""} ${isSelected ? "current" : ""}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedId(pkg.id)}
-                  onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && setSelectedId(pkg.id)}
-                >
-                  {pkg.featured && <span className="package-tier-badge">Best value</span>}
-                  {isSelected && <span className="package-tier-badge current">Selected</span>}
-                  <span className="package-tier-name">{pkg.name}</span>
-                  {monthly && monthlyEquivalent < monthly.price && (
-                    <p className="package-tier-was">
-                      <s>₱{monthly.price.toLocaleString()}</s> / month
-                    </p>
-                  )}
-                  <h2>
-                    ₱{monthlyEquivalent.toLocaleString()}
-                    <small> / month</small>
-                  </h2>
-                  <p className="package-tier-equivalent">
-                    {months > 1
-                      ? `Billed ₱${pkg.price.toLocaleString()} every ${pkg.interval.toLowerCase()}`
-                      : "Billed monthly"}
-                  </p>
-                  {savings > 0 && <span className="package-tier-savings">Save {savings}%</span>}
-                  <ul className="package-tier-features">
-                    {(pkg.features || []).map((feature) => (
-                      <li key={feature}>
-                        <CheckCircle weight="fill" /> {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              );
-            })}
-          </section>
-        )}
-        <GreenButton
-          disabled={!selected}
-          onClick={() =>
-            selected &&
-            onContinue({ ...selected, amount: selected.price, billing: selected.interval })
-          }
-        >
-          Continue with {selected?.name || "this plan"} <ArrowRight />
-        </GreenButton>
-      </main>
-    </div>
   );
 }
 
@@ -8081,33 +7756,30 @@ export function App() {
       return { error: "We couldn't prepare your account. Please try again." };
     }
   };
-  const completeGuestListing = async (record, credentials) => {
-    const account = credentials.account;
-    if (!account) return "Please sign in or create an account before checkout.";
-    const payment = credentials.payment || {};
-    const paidRecord = {
-      ...record,
-      subscription: {
-        plan: payment.plan?.name || findraPlan.name,
-        amount: payment.amount || payment.plan?.amount || payment.plan?.price || findraPlan.amount,
-        billing: payment.plan?.billing || payment.plan?.interval || findraPlan.billing,
-        status: "Active",
-        paymentMethod: payment.method || "paymongo",
-        paymentReference: payment.reference || "PayMongo payment",
-        paymentSessionId: payment.sessionId || "",
-        startDate: new Date().toISOString(),
-      },
-    };
-    if (!(await saveUserListing(paidRecord, account.name)))
-      return "Your account is ready, but the listing could not be saved. Please try again.";
-    sessionStorage.removeItem("findra-listing-draft-new");
+  const submitNewListing = async (record) => {
+    if (!(await saveUserListing(record, session?.name))) return false;
+    try {
+      sessionStorage.removeItem("findra-listing-draft-new");
+      sessionStorage.removeItem("findra-selected-package-id");
+    } catch {
+      // ignore
+    }
     setNotice({
       type: "success",
-      title: "Payment confirmed — listing submitted",
-      message: `${record.name} is now pending review. Your PayMongo payment reference is ${payment.reference || "available in your account"}.`,
+      title: "Business profile submitted for review",
+      message: `${record.name} is now pending review. We will email you within 3–5 working days. Once it is approved you will get a payment link, and your listing goes live after payment.`,
     });
-    go(account.role === "admin" ? "/admin" : "/user");
-    return "";
+    go("/user");
+    return true;
+  };
+  const refreshListings = async () => {
+    try {
+      const response = await fetch("/api/listings", { credentials: "same-origin" });
+      const payload = response.ok ? await response.json() : null;
+      if (payload?.listings) setListings(payload.listings);
+    } catch {
+      // ignore
+    }
   };
   const detailItem = useMemo(() => {
     const id = Number(path.split("/")[2]);
@@ -8136,6 +7808,7 @@ export function App() {
           session={session}
           listing={listings.find((item) => item.owner === session.name)}
           onSave={(record) => saveUserListing(record, session.name)}
+          onRefresh={refreshListings}
           onLogout={logout}
         />
       ) : (
@@ -8146,7 +7819,7 @@ export function App() {
       <GuestListingPage
         go={go}
         session={session}
-        complete={completeGuestListing}
+        submitListing={submitNewListing}
         createAccount={resolveGuestAccount}
       />
     );
