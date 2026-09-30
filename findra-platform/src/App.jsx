@@ -7421,8 +7421,9 @@ function GuestAccountGate({ go, createAccount, onReady, packageName }) {
       <main className="guest-account-card">
         <div className="guest-progress">
           <span className="done">
-            <Check /> Choose package
+            <Check weight="bold" />
           </span>
+          <strong>Choose package</strong>
           <i />
           <span className="active">2</span>
           <strong>Create account</strong>

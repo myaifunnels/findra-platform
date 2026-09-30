@@ -7421,12 +7421,6 @@ th {
   background: #087d3c;
   border-color: #087d3c;
 }
-.guest-progress .done {
-  width: auto;
-  padding: 0 11px;
-  display: flex;
-  gap: 7px;
-}
 .guest-progress i {
   width: 42px;
   height: 1px;
