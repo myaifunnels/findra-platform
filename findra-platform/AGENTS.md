@@ -18,4 +18,4 @@ When implementing from a selected generated mock, treat that image as the source
 - Admin notification workflows use Findra's current visual system while supporting WordPress/Listivo-style automation rules, editable system messages, delivery logs, and sender settings.
 - Admin-created custom fields must be persistent, ordered, visibility-aware, and render as real saved inputs in the appropriate multi-step listing form and public listing detail.
 - Keep labels, controls, helper text, validation text, and counters aligned consistently across every site form; grid-based forms must use their grid spacing without staggered per-label margins.
-- When Contact page or other requested site work is ready, push it to `main` so findra.ph can pick it up. Do not leave the change only on a draft PR.
+- Always push completed, verified requested work to `main` so findra.ph can pick it up, and confirm the remote branch contains the commit. Do not leave finished work only locally or on a draft PR.
