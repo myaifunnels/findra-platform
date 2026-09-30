@@ -98,6 +98,7 @@ body :is(
   .management-form-grid,
   .profile-form-grid,
   .findra-int-fields,
+  .service-entries-grid,
   .automation-action-form,
   .editor-form
 ) {
@@ -109,6 +110,7 @@ body :is(
   .management-form-grid,
   .profile-form-grid,
   .findra-int-fields,
+  .service-entries-grid,
   .automation-action-form,
   .editor-form
 ) > label {
@@ -122,6 +124,7 @@ body :is(
   .management-form-grid,
   .profile-form-grid,
   .findra-int-fields,
+  .service-entries-grid,
   .automation-action-form,
   .editor-form
 ) > label > :is(
@@ -140,6 +143,7 @@ body :is(
   .management-form-grid,
   .profile-form-grid,
   .findra-int-fields,
+  .service-entries-grid,
   .automation-action-form,
   .editor-form
 ) > label > small {
@@ -151,6 +155,24 @@ body :is(
    the row look left-heavy and broke alignment with the two-column sections. */
 body .long-listing-form .classification-fields {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Business Category uses a native label while Sub-Category uses a reusable
+   multi-value wrapper. Give both wrappers the same label/control rhythm. */
+body .long-listing-form .classification-fields > .multi-option-field {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+body .long-listing-form .classification-fields > .multi-option-field > :is(select, small) {
+  margin-top: 0;
+}
+
+/* All service slots start on one baseline; stacked-form sibling margins must
+   never offset Service 2–5 from Service 1. */
+body .long-listing-form .service-entries-grid > label {
+  margin-top: 0 !important;
 }
 
 @media (max-width: 760px) {
