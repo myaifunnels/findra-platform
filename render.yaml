@@ -1,0 +1,77 @@
+# Production Findra Blueprint for https://findra.ph
+#
+# Apply this as a NEW Blueprint. Do not reuse the staging web service name.
+# Staging stays on https://staging.findra.ph with test PayMongo.
+#
+# Dashboard: https://dashboard.render.com/blueprints
+# After the first onrender.com deploy succeeds, add custom domains findra.ph
+# and www.findra.ph on findra-ph-web, then change only web DNS at z.com.
+# Do not change MX / SPF / DKIM (GoDaddy Titan or Microsoft 365 mailbox).
+
+databases:
+  - name: findra-ph-postgres
+    region: singapore
+    plan: basic-256mb
+    databaseName: findra
+    user: findra
+
+services:
+  - type: web
+    name: findra-ph-web
+    runtime: node
+    region: singapore
+    plan: starter
+    rootDir: findra-platform
+    buildCommand: npm install && npm run build
+    preDeployCommand: npm run db:migrate
+    startCommand: npm start
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: findra-ph-postgres
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "true"
+      - key: PAYMONGO_APP_URL
+        value: https://findra.ph
+      - key: PAYMONGO_MODE
+        value: test
+      - key: PAYMONGO_ENABLED
+        value: "true"
+      - key: BREVO_ENABLED
+        value: "true"
+      - key: BREVO_FROM_NAME
+        value: Findra PH
+      - key: PAYMONGO_LIVE_SECRET_KEY
+        sync: false
+      - key: PAYMONGO_TEST_SECRET_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_FROM_EMAIL
+        sync: false
+      - key: BREVO_NEWSLETTER_LIST_ID
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: MESSAGE_ENCRYPTION_KEY
+        sync: false
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: TEXTBEE_ENABLED
+        value: "false"
+      - key: TEXTBEE_API_KEY
+        sync: false
+      - key: TEXTBEE_DEVICE_ID
+        sync: false
