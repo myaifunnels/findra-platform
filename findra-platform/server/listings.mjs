@@ -124,6 +124,44 @@ function normaliseBusinessPhone(value) {
   return digits;
 }
 
+const adminEditableFieldLabels = {
+  name: "Business Name",
+  cardTitle: "Display Name",
+  tagline: "Business Tagline",
+  owner: "Business Owner / Representative",
+  description: "Description",
+  category: "Business Category",
+  subCategories: "Sub-Category",
+  services: "Business Services",
+  email: "Business Email",
+  phone: "Business Phone",
+  location: "Business Location",
+  hours: "Operating Hours",
+  website: "Website",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  linkedin: "LinkedIn",
+  logo: "Business Logo",
+  image: "Cover Photo",
+  galleryImages: "Gallery",
+  galleryCaptions: "Gallery Captions",
+  video: "Video",
+  attachments: "Attachments",
+  customFields: "Additional Business Details",
+};
+
+function comparable(value) {
+  return JSON.stringify(value ?? null);
+}
+
+function adminChangedFields(listing, nextData, nextName, nextCategory, nextLocation) {
+  const before = { ...(listing.data || {}), name: listing.name, category: listing.category, location: listing.location };
+  const after = { ...nextData, name: nextName, category: nextCategory, location: nextLocation };
+  return Object.entries(adminEditableFieldLabels)
+    .filter(([key]) => comparable(before[key]) !== comparable(after[key]))
+    .map(([, label]) => label);
+}
+
 async function assertUniqueBusinessContact(record, excludeId = null) {
   const email = normaliseBusinessEmail(record.email);
   const phone = normaliseBusinessPhone(record.phone);
@@ -166,11 +204,12 @@ async function create(request, response) {
   const user = await readSession(request);
   if (!user) return json(response, 401, { error: "Please sign in to save a listing." });
   const record = await readJson(request);
-  const name = String(record.name || "").trim();
+  const saveAsDraft = user.role !== "admin" && record.saveAsDraft === true;
+  const name = String(record.name || "").trim() || (saveAsDraft ? "Untitled business draft" : "");
   if (!name) return json(response, 400, { error: "Business name is required." });
-  await assertUniqueBusinessContact(record);
-  const status = user.role === "admin" && record.status ? String(record.status) : "Pending";
-  const { selectedPackageId, ...saved } = record;
+  if (!saveAsDraft) await assertUniqueBusinessContact(record);
+  const status = user.role === "admin" && record.status ? String(record.status) : saveAsDraft ? "Draft" : "Pending";
+  const { selectedPackageId, saveAsDraft: _saveAsDraft, submitForReview: _submitForReview, ...saved } = record;
   if (user.role !== "admin") {
     // Owners never set their own subscription; it comes from the package they
     // picked and only becomes Active after server-verified payment.
@@ -188,7 +227,7 @@ async function create(request, response) {
   const notificationContext = { businessName: name, contactPhone: record.phone || record.whatsapp || record.viber || "", businessUrl: await listingPublicUrl(created.id) };
   if (user.role === "admin" && status === "Published") notify({ userId: created.owner_id, email: record.email, event: "listing-approved", context: notificationContext }).catch(() => {});
   if (user.role === "admin" && status === "Declined") notify({ userId: created.owner_id, email: record.email, event: "listing-declined", context: notificationContext }).catch(() => {});
-  if (user.role !== "admin") {
+  if (user.role !== "admin" && !saveAsDraft) {
     notify({ userId: user.id, email: user.email, event: "listing-submitted", context: notificationContext }).catch(() => {});
     notifyAdmins("listing-pending-admin", notificationContext).catch(() => {});
   }
@@ -199,28 +238,61 @@ async function update(request, response, id) {
   const user = await readSession(request);
   if (!user) return json(response, 401, { error: "Please sign in to update a listing." });
   const record = await readJson(request);
-  const existing = await query("SELECT * FROM listings WHERE id = $1", [id]);
+  const existing = await query(
+    "SELECT listings.*, users.email AS owner_email FROM listings LEFT JOIN users ON users.id = listings.owner_id WHERE listings.id = $1",
+    [id],
+  );
   const listing = existing.rows[0];
   if (!listing) return json(response, 404, { error: "Listing not found." });
   if (user.role !== "admin" && listing.owner_id !== user.id)
     return json(response, 403, { error: "You do not own this listing." });
+  const saveAsDraft = user.role !== "admin" && record.saveAsDraft === true;
+  const submitForReview = user.role !== "admin" && record.submitForReview === true;
   const nextData = { ...(listing.data || {}), ...record };
   delete nextData.selectedPackageId;
+  delete nextData.saveAsDraft;
+  delete nextData.submitForReview;
   if (user.role !== "admin") {
     if (listing.data?.subscription) nextData.subscription = listing.data.subscription;
     else delete nextData.subscription;
   }
   const name = String(nextData.name || listing.name).trim();
-  await assertUniqueBusinessContact(nextData, Number(id));
-  const nextStatus = user.role === "admin" && record.status ? String(record.status) : listing.status;
+  if (!saveAsDraft) await assertUniqueBusinessContact(nextData, Number(id));
+  const nextStatus = user.role === "admin" && record.status
+    ? String(record.status)
+    : submitForReview && ["Draft", "Declined"].includes(listing.status)
+      ? "Pending"
+      : listing.status;
+  const nextCategory = String(nextData.category || listing.category || "");
+  const nextLocation = String(nextData.location || listing.location || "");
+  const changedFields = user.role === "admin"
+    ? adminChangedFields(listing, nextData, name, nextCategory, nextLocation)
+    : [];
   const result = await query(
     `UPDATE listings SET name = $1, category = $2, location = $3, status = $4, data = $5::jsonb,
        updated_at = NOW() WHERE id = $6 RETURNING *`,
-    [name, String(nextData.category || listing.category || ""), String(nextData.location || listing.location || ""), nextStatus, JSON.stringify(nextData), id],
+    [name, nextCategory, nextLocation, nextStatus, JSON.stringify(nextData), id],
   );
+  const notificationContext = {
+    businessName: name,
+    contactPhone: nextData.phone || nextData.whatsapp || nextData.viber || "",
+    businessUrl: await listingPublicUrl(id),
+  };
   if (user.role === "admin" && listing.status !== nextStatus) {
     const event = nextStatus === "Published" ? "listing-approved" : nextStatus === "Approved" ? "listing-payment-requested" : nextStatus === "Declined" ? "listing-declined" : null;
-    if (event) notify({ userId: listing.owner_id, email: listing.data?.email, event, context: { businessName: name, contactPhone: nextData.phone || nextData.whatsapp || nextData.viber || "", businessUrl: await listingPublicUrl(id) } }).catch(() => {});
+    if (event) notify({ userId: listing.owner_id, email: listing.owner_email || listing.data?.email, event, context: notificationContext }).catch(() => {});
+  }
+  if (user.role === "admin" && changedFields.length) {
+    notify({
+      userId: listing.owner_id,
+      email: listing.owner_email || listing.data?.email,
+      event: "listing-admin-updated",
+      context: { ...notificationContext, changedFields: changedFields.join(", ") },
+    }).catch(() => {});
+  }
+  if (user.role !== "admin" && listing.status !== nextStatus && nextStatus === "Pending") {
+    notify({ userId: user.id, email: user.email, event: "listing-submitted", context: notificationContext }).catch(() => {});
+    notifyAdmins("listing-pending-admin", notificationContext).catch(() => {});
   }
   return json(response, 200, { listing: publicRecord({ ...result.rows[0], owner_name: user.display_name }) });
 }

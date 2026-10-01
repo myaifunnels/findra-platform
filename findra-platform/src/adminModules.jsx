@@ -24,7 +24,7 @@ import {
 const packagesKey = "findra-packages-v2";
 const taxonomyKey = "findra-taxonomy-v1";
 const notificationsKey = "findra-notification-rules-v1";
-const systemMessagesKey = "findra-system-messages-v1";
+const systemMessagesKey = "findra-system-messages-v2";
 const notificationLogsKey = "findra-notification-logs-v1";
 const mailSettingsKey = "findra-mail-settings-v1";
 const customFieldsKey = "findra-custom-fields-v1";
@@ -39,7 +39,7 @@ const packageFeatures = [
 ];
 const seedPackages = [
   { id: 1, name: "Early Bird", price: 4794, interval: "6 Months", status: "Active", subscribers: 0, featured: true, slotLimit: 30, features: packageFeatures },
-  { id: 2, name: "Basic", price: 5994, interval: "6 Months", status: "Active", subscribers: 0, featured: false, slotLimit: null, features: packageFeatures },
+  { id: 2, name: "Basic", price: 5994, interval: "6 Months", status: "Archived", subscribers: 0, featured: false, slotLimit: null, features: packageFeatures },
 ];
 
 const seedTaxonomy = {
@@ -147,27 +147,27 @@ const seedNotificationRules = [
 const seedSystemMessages = [
   {
     id: "confirmation",
-    name: "Confirmation email",
+    name: "Email Confirmation — Account Verification",
     description: "Sent to new users so they can verify their email address.",
-    variables: ["{userDisplayName}", "{confirmationUrl}"],
-    subject: "Confirm your email address",
-    body: "Hi {userDisplayName},\n\nWelcome to Findra PH! Confirm your email address to activate your account:\n{confirmationUrl}",
+    variables: ["{userDisplayName}", "{confirmationLink}"],
+    subject: "Confirm Your Email Address to Activate Your Account",
+    body: "Hi {userDisplayName},\n\nWelcome to Findra!\n\nTo complete your registration and activate your account, please confirm your email address by clicking the link below:\n\n[Confirm My Email]\n{confirmationLink}\n\nOnce your email is confirmed, you can access your account and proceed with completing your Business Profile.\n\nIf you did not create an account on Findra, you may safely ignore this email.\n\nThanks,\nThe Findra Team",
   },
   {
     id: "reset-password",
     name: "Reset password",
     description: "Sent when a user requests a password reset.",
-    variables: ["{userDisplayName}", "{resetPasswordUrl}"],
-    subject: "Reset your Findra password",
-    body: "Hi {userDisplayName},\n\nWe received a request to reset your Findra PH password. Use this secure link:\n{resetPasswordUrl}",
+    variables: ["{userDisplayName}", "{resetPasswordLink}"],
+    subject: "Reset Your Findra Password",
+    body: "Hi {userDisplayName},\n\nWe received a request to reset the password for your Findra account.\n\nTo create a new password, click the button below:\n\n[Reset My Password]\n{resetPasswordLink}\n\nFor your security, this link will expire in 1 hour.\n\nIf you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.\n\nIf you need assistance, please contact us at hello@findra.ph.\n\nThanks,\nThe Findra Team",
   },
   {
     id: "change-email",
     name: "Change email",
     description: "Sent when a user changes the email address on their account.",
-    variables: ["{userDisplayName}", "{changeEmailUrl}"],
-    subject: "Confirm your email address change",
-    body: "Hi {userDisplayName},\n\nYou requested to change the email address associated with your Findra PH account. Confirm the change here:\n{changeEmailUrl}",
+    variables: ["{userDisplayName}", "{changeEmailToken}"],
+    subject: "Confirm Your Email Address Change",
+    body: "Hi {userDisplayName},\n\nYou requested to change the email address associated with your Findra account.\n\nTo confirm this change, please enter the verification code below:\n\nPIN: {changeEmailToken}\n\nFor your security, this PIN will expire in 1 hour.\n\nIf you did not request this change, please ignore this email. If you believe your account may be at risk, please contact us at hello@findra.ph.\n\nThanks,\nThe Findra Team",
   },
 ];
 

@@ -261,6 +261,7 @@ async function retrieveCheckoutSession(request, response, id) {
   const paid =
     payment?.attributes?.status === "paid" ||
     attributes.payment_intent?.attributes?.status === "succeeded";
+  const paymentStatus = attributes.payment_intent?.attributes?.status || attributes.status;
   if (paid) {
     const email = String(attributes.metadata?.account_email || "").toLowerCase();
     const listingId = Number(attributes.metadata?.listing_id);
@@ -288,6 +289,25 @@ async function retrieveCheckoutSession(request, response, id) {
         notify({ userId: user.id, email: user.email, event: "subscription-started" }).catch(() => {});
     }
   }
+  if (!paid && ["failed", "payment_failed", "cancelled"].includes(String(paymentStatus || "").toLowerCase())) {
+    const email = String(attributes.metadata?.account_email || "").toLowerCase();
+    if (email) {
+      const userResult = await query("SELECT id, email FROM users WHERE email = $1", [email]);
+      const user = userResult.rows[0];
+      const recent = await query(
+        "SELECT 1 FROM notifications WHERE recipient_email = $1 AND event = 'subscription-failed' AND created_at > NOW() - INTERVAL '10 minutes' LIMIT 1",
+        [email],
+      );
+      if (user && !recent.rowCount) {
+        notify({
+          userId: user.id,
+          email: user.email,
+          event: "subscription-failed",
+          context: { businessName: attributes.metadata?.business_name || "your business" },
+        }).catch(() => {});
+      }
+    }
+  }
 
   return json(response, 200, {
     amount: payment?.attributes?.amount || 0,
@@ -295,9 +315,7 @@ async function retrieveCheckoutSession(request, response, id) {
     paid,
     paymentId: payment?.id || "",
     referenceNumber: attributes.reference_number || session.id,
-    status: paid
-      ? "paid"
-      : attributes.payment_intent?.attributes?.status || attributes.status,
+    status: paid ? "paid" : paymentStatus,
   });
 }
 

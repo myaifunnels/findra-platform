@@ -16,6 +16,7 @@ import {
   Eye,
   FacebookLogo,
   FileText,
+  FloppyDisk,
   Funnel,
   Gear,
   Globe,
@@ -2167,7 +2168,6 @@ function PackagesPage({ go }) {
       })
       .catch(() => {});
   }, []);
-  const basic = packages.find((item) => item.name === "Basic" && item.status === "Active");
   const earlyBird = packages.find((item) => item.name === "Early Bird" && item.status === "Active");
   const subscription = listing?.subscription?.status === "Active" ? listing.subscription : null;
   const goToBilling = () => {
@@ -2218,10 +2218,10 @@ function PackagesPage({ go }) {
         )}
         {loading ? (
           <section className="panel admin-empty"><p>Loading packages…</p></section>
-        ) : !basic && !earlyBird ? (
+        ) : !earlyBird ? (
           <section className="panel admin-empty"><p>Packages are being updated. Please check back shortly.</p></section>
         ) : (
-          <section className="package-tier-grid two-tier">
+          <section className="package-tier-grid one-tier">
             {earlyBird && (
               <PackageListingCard
                 item={earlyBird}
@@ -2231,17 +2231,6 @@ function PackagesPage({ go }) {
                 subscription={subscription}
                 onBilling={goToBilling}
                 onStart={() => startListing(earlyBird)}
-              />
-            )}
-            {basic && (
-              <PackageListingCard
-                item={basic}
-                offer="Regular Pricing"
-                description="A complete Findra listing designed to showcase your business."
-                subscription={subscription}
-                onBilling={goToBilling}
-                onStart={() => startListing(basic)}
-                comingSoon
               />
             )}
           </section>
@@ -2314,7 +2303,7 @@ const faqGroups = [
       ],
       [
         "Is there a cost to use the platform?",
-        "Using Findra as a buyer or seeker is free. Businesses pay ₱999/month for a Findra Business Listing, or ₱799/month while Early Bird slots last. Both plans are locked in for 6 months.",
+        "Using Findra as a buyer or seeker is free. Businesses can currently join through the ₱799/month Early Bird offer, locked in for 6 months while slots last.",
       ],
       [
         "Is my information secure?",
@@ -4083,7 +4072,7 @@ function UserDashboardLegacyTwo({ go, listing, onSave, onLogout }) {
   );
 }
 
-function UserDashboard({ go, listing, onSave, onRefresh, onLogout, session }) {
+function UserDashboard({ go, listing, onSave, onSaveDraft, onRefresh, onLogout, session }) {
   const [section, setSection] = usePersistedDashboardSection("findra-user-section", "Overview");
   const [mobileSide, setMobileSide] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -4125,8 +4114,8 @@ function UserDashboard({ go, listing, onSave, onRefresh, onLogout, session }) {
     // listing remains available directly from the business dashboard.
     go("/add-listing");
   };
-  const save = (record) => {
-    const result = onSave(record);
+  const save = async (record) => {
+    const result = await onSave(record);
     if (result === false) return;
     setEditing(false);
     setSaved(true);
@@ -4223,22 +4212,15 @@ function UserDashboard({ go, listing, onSave, onRefresh, onLogout, session }) {
             Your listing is live and its details are locked. Contact support to request changes.
           </div>
         )}
-        {listing && (listing.status === "Pending" || listing.status === "Approved") && section !== "Plan & Billing" && (
+        {listing && listing.status === "Pending" && section !== "Plan & Billing" && (
           <section className="admin-content">
             <div className="panel billing-card">
-              <div className="billing-icon">{listing.status === "Approved" ? <CreditCard /> : <Clock />}</div>
+              <div className="billing-icon"><Clock /></div>
               <div>
-                <span>{listing.status === "Approved" ? "PAYMENT DUE" : "UNDER REVIEW"}</span>
-                <h3>{listing.status === "Approved" ? `${listing.name} is approved` : `${listing.name} is being reviewed`}</h3>
-                <p>
-                  {listing.status === "Approved"
-                    ? "Complete your payment to make your business profile live on Findra."
-                    : "Findra is reviewing your business profile (3–5 working days). Payment is requested only after it is approved."}
-                </p>
+                <span>UNDER REVIEW</span>
+                <h3>{listing.name} is being reviewed</h3>
+                <p>Findra is reviewing your business profile (3–5 working days). Payment is requested only after it is approved.</p>
               </div>
-              {listing.status === "Approved" && (
-                <button className="admin-primary" onClick={() => setSection("Plan & Billing")}>Complete payment <ArrowRight /></button>
-              )}
             </div>
           </section>
         )}
@@ -4297,12 +4279,21 @@ function UserDashboard({ go, listing, onSave, onRefresh, onLogout, session }) {
                       </span>
                     ))}
                   </div>
-                  <button
-                    className="admin-primary"
-                    onClick={() => go(`/listing/${listing.id}`)}
-                  >
-                    <Eye /> View public listing
-                  </button>
+                  <div className="user-listing-actions">
+                    {listing.status === "Approved" ? (
+                      <button className="admin-primary" onClick={() => setSection("Plan & Billing")}>
+                        <CreditCard /> Complete Payment <ArrowRight />
+                      </button>
+                    ) : listing.status === "Published" ? (
+                      <button className="admin-primary" onClick={() => go(`/listing/${listing.id}`)}>
+                        <Eye /> View public listing
+                      </button>
+                    ) : (
+                      <button className="secondary-button" onClick={() => { setSection("My Listing"); openListingFlow(); }}>
+                        <PencilSimple /> Continue editing
+                      </button>
+                    )}
+                  </div>
                 </div>
               </section>
             ) : (
@@ -4352,6 +4343,13 @@ function UserDashboard({ go, listing, onSave, onRefresh, onLogout, session }) {
                       <span key={service}>{service}</span>
                     ))}
                   </div>
+                  {listing.status === "Approved" && (
+                    <div className="user-listing-actions">
+                      <button className="admin-primary" onClick={() => setSection("Plan & Billing")}>
+                        <CreditCard /> Complete Payment <ArrowRight />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </section>
             ) : (
@@ -4377,6 +4375,11 @@ function UserDashboard({ go, listing, onSave, onRefresh, onLogout, session }) {
           item={listing || current}
           close={() => setEditing(false)}
           save={save}
+          saveDraft={async (record) => {
+            const result = await onSaveDraft(record);
+            if (result !== false) setEditing(false);
+            return result;
+          }}
         />
       )}
     </div>
@@ -6331,7 +6334,7 @@ function CustomListingFields({ fields, values = {}, onChange }) {
   );
 }
 
-function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, initialStep = 0 }) {
+function ListingEditor({ item, close, save, saveDraft, remove, planNotice, onViewPackage, initialStep = 0 }) {
   const managedTaxonomy = useMemo(readManagedTaxonomy, []);
   const managedCustomFields = useMemo(readCustomFields, []);
   const draftKey = `findra-listing-draft-${item.id || "new"}`;
@@ -6376,6 +6379,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
   const [draftStatus, setDraftStatus] = useState(
     restored ? "Draft restored" : "Draft ready",
   );
+  const [draftSaving, setDraftSaving] = useState(false);
   const [form, setForm] = useState({
     ...blankListing,
     ...startingItem,
@@ -6604,6 +6608,39 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
       featuredName: "",
     }));
   };
+  const prepareRecord = () => {
+    const services = [form.service, ...(form.additionalServices || [])]
+      .map((value) => String(value || "").trim())
+      .filter((value, index, list) => value && list.indexOf(value) === index);
+    const categoryValues = [form.category, ...(form.subCategories || [])]
+      .map((value) => String(value || "").trim())
+      .filter((value, index, list) => value && list.indexOf(value) === index);
+    const { service, additionalCategory, additionalService, ...record } = form;
+    return {
+      ...record,
+      category: categoryValues[0] || "",
+      categories: categoryValues,
+      subCategories: categoryValues.slice(1),
+      additionalCategories: categoryValues.slice(1),
+      services,
+      additionalServices: services.slice(1),
+      tagline:
+        form.tagline ||
+        String(form.description || "").slice(0, 72) ||
+        "Discover this business on Findra",
+    };
+  };
+  const saveAsDraft = async () => {
+    if (!saveDraft || draftSaving) return;
+    setDraftSaving(true);
+    setStepError("");
+    const result = await saveDraft({ ...prepareRecord(), saveAsDraft: true });
+    if (result !== false) {
+      try { sessionStorage.removeItem(draftKey); } catch { /* browser storage is optional */ }
+      setDraftStatus("Draft saved to your account");
+    }
+    setDraftSaving(false);
+  };
   const submit = async (event) => {
     event.preventDefault();
     if (advancingRef.current) return;
@@ -6634,25 +6671,9 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
       );
       return;
     }
-    const services = [form.service, ...(form.additionalServices || [])]
-      .map((value) => value.trim())
-      .filter((value, index, list) => value && list.indexOf(value) === index);
-    const categoryValues = [form.category, ...(form.subCategories || [])]
-      .map((value) => value.trim())
-      .filter((value, index, list) => value && list.indexOf(value) === index);
-    const { service, additionalCategory, additionalService, ...record } = form;
     const result = await save({
-      ...record,
-      category: categoryValues[0],
-      categories: categoryValues,
-      subCategories: categoryValues.slice(1),
-      additionalCategories: categoryValues.slice(1),
-      services,
-      additionalServices: services.slice(1),
-      tagline:
-        form.tagline ||
-        form.description.slice(0, 72) ||
-        "Discover this business on Findra",
+      ...prepareRecord(),
+      submitForReview: item.id && ["Draft", "Declined"].includes(item.status),
     });
     if (item.id && result !== false) sessionStorage.removeItem(draftKey);
   };
@@ -7372,6 +7393,11 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
           >
             {step === 0 ? "Cancel" : "Back"}
           </button>
+          {saveDraft && ["Draft", "Declined"].includes(item.status || "Draft") && (
+            <button type="button" className="secondary-button save-draft-button" onClick={saveAsDraft} disabled={draftSaving}>
+              <FloppyDisk /> {draftSaving ? "Saving Draft…" : "Save as Draft"}
+            </button>
+          )}
           <span className="step-action-status">
             {stepCompletion[step].length
               ? `${stepCompletion[step].filter(Boolean).length} of ${stepCompletion[step].length} required complete`
@@ -7383,7 +7409,7 @@ function ListingEditor({ item, close, save, remove, planNotice, onViewPackage, i
             </button>
           ) : (
             <button type="submit" className="admin-primary">
-              {item.id ? "Save Your Business" : "Submit for Review"}
+              {item.id && !["Draft", "Declined"].includes(item.status) ? "Save Your Business" : "Submit for Review"}
               <ArrowRight />
             </button>
           )}
@@ -7532,7 +7558,7 @@ function GuestAccountGate({ go, createAccount, onReady, packageName }) {
 
 // New-listing flow: package -> account -> business profile submitted for
 // review. Payment is requested from the dashboard only after admin approval.
-function GuestListingPage({ go, session, submitListing, createAccount }) {
+function GuestListingPage({ go, session, submitListing, saveDraftListing, createAccount }) {
   const [account, setAccount] = useState(session?.role === "user" ? session : null);
   const [selectedPackage, setSelectedPackage] = useState(null);
   useEffect(() => {
@@ -7542,7 +7568,7 @@ function GuestListingPage({ go, session, submitListing, createAccount }) {
     fetch("/api/packages", { credentials: "same-origin" })
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
-        const packages = (payload?.packages || []).filter((item) => item.name === "Early Bird" || item.name === "Basic");
+        const packages = (payload?.packages || []).filter((item) => item.name === "Early Bird");
         const available = packages.filter((item) => item.slotsRemaining !== 0);
         const selectedId = Number(sessionStorage.getItem("findra-selected-package-id"));
         setSelectedPackage(
@@ -7568,6 +7594,7 @@ function GuestListingPage({ go, session, submitListing, createAccount }) {
       item={{ ...blankListing, status: "Draft" }}
       close={() => go("/packages")}
       save={(record) => submitListing({ ...record, selectedPackageId: selectedPackage?.id })}
+      saveDraft={(record) => saveDraftListing({ ...record, selectedPackageId: selectedPackage?.id })}
       planNotice={selectedPackage || true}
       onViewPackage={() => go("/packages")}
     />
@@ -7639,8 +7666,10 @@ export function App() {
         setListings((items) => items.map((item) => (item.id === record.id ? payload.listing : item)));
         setNotice({
           type: "success",
-          title: "Update confirmed",
-          message: `${record.name} now shows the latest details, contact information, and media. You can reopen the listing anytime to make more changes.`,
+          title: record.saveAsDraft ? "Draft saved" : "Update confirmed",
+          message: record.saveAsDraft
+            ? "Your unfinished Business Profile is safely saved to your account. You can continue anytime."
+            : `${record.name} now shows the latest details, contact information, and media. You can reopen the listing anytime to make more changes.`,
         });
       } else {
         const response = await fetch("/api/listings", {
@@ -7654,8 +7683,10 @@ export function App() {
         setListings((items) => [payload.listing, ...items.filter((item) => item.name !== record.name)]);
         setNotice({
           type: "success",
-          title: "Business listing submitted",
-          message: `${record.name} was saved successfully and is now pending review.`,
+          title: record.saveAsDraft ? "Draft saved" : "Business listing submitted",
+          message: record.saveAsDraft
+            ? "Your unfinished Business Profile is safely saved to your account. You can continue anytime."
+            : `${record.name} was saved successfully and is now pending review.`,
         });
       }
       return true;
@@ -7773,6 +7804,17 @@ export function App() {
     go("/user");
     return true;
   };
+  const saveDraftListing = async (record) => {
+    if (!(await saveUserListing({ ...record, saveAsDraft: true }, session?.name))) return false;
+    try { sessionStorage.removeItem("findra-listing-draft-new"); } catch { /* browser storage is optional */ }
+    setNotice({
+      type: "success",
+      title: "Business Profile draft saved",
+      message: "Your entries are saved to your Findra account. Open My Listing whenever you are ready to continue.",
+    });
+    go("/user");
+    return true;
+  };
   const refreshListings = async () => {
     try {
       const response = await fetch("/api/listings", { credentials: "same-origin" });
@@ -7809,6 +7851,7 @@ export function App() {
           session={session}
           listing={listings.find((item) => item.owner === session.name)}
           onSave={(record) => saveUserListing(record, session.name)}
+          onSaveDraft={(record) => saveDraftListing(record)}
           onRefresh={refreshListings}
           onLogout={logout}
         />
@@ -7821,6 +7864,7 @@ export function App() {
         go={go}
         session={session}
         submitListing={submitNewListing}
+        saveDraftListing={saveDraftListing}
         createAccount={resolveGuestAccount}
       />
     );

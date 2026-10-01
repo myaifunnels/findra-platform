@@ -194,9 +194,9 @@ WHERE data->'subscription'->>'status' = 'Active'
 
 ALTER TABLE packages ADD COLUMN IF NOT EXISTS slot_limit INTEGER CHECK (slot_limit IS NULL OR slot_limit >= 0);
 
--- Public Packages page: Early Bird (₱799/month, 30 slots) beside Basic
--- regular pricing (₱999/month). Both are a 6-month prepaid commitment.
--- Totals charged at checkout are ₱4,794 and ₱5,994.
+-- Public Packages page: the Early Bird offer is the only package available
+-- for now. Keep Basic archived so existing subscriptions retain their plan
+-- name without exposing the ₱999 tier to new partners.
 UPDATE packages
 SET price = 4794, interval = '6 Months', status = 'Active', featured = TRUE, slot_limit = 30,
   features = '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb,
@@ -210,13 +210,13 @@ SELECT 'Early Bird', 4794, '6 Months', 'Active', TRUE,
 WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = 'Early Bird');
 
 UPDATE packages
-SET price = 5994, interval = '6 Months', status = 'Active', featured = FALSE, slot_limit = NULL,
+SET price = 5994, interval = '6 Months', status = 'Archived', featured = FALSE, slot_limit = NULL,
   features = '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb,
   updated_at = NOW()
 WHERE name = 'Basic';
 
 INSERT INTO packages (name, price, interval, status, featured, features, slot_limit)
-SELECT 'Basic', 5994, '6 Months', 'Active', FALSE,
+SELECT 'Basic', 5994, '6 Months', 'Archived', FALSE,
   '["Dedicated Business Profile", "Secure Business Dashboard", "SEO-Optimized Business Page", "Built-in Inquiry Form and Direct Contact Tools", "Location-Based Search", "Relevant Category Listing"]'::jsonb,
   NULL
 WHERE NOT EXISTS (SELECT 1 FROM packages WHERE name = 'Basic');
@@ -249,6 +249,7 @@ CREATE TABLE IF NOT EXISTS email_templates (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS content_revision TEXT;
 
 CREATE TABLE IF NOT EXISTS automation_actions (
   id BIGSERIAL PRIMARY KEY,

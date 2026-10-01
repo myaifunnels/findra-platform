@@ -440,7 +440,7 @@ a {
   font-size: 14px;
   line-height: 1.55;
   margin: 0 12px 20px;
-  text-align: justify;
+  text-align: center;
   flex: 1;
 }
 .category-card .green-button {
@@ -3396,6 +3396,14 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
   justify-content: space-between;
   border-radius: 999px;
 }
+.form-actions .save-draft-button {
+  border-color: rgba(57, 174, 104, 0.45);
+  color: var(--green);
+}
+.form-actions .save-draft-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
 .danger-button,
 .secondary-button {
   min-height: 40px;
@@ -3588,6 +3596,20 @@ body :is(small, span, p, a, button, label, input, select, textarea, td, th, dt, 
   gap: 6px;
   color: #778781;
   font-size: 12px;
+}
+.user-listing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+.user-listing-actions .admin-primary {
+  min-width: min(100%, 220px);
+  justify-content: center;
+}
+.package-tier-grid.one-tier {
+  grid-template-columns: minmax(0, 560px);
+  justify-content: center;
 }
 .listing-health {
   display: flex;
