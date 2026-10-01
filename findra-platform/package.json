@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server.mjs",
-    "db:migrate": "node server/migrate.mjs"
+    "db:migrate": "node server/migrate.mjs",
+    "test:e2e": "playwright test",
+    "test:audit": "playwright test tests/audit --project=chromium-desktop --project=chromium-mobile"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1090.0",
@@ -18,5 +20,9 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "vite": "6.4.2"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.1"
   }
 }
