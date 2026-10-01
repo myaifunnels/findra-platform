@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Findra website revision — annotated client document</title>
+  <style>
+    :root {
+      --green: #1f7a3a;
+      --green-dark: #145528;
+      --ink: #142017;
+      --muted: #4d5b50;
+      --line: #d7e2d8;
+      --wash: #f4f7f4;
+      --gold: #9a7b2f;
+      --open: #8a3b16;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      color: var(--ink);
+      font: 11pt/1.45 "Georgia", "Times New Roman", serif;
+    }
+    h1, h2, h3, .sans, table, .kicker, .meta, .badge, nav {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    .cover {
+      padding: 22mm 12mm 14mm;
+      background: linear-gradient(180deg, #14331c 0%, #1f7a3a 62%, #f4f7f4 62%);
+      color: #fff;
+      break-after: page;
+      min-height: 250mm;
+    }
+    .cover .brand { letter-spacing: 0.28em; font-size: 11pt; font-weight: 700; }
+    .cover h1 {
+      font-size: 28pt;
+      line-height: 1.15;
+      margin: 14mm 0 6mm;
+      max-width: 155mm;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    .cover .lede { font-size: 12.5pt; max-width: 155mm; opacity: 0.94; }
+    .meta {
+      margin-top: 28mm;
+      background: #fff;
+      color: var(--ink);
+      padding: 8mm;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm 10mm;
+      font-size: 9.5pt;
+    }
+    .meta span {
+      display: block;
+      color: var(--muted);
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .page { padding: 0 4mm; }
+    h2 {
+      color: var(--green-dark);
+      font-size: 15pt;
+      border-bottom: 2px solid var(--green);
+      padding-bottom: 2mm;
+      margin: 9mm 0 4mm;
+      break-after: avoid;
+    }
+    h3 {
+      font-size: 11.5pt;
+      margin: 5mm 0 2mm;
+      color: var(--ink);
+      break-after: avoid;
+    }
+    p { margin: 0 0 3mm; }
+    .kicker {
+      color: var(--green);
+      font-size: 8.5pt;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .item {
+      break-inside: avoid;
+      margin: 0 0 4.5mm;
+      padding: 3mm 3.5mm 3mm 3.5mm;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--green);
+      background: #fff;
+    }
+    .item.partial { border-left-color: var(--gold); background: #fbf8f0; }
+    .item.open { border-left-color: var(--open); background: #fbf4ef; }
+    .item.response { border-left-color: #3d6b8a; background: #f3f7fa; }
+    .client { margin: 0 0 2mm; }
+    .client ul { margin: 1.5mm 0 0; padding-left: 5mm; }
+    .quote {
+      font-style: italic;
+      color: var(--muted);
+      margin: 2mm 0;
+      padding-left: 3mm;
+      border-left: 2px solid var(--line);
+    }
+    .reply { margin: 0; }
+    .badge {
+      display: inline-block;
+      font-size: 7.5pt;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 1mm 2.2mm;
+      border-radius: 2px;
+      margin-right: 2mm;
+      vertical-align: 1px;
+      color: #fff;
+      background: var(--green);
+    }
+    .badge.partial { background: var(--gold); }
+    .badge.open { background: var(--open); }
+    .badge.response { background: #3d6b8a; }
+    .key {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3mm;
+      margin: 0 0 8mm;
+    }
+    .key div {
+      background: var(--wash);
+      border: 1px solid var(--line);
+      padding: 3mm 4mm;
+    }
+    ul.open-list { margin: 0 0 4mm; padding-left: 5.5mm; }
+    footer.note {
+      margin-top: 10mm;
+      font-size: 9pt;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      padding-top: 3mm;
+    }
+    a { color: var(--green-dark); }
+    @page { size: A4; margin: 16mm 14mm 16mm; }
+    @media print {
+      .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .item, .key div { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="brand">FINDRA.PH</div>
+    <h1>Client website revision — annotated response</h1>
+    <p class="lede">Original client comments with Findra status and replies. Use this PDF for sign-off; the Google Doc wording is unchanged.</p>
+    <div class="meta">
+      <div><span>Live site</span>https://findra.ph</div>
+      <div><span>Response date</span>15 August 2026</div>
+      <div><span>Source brief</span>Client Google Doc (Home through FAQ)</div>
+      <div><span>Status of this file</span>Implementation response, not a new design proposal</div>
+    </div>
+  </section>
+
+  <div class="page">
+    <p class="kicker">How to read this document</p>
+    <h2>Status key</h2>
+    <div class="key">
+      <div><span class="badge">Fixed</span> Shipped on findra.ph / main.</div>
+      <div><span class="badge partial">Partial</span> Mostly shipped; remaining gap noted.</div>
+      <div><span class="badge response">Response</span> Answered; no extra UI in this round.</div>
+      <div><span class="badge open">Open</span> Not shipped yet, or waiting on listing data.</div>
+    </div>
+
+    <h2>Home page</h2>
+
+    <div class="item">
+      <h3>Keyword search box</h3>
+      <div class="client">
+        <ul>
+          <li>Not suggestive</li>
+          <li>Leads to businesses page only regardless of keyword</li>
+        </ul>
+      </div>
+      <p class="reply"><span class="badge">Fixed</span> Home keyword field has no typeahead. Search / Enter goes to <code>/listings?search=…</code> (and <code>category=</code> when a category is selected). It does not jump straight to a single profile.</p>
+    </div>
+
+    <div class="item">
+      <h3>Business Category dropdown</h3>
+      <p class="client">Any chosen dropdown leads to the same business page. Showing all businesses instead of the selected category only.</p>
+      <p class="reply"><span class="badge">Fixed</span> Choosing a named category lands on <code>/listings?category={name}</code> and the directory filters to that main category only. The empty “Business Category” placeholder does not send a category.</p>
+    </div>
+
+    <div class="item">
+      <h3>Category tiles</h3>
+      <p class="client">All selection leads to the same business page. Showing all businesses instead of the selected category only.</p>
+      <p class="reply"><span class="badge">Fixed</span> Each tile’s See More goes to <code>/listings?category={tile name}</code> using the five locked main categories.</p>
+    </div>
+
+    <div class="item">
+      <h3>Featured businesses</h3>
+      <div class="client">
+        <ul>
+          <li>Category under tagline must be limited to the 5 main categories only. Creation of new category is not allowed.</li>
+          <li>Fix business description preview — text alignment</li>
+          <li>Fix business description preview — set allowable character for consistency</li>
+        </ul>
+      </div>
+      <p class="reply"><span class="badge">Fixed</span> Public featured cards and the listing editor only use: Products &amp; Suppliers; Services &amp; Rentals; Professionals; Freelancers &amp; Creatives; Community &amp; Institutions. Preview text is left-aligned and capped at <strong>120 characters</strong>, word-broken, with a 2-line clamp and ellipsis.</p>
+    </div>
+
+    <div class="item">
+      <h3>Be Discovered box — adjust text distribution</h3>
+      <p class="quote">When visibility means growth,<br />we make sure your business gets noticed by the people who matter</p>
+      <p class="reply"><span class="badge">Fixed</span> The box uses this two-line split (break after “growth,”). Words were not changed. CTA: Showcase Your Business → <code>/packages</code>.</p>
+    </div>
+
+    <div class="item">
+      <h3>Footer</h3>
+      <div class="client">
+        <ul>
+          <li>Make logo bigger and more visible (not same color as the background) — SAME AS OLD WEBSITE</li>
+          <li>Social media icons are both pink — please make SAME AS OLD WEBSITE</li>
+          <li>Take out “Account Login”</li>
+        </ul>
+      </div>
+      <p class="reply"><span class="badge">Fixed</span> Public footer uses a larger white Findra wordmark on the green bar. Facebook is brand blue; Instagram is magenta (Facebook findraph, Instagram findra.ph). Footer has no Account Login. Header still has Log In / Register.</p>
+    </div>
+
+    <h2>Businesses page</h2>
+
+    <div class="item">
+      <h3>Breadcrumb trail</h3>
+      <p class="client">Please make it consistent. The businesses page shows Home → Search Results instead of Home → Businesses.</p>
+      <p class="reply"><span class="badge">Fixed</span> Breadcrumb is <strong>Home → Businesses</strong>.</p>
+    </div>
+
+    <div class="item">
+      <h3>Don’t show matching businesses when filters are All</h3>
+      <p class="client">Don’t show matching businesses when Business Type and/or Business Category is set to All.</p>
+      <p class="reply"><span class="badge">Fixed</span> Results stay hidden until a real filter is active: Business Category ≠ All, Sub-Category ≠ All, keyword, or Find a Service. Location alone does not reveal the list.</p>
+    </div>
+
+    <div class="item">
+      <h3>Location search accuracy</h3>
+      <p class="client">Location search is not accurate; all businesses appear regardless of specific location search.</p>
+      <p class="reply"><span class="badge">Fixed</span> Location is disabled until a category / sub-category / service / keyword is chosen. After that it matches the city/area token against listing location. Active state shows “Searching near {place}” with Clear.</p>
+    </div>
+
+    <div class="item">
+      <h3>Filters</h3>
+      <div class="client">
+        <ul>
+          <li>Remove “Business Type”</li>
+          <li>Add “Sub-Category” (below Business Category)</li>
+          <li>Change “Business Services” to “Find a Service” and filter the list by the typed keyword</li>
+          <li>Remove bullet selection below the Business Services search box</li>
+          <li>Move location search here; only apply after the selections above were made</li>
+        </ul>
+      </div>
+      <p class="reply"><span class="badge">Fixed</span> Business Type is removed. Sub-Category sits under Business Category. Find a Service is a text field with no chip/radio list. Location sits under those filters and only applies after a need is identified.</p>
+    </div>
+
+    <div class="item">
+      <h3>Footer</h3>
+      <p class="client">PLEASE APPLY SAME COMMENT FROM HOME</p>
+      <p class="reply"><span class="badge">Fixed</span> Same shared public footer (white logo, brand socials, no Account Login).</p>
+    </div>
+
+    <h2>Businesses profile page</h2>
+
+    <div class="item">
+      <h3>Remove Business Type</h3>
+      <p class="reply"><span class="badge">Fixed</span> Not shown on the public profile.</p>
+    </div>
+
+    <div class="item partial">
+      <h3>Change “Business Category” to “Category” only</h3>
+      <p class="client">This should return Business Category / Sub-Category. For Events by Ina this must show:</p>
+      <p class="quote">Category: Services &amp; Rentals / Event Coordination, Venues &amp; Rentals</p>
+      <p class="reply"><span class="badge">Fixed</span> Label is <strong>Category:</strong></p>
+      <p class="reply"><span class="badge partial">Partial / data</span> Format is <code>Category: {main} / {sub1}, {sub2}</code> when sub-categories are saved. Events by Ina will show that example only after those sub-categories (and hours, if requested) are stored on the listing. Code is ready.</p>
+    </div>
+
+    <div class="item">
+      <h3>Add Operating Hours below Business Address</h3>
+      <p class="reply"><span class="badge">Fixed</span> Shown under Business Address when hours exist. Hidden when empty so the profile does not show a blank field. A follow-up can always show “Not provided” if preferred.</p>
+    </div>
+
+    <div class="item">
+      <h3>Limit “About Us” to 200 characters</h3>
+      <p class="reply"><span class="badge">Fixed</span> Enforced in the listing editor (maxLength 200 + live counter). Public profile renders the saved text. Older listings saved before the cap may still be longer until they are re-saved.</p>
+    </div>
+
+    <div class="item">
+      <h3>Limit Our Services to 3 services; maximum 25 characters each</h3>
+      <p class="reply"><span class="badge">Fixed</span> Enforced in the listing editor. Public profile shows the saved services (max 3 × 25).</p>
+    </div>
+
+    <div class="item">
+      <h3>Gallery: 6 photos, click + caption (30 characters)</h3>
+      <p class="reply"><span class="badge">Fixed</span> Max 6 photos. Click opens a lightbox with caption, prev/next, and close. Caption max 30 characters. Empty captions are hidden.</p>
+    </div>
+
+    <div class="item response">
+      <h3>Featured video not YouTube-only; allow upload with preview</h3>
+      <p class="reply"><span class="badge">Fixed</span> <span class="badge response">Response</span> Featured video can be a public YouTube URL or one uploaded <strong>MP4 (H.264)</strong> with an HTML5 player (preview + play/controls).</p>
+    </div>
+
+    <div class="item response">
+      <h3>Limit featured video to 1; suggest type and size</h3>
+      <p class="reply"><span class="badge">Fixed</span> <span class="badge response">Response</span> Limit is 1 video (YouTube or file, not both). Suggested: MP4 H.264, up to <strong>50 MB</strong>, <strong>720p</strong> or smaller, roughly 30–60 seconds.</p>
+    </div>
+
+    <div class="item response">
+      <h3>Limit attachment to 1; suggest company profile / brochure limits</h3>
+      <p class="reply"><span class="badge">Fixed</span> <span class="badge response">Response</span> Limit is 1 attachment. Suggested: company profile or brochure as PDF, JPG, or PNG, up to <strong>12 MB</strong>. Word .doc / .docx are not accepted.</p>
+    </div>
+
+    <div class="item">
+      <h3>Change “Business Location” to “Business Pin Location”</h3>
+      <p class="reply"><span class="badge">Fixed</span> Section title is Business Pin Location, with map + Open in Google Maps.</p>
+    </div>
+
+    <div class="item partial">
+      <h3>Inquiry form</h3>
+      <div class="client">
+        <ul>
+          <li>Can we see and track the messages between the businesses and their customers?</li>
+          <li>Ensure accurate re-directing using the different platforms (e.g. Viber, email)</li>
+          <li>Buttons for other platforms appear only if available</li>
+        </ul>
+      </div>
+      <p class="reply"><span class="badge partial">Partial</span> <span class="badge response">Response</span> Inquiries are captured; owners can see their inquiries. A full two-way chat thread UI is not in this round.</p>
+      <p class="reply"><span class="badge">Fixed</span> WhatsApp uses wa.me (PH 09… numbers normalized to +63). Viber uses viber://chat. Email/website/social use saved URLs. Platform buttons render only when that field is filled.</p>
+    </div>
+
+    <h2>About page</h2>
+
+    <div class="item">
+      <h3>Mission</h3>
+      <div class="client">
+        <ul>
+          <li>Change “Why the platform exists” to “Core Purpose”</li>
+          <li>Change the purpose sentence to “To create a simpler, more effective way to discover and showcase businesses in the Philippines.”</li>
+          <li>Retain bullet points — too much clutter, low relevance, hard to trust</li>
+        </ul>
+      </div>
+      <p class="reply"><span class="badge">Fixed</span> Kicker is CORE PURPOSE. Heading remains “Why Findra exists.” Live copy matches the requested sentence. The three supporting rows are kept.</p>
+    </div>
+
+    <div class="item partial">
+      <h3>Brand values — convert to Mission and Vision format</h3>
+      <p class="reply"><span class="badge partial">Partial</span> Copy is locked (No Noise, Structured Discovery, Credibility). Layout is still the shared info-card treatment; matching Mission/Vision image-card chrome is a follow-up.</p>
+    </div>
+
+    <div class="item">
+      <h3>How it works for seekers</h3>
+      <div class="client">
+        <ul>
+          <li>Step 1 — Retain “Search”; definition “Find businesses that match your needs.”</li>
+          <li>Step 2 — Title “Evaluate”; definition “Review services and key details to make an informed choice.”</li>
+          <li>Step 3 — Retain “Connect”; definition “Connect with businesses that match your needs.”</li>
+        </ul>
+      </div>
+      <p class="reply"><span class="badge">Fixed</span> Steps 1 and 2 match.</p>
+      <p class="reply"><span class="badge open">Open</span> Live copy currently says “Connect <strong>to</strong> businesses…”. Approved line is “Connect <strong>with</strong> businesses…”.</p>
+    </div>
+
+    <div class="item">
+      <h3>How it works for businesses</h3>
+      <div class="client">
+        <ul>
+          <li>Step 1 — “Build Your Profile” / “Add your business, services, and key details.”</li>
+          <li>Step 2 — “Your business is found by people based on what you offer and what they’re looking for.”</li>
+          <li>Step 3 — “Connect” / “Make it easy for people to get in touch with your business.”</li>
+        </ul>
+      </div>
+      <p class="reply"><span class="badge">Fixed</span> All three business steps match the requested copy.</p>
+    </div>
+
+    <div class="item response">
+      <h3>Email signup — where do emails get stored and how to access them?</h3>
+      <p class="reply"><span class="badge response">Response</span> About-page signup posts to <code>/api/newsletter/subscribe</code> with source “about-page”. Addresses are stored in Findra’s database and, when a Brevo List ID is set under Admin → Integrations → Brevo, also synced to that list. No public subscriber list.</p>
+    </div>
+
+    <h2>Packages</h2>
+
+    <div class="item">
+      <h3>Change inclusion points</h3>
+      <ul>
+        <li>Dedicated Business Profile</li>
+        <li>Secure Business Dashboard</li>
+        <li>SEO-Optimized Business Page</li>
+        <li>Built-in Inquiry Form and Direct Contact Tools</li>
+        <li>Location-Based Search</li>
+        <li>Relevant Category Listing</li>
+      </ul>
+      <p class="reply"><span class="badge">Fixed</span> These six bullets are the default inclusions on both Basic cards.</p>
+    </div>
+
+    <div class="item">
+      <h3>Add another basic package, side by side to Early Bird</h3>
+      <p class="reply"><span class="badge">Fixed</span> Two guest-visible Basic cards: <strong>Basic — Regular Pricing</strong> (₱999/month) and <strong>Basic — Early Bird Offer</strong> (₱799/month), both 6 months locked in. Early Bird can show remaining slots or Sold out. No account required to view or start listing details.</p>
+    </div>
+
+    <h2>Contact us</h2>
+
+    <div class="item">
+      <h3>Remove “How Can We Help?”</h3>
+      <p class="reply"><span class="badge">Fixed</span> Removed.</p>
+    </div>
+
+    <div class="item">
+      <h3>Intro copy</h3>
+      <p class="client">Remove “Have a question about Findra…” but leave “Reach out anytime and we’ll get back to you as soon as possible.”</p>
+      <p class="reply"><span class="badge">Fixed</span> Intro is only that remaining sentence.</p>
+    </div>
+
+    <div class="item response">
+      <h3>Where do the messages go and how can we manage it?</h3>
+      <p class="reply"><span class="badge response">Response</span> The form posts to <code>/api/inquiries</code> and then shows <code>/contact/thank-you</code>. Messages are stored as inquiries for the Findra team. This round does not add a public ticket portal.</p>
+    </div>
+
+    <h2>Legal &amp; policies</h2>
+    <div class="item response">
+      <p class="client">All good</p>
+      <p class="reply"><span class="badge response">Response</span> No visual change. Contact email stays hello@findra.ph (not info@findra.ph).</p>
+    </div>
+
+    <h2>FAQ</h2>
+    <div class="item response">
+      <p class="client">This section was empty in the Google Doc.</p>
+      <p class="reply"><span class="badge response">Response</span> Public FAQ at <code>/faq</code> already matches this revision: seekers use Findra free; businesses pay Early Bird ₱799/month or Regular ₱999/month, both locked in for 6 months; guests can view Packages and start a listing before creating an account. No extra FAQ redesign was specified.</p>
+    </div>
+
+    <h2>Still open</h2>
+    <p>Do not treat these as fully signed off:</p>
+    <ol class="open-list">
+      <li>Full two-way customer–business message threads.</li>
+      <li>About seeker step 3: “Connect with” vs current “Connect to”.</li>
+      <li>Brand Values visual chrome matching Mission/Vision image cards.</li>
+      <li>Listing data for the Events by Ina category/hours example.</li>
+      <li>Optional: always show Operating Hours as “Not provided” when empty.</li>
+    </ol>
+
+    <footer class="note">
+      Findra client revision response · 15 August 2026 · Live reference https://findra.ph · Source: client Google Doc homepage–FAQ comments.
+    </footer>
+  </div>
+</body>
+</html>
