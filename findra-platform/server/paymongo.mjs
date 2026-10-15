@@ -1,7 +1,7 @@
 import { activePackage, activePackageById } from "./packages.mjs";
 import { query } from "./db.mjs";
 import { notify } from "./notifications.mjs";
-import { activateListingAfterPayment } from "./listings.mjs";
+import { activateListingAfterPayment, termMonths } from "./listings.mjs";
 import {
   hintFor,
   publicAppUrl,
@@ -185,7 +185,12 @@ async function createCheckoutSession(request, response) {
   const body = await readJson(request);
   const plan = (await activePackageById(body.packageId)) || (await activePackage());
   if (!plan) return json(response, 409, { error: "There is no active subscription package. Please contact Findra." });
-  const method = ALLOWED_METHODS.has(body.method) ? body.method : "gcash";
+  let method = ALLOWED_METHODS.has(body.method) ? body.method : "gcash";
+  // Monthly installments are card-only so each month can be billed reliably.
+  const monthly = body.billingMode === "monthly" && termMonths(plan.interval) > 1;
+  if (monthly && body.method && body.method !== "card")
+    return json(response, 400, { error: "Monthly billing is available for credit or debit cards only." });
+  if (monthly) method = "card";
   const name = String(body.accountName || body.listingName || "Findra customer")
     .trim()
     .slice(0, 120);
@@ -201,6 +206,20 @@ async function createCheckoutSession(request, response) {
   // their plan from the dashboard returns to /user instead.
   const redirectPath = body.redirectPath === "/user" ? "/user" : "/add-listing";
   const listingId = body.listingId ? String(body.listingId).slice(0, 20) : "";
+  const months = termMonths(plan.interval);
+  let chargeAmount = Number(plan.price);
+  let chargeDescription = `${plan.interval} Findra subscription`;
+  let installment = 0;
+  if (monthly) {
+    if (!listingId) return json(response, 400, { error: "Monthly billing needs a business listing." });
+    const found = await query("SELECT data FROM listings WHERE id = $1", [Number(listingId)]);
+    const previous = found.rows[0]?.data?.subscription;
+    const continuing = previous?.billingMode === "monthly" && previous.status === "Active" && Number(previous.packageId) === plan.id;
+    installment = continuing ? Number(previous.paidMonths || 0) + 1 : 1;
+    if (installment > months) return json(response, 409, { error: "This subscription is already fully paid." });
+    chargeAmount = Math.round(Number(plan.price) / months);
+    chargeDescription = `Month ${installment} of ${months} — ${plan.name}`;
+  }
 
   const baseUrl = await appBaseUrl(request);
   const referenceNumber = `FIN-${Date.now()}-${Math.random()
@@ -214,12 +233,14 @@ async function createCheckoutSession(request, response) {
         attributes: {
           billing: { name, email },
           cancel_url: `${baseUrl}${redirectPath}?payment=cancelled`,
-          description: `${plan.interval} ${plan.name} for ${listingName}`,
+          description: monthly
+            ? `Month ${installment} of ${months} ${plan.name} for ${listingName}`
+            : `${plan.interval} ${plan.name} for ${listingName}`,
           line_items: [
             {
-              amount: Math.round(Number(plan.price) * 100),
+              amount: Math.round(chargeAmount * 100),
               currency: "PHP",
-              description: `${plan.interval} Findra subscription`,
+              description: chargeDescription,
               name: plan.name,
               quantity: 1,
             },
@@ -229,6 +250,7 @@ async function createCheckoutSession(request, response) {
             business_name: listingName,
             package_id: String(plan.id),
             listing_id: listingId,
+            billing_mode: monthly ? "monthly" : "full",
           },
           payment_method_types: [method],
           reference_number: referenceNumber,
@@ -271,6 +293,7 @@ async function retrieveCheckoutSession(request, response, id) {
         listingId,
         accountEmail: email,
         packageId: attributes.metadata?.package_id,
+        billingMode: attributes.metadata?.billing_mode,
         payment: {
           sessionId: session.id,
           method: payment?.attributes?.source?.type || "paymongo",

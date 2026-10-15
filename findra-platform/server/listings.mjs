@@ -38,10 +38,22 @@ export function billingCycleDays(billing) {
   return 365;
 }
 
+// Number of calendar months a package term covers.
+export function termMonths(interval) {
+  const label = String(interval || "").toLowerCase();
+  if (label.includes("6")) return 6;
+  if (label.startsWith("annual") || label.startsWith("year") || label.includes("12")) return 12;
+  return 1;
+}
+
 export function subscriptionDaysLeft(subscription, createdAt) {
   if (!subscription) return null;
   const start = new Date(subscription.startDate || createdAt);
-  const expires = new Date(start.getTime() + billingCycleDays(subscription.billing) * 86_400_000);
+  // Monthly installment plans are paid up to `paidThrough`; everything else
+  // runs for the full billing cycle from the start date.
+  const expires = subscription.paidThrough
+    ? new Date(subscription.paidThrough)
+    : new Date(start.getTime() + billingCycleDays(subscription.billing) * 86_400_000);
   return Math.ceil((expires.getTime() - Date.now()) / 86_400_000);
 }
 
@@ -56,7 +68,7 @@ async function pendingSubscription(packageId) {
 
 // Called once PayMongo confirms a checkout session as paid. Only the server
 // can activate a subscription or publish an approved listing.
-export async function activateListingAfterPayment({ listingId, accountEmail, packageId, payment }) {
+export async function activateListingAfterPayment({ listingId, accountEmail, packageId, payment, billingMode }) {
   const found = await query(
     `SELECT listings.*, users.email AS owner_email FROM listings
        LEFT JOIN users ON users.id = listings.owner_id WHERE listings.id = $1`,
@@ -67,6 +79,8 @@ export async function activateListingAfterPayment({ listingId, accountEmail, pac
   if (row.data?.subscription?.paymentSessionId === payment.sessionId) return null;
   const plan = await activePackageById(packageId);
   if (!plan) return null;
+  const months = termMonths(plan.interval);
+  const previous = row.data?.subscription;
   const subscription = {
     plan: plan.name,
     packageId: plan.id,
@@ -77,7 +91,25 @@ export async function activateListingAfterPayment({ listingId, accountEmail, pac
     paymentReference: payment.reference || "PayMongo payment",
     paymentSessionId: payment.sessionId,
     startDate: new Date().toISOString(),
+    billingMode: "full",
   };
+  if (billingMode === "monthly" && months > 1) {
+    // Card-only installments: each paid month extends the listing by 30 days.
+    const continuing = previous?.billingMode === "monthly" && previous.status === "Active" && previous.packageId === plan.id;
+    const paidMonths = continuing ? Math.min(Number(previous.paidMonths || 0) + 1, months) : 1;
+    if (continuing && Number(previous.paidMonths || 0) >= months) return null;
+    const start = continuing ? new Date(previous.startDate) : new Date();
+    const paidThrough = new Date(start.getTime() + paidMonths * 30 * 86_400_000);
+    Object.assign(subscription, {
+      billingMode: "monthly",
+      startDate: start.toISOString(),
+      termMonths: months,
+      monthlyAmount: Math.round(plan.price / months),
+      paidMonths,
+      paidThrough: paidThrough.toISOString(),
+      nextDueDate: paidMonths < months ? paidThrough.toISOString() : null,
+    });
+  }
   const goLive = row.status === "Approved";
   const updated = await query(
     "UPDATE listings SET status = $1, data = $2::jsonb, updated_at = NOW() WHERE id = $3 RETURNING *",

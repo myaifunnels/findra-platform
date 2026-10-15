@@ -4401,9 +4401,15 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
   const [packages, setPackages] = useState([]);
   const [upgradeTarget, setUpgradeTarget] = useState(null);
   const [method, setMethod] = useState("gcash");
+  // "full" pays the whole term at once; "monthly" is card-only installments.
+  const [billingMode, setBillingMode] = useState("full");
   const [submitting, setSubmitting] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
   const [status, setStatus] = useState(null);
+  const chooseBillingMode = (mode) => {
+    setBillingMode(mode);
+    if (mode === "monthly") setMethod("card");
+  };
   useEffect(() => {
     fetch("/api/packages", { credentials: "same-origin" })
       .then((response) => (response.ok ? response.json() : null))
@@ -4414,6 +4420,12 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
     ? packages.find((item) => item.id === awaiting.packageId)
       || packages.find((item) => item.name === awaiting.plan && item.interval === awaiting.billing)
     : null;
+  const subscriptionPackage = subscription
+    ? packages.find((item) => item.id === subscription.packageId)
+      || packages.find((item) => item.name === subscription.plan && item.interval === subscription.billing)
+    : null;
+  const installmentsLeft = subscription?.billingMode === "monthly"
+    && Number(subscription.paidMonths || 0) < Number(subscription.termMonths || 0);
   // Resolve the return trip from PayMongo: the server verifies the payment and
   // activates the subscription (publishing an approved listing), then we
   // reload the latest listing.
@@ -4445,9 +4457,13 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
         await onRefresh?.();
         setStatus({
           type: "success",
-          message: pending.activation
-            ? "Payment confirmed — your business profile is now live on Findra."
-            : `You're now on the ${pending.plan.name} plan.`,
+          message: pending.billingMode === "monthly"
+            ? pending.activation
+              ? "First monthly payment confirmed — your business profile is now live on Findra."
+              : "Monthly payment received. Thank you!"
+            : pending.activation
+              ? "Payment confirmed — your business profile is now live on Findra."
+              : `You're now on the ${pending.plan.name} plan.`,
         });
       })
       .catch((error) => setStatus({ type: "error", message: error.message || "We could not verify the upgrade payment." }))
@@ -4457,7 +4473,7 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const startUpgrade = async (item) => {
+  const startUpgrade = async (item, mode = "full") => {
     setSubmitting(true);
     setUpgradeError("");
     try {
@@ -4469,9 +4485,10 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
           accountEmail: session?.email,
           accountName: session?.name,
           listingName: listing?.name,
-          method,
+          method: mode === "monthly" ? "card" : method,
           packageId: item.id,
           listingId: listing?.id,
+          billingMode: mode,
           redirectPath: "/user",
         }),
       });
@@ -4479,7 +4496,7 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
       if (!response.ok || !checkout.checkoutUrl) throw new Error(checkout.error || "PayMongo checkout could not be started.");
       sessionStorage.setItem(
         "findra-plan-upgrade-pending",
-        JSON.stringify({ sessionId: checkout.id, method, plan: checkout.plan, activation: Boolean(awaiting) }),
+        JSON.stringify({ sessionId: checkout.id, method, plan: checkout.plan, activation: Boolean(awaiting), billingMode: mode }),
       );
       window.location.assign(checkout.checkoutUrl);
     } catch (error) {
@@ -4514,10 +4531,46 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
             </h3>
             {listing.status === "Approved" ? (
               <>
-                <p>
-                  Your business profile is approved. Pay to make it live on Findra. Packages are paid in full for the{" "}
-                  {String(awaiting.billing).toLowerCase()} term and cannot be cancelled once paid.
-                </p>
+                {(() => {
+                  const months = packageTierMonths[awaiting.billing] || 1;
+                  const monthlyAmount = Math.round(Number(awaiting.amount) / months);
+                  return (
+                    <>
+                      <p>
+                        Your business profile is approved. Pay to make it live on Findra. The package is a{" "}
+                        {String(awaiting.billing).toLowerCase()} commitment and cannot be cancelled once paid.
+                      </p>
+                      {months > 1 && (
+                        <div className="plan-upgrade-methods billing-mode-options">
+                          <label className={billingMode === "full" ? "selected" : ""}>
+                            <input
+                              type="radio"
+                              name="payment-due-mode"
+                              checked={billingMode === "full"}
+                              onChange={() => chooseBillingMode("full")}
+                            />
+                            Pay in full · ₱{Number(awaiting.amount).toLocaleString()}
+                          </label>
+                          <label className={billingMode === "monthly" ? "selected" : ""}>
+                            <input
+                              type="radio"
+                              name="payment-due-mode"
+                              checked={billingMode === "monthly"}
+                              onChange={() => chooseBillingMode("monthly")}
+                            />
+                            Pay monthly · ₱{monthlyAmount.toLocaleString()} × {months} (credit/debit card only)
+                          </label>
+                        </div>
+                      )}
+                      {billingMode === "monthly" && (
+                        <p className="plan-price-note">
+                          Today you pay the first ₱{monthlyAmount.toLocaleString()} and your listing goes live. Each month we will
+                          email a reminder and you pay the next installment here by card until all {months} months are paid.
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
                 <div className="plan-upgrade-methods">
                   {upgradePaymentMethods.map(([value, label]) => (
                     <label key={value} className={method === value ? "selected" : ""}>
@@ -4526,6 +4579,7 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
                         name="payment-due-method"
                         value={value}
                         checked={method === value}
+                        disabled={billingMode === "monthly" && value !== "card"}
                         onChange={(event) => setMethod(event.target.value)}
                       />
                       {label}
@@ -4537,9 +4591,14 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
                   type="button"
                   className="admin-primary"
                   disabled={submitting || !awaitingPackage}
-                  onClick={() => startUpgrade(awaitingPackage)}
+                  onClick={() => startUpgrade(awaitingPackage, billingMode)}
                 >
-                  {submitting ? "Redirecting…" : "Pay with PayMongo"} <ArrowRight />
+                  {submitting
+                    ? "Redirecting…"
+                    : billingMode === "monthly"
+                      ? `Pay first month ₱${Math.round(Number(awaiting.amount) / (packageTierMonths[awaiting.billing] || 1)).toLocaleString()} with PayMongo`
+                      : "Pay with PayMongo"}{" "}
+                  <ArrowRight />
                 </button>
               </>
             ) : (
@@ -4596,7 +4655,31 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
               <dt>Listing status</dt>
               <dd>{listing.status}</dd>
             </div>
+            {subscription.billingMode === "monthly" && (
+              <div>
+                <dt>Installments</dt>
+                <dd>{subscription.paidMonths} of {subscription.termMonths} months paid</dd>
+              </div>
+            )}
           </dl>
+          {installmentsLeft && (
+            <div className="installment-due">
+              <p>
+                Next installment: <strong>₱{Number(subscription.monthlyAmount).toLocaleString()}</strong> (month{" "}
+                {Number(subscription.paidMonths) + 1} of {subscription.termMonths})
+                {subscription.nextDueDate && ` · due ${new Date(subscription.nextDueDate).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}`}
+              </p>
+              {upgradeError && <p className="inquiry-form-error">{upgradeError}</p>}
+              <button
+                type="button"
+                className="admin-primary"
+                disabled={submitting || !subscriptionPackage}
+                onClick={() => startUpgrade(subscriptionPackage, "monthly")}
+              >
+                {submitting ? "Redirecting…" : `Pay month ${Number(subscription.paidMonths) + 1} by card`} <ArrowRight />
+              </button>
+            </div>
+          )}
         </section>
       )}
       {!awaiting && (<>
