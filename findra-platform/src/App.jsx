@@ -7725,6 +7725,9 @@ export function App() {
   // would incorrectly make a successful server save look like a failed update.
   const login = (account) => {
     setSession(account);
+    // Reload listings for the signed-in account so the dashboard never works
+    // from a list left over from a previous session.
+    refreshListings();
     go(account.role === "admin" ? "/admin" : "/user");
   };
   const logout = async () => {
@@ -7799,6 +7802,7 @@ export function App() {
       );
       const account = sessionFromUser(result.user);
       setSession(account);
+      refreshListings();
       return { account, error: "" };
     } catch (requestError) {
       return {
@@ -7932,7 +7936,7 @@ export function App() {
         <UserDashboard
           go={go}
           session={session}
-          listing={listings.find((item) => item.owner === session.name)}
+          listing={listings.find((item) => item.ownerId === session.id) || listings.find((item) => item.owner === session.name)}
           onSave={(record) => saveUserListing(record, session.name)}
           onSaveDraft={(record) => saveDraftListing(record)}
           onRefresh={refreshListings}

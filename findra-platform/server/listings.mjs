@@ -271,7 +271,7 @@ async function update(request, response, id) {
   if (!user) return json(response, 401, { error: "Please sign in to update a listing." });
   const record = await readJson(request);
   const existing = await query(
-    "SELECT listings.*, users.email AS owner_email FROM listings LEFT JOIN users ON users.id = listings.owner_id WHERE listings.id = $1",
+    "SELECT listings.*, users.email AS owner_email, users.display_name AS owner_name FROM listings LEFT JOIN users ON users.id = listings.owner_id WHERE listings.id = $1",
     [id],
   );
   const listing = existing.rows[0];
@@ -326,7 +326,7 @@ async function update(request, response, id) {
     notify({ userId: user.id, email: user.email, event: "listing-submitted", context: notificationContext }).catch(() => {});
     notifyAdmins("listing-pending-admin", notificationContext).catch(() => {});
   }
-  return json(response, 200, { listing: publicRecord({ ...result.rows[0], owner_name: user.display_name }) });
+  return json(response, 200, { listing: publicRecord({ ...result.rows[0], owner_name: listing.owner_name || user.display_name }) });
 }
 
 async function recordView(request, response, id) {
