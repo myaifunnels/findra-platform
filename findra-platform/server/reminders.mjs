@@ -19,6 +19,8 @@ export async function runSubscriptionReminders() {
     const data = row.data || {};
     const subscription = data.subscription;
     if (!subscription) continue;
+    // Automatic monthly billing renews itself; owners are not asked to renew.
+    if (subscription.billingMode === "auto") continue;
     const daysLeft = subscriptionDaysLeft(subscription, row.created_at);
     if (!REMINDER_DAYS.includes(daysLeft)) continue;
     const remindersSent = Array.isArray(subscription.remindersSent) ? subscription.remindersSent : [];

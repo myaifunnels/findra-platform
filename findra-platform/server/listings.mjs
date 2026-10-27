@@ -68,7 +68,7 @@ async function pendingSubscription(packageId) {
 
 // Called once PayMongo confirms a checkout session as paid. Only the server
 // can activate a subscription or publish an approved listing.
-export async function activateListingAfterPayment({ listingId, accountEmail, packageId, payment, billingMode }) {
+export async function activateListingAfterPayment({ listingId, accountEmail, packageId, payment }) {
   const found = await query(
     `SELECT listings.*, users.email AS owner_email FROM listings
        LEFT JOIN users ON users.id = listings.owner_id WHERE listings.id = $1`,
@@ -79,8 +79,6 @@ export async function activateListingAfterPayment({ listingId, accountEmail, pac
   if (row.data?.subscription?.paymentSessionId === payment.sessionId) return null;
   const plan = await activePackageById(packageId);
   if (!plan) return null;
-  const months = termMonths(plan.interval);
-  const previous = row.data?.subscription;
   const subscription = {
     plan: plan.name,
     packageId: plan.id,
@@ -93,23 +91,6 @@ export async function activateListingAfterPayment({ listingId, accountEmail, pac
     startDate: new Date().toISOString(),
     billingMode: "full",
   };
-  if (billingMode === "monthly" && months > 1) {
-    // Card-only installments: each paid month extends the listing by 30 days.
-    const continuing = previous?.billingMode === "monthly" && previous.status === "Active" && previous.packageId === plan.id;
-    const paidMonths = continuing ? Math.min(Number(previous.paidMonths || 0) + 1, months) : 1;
-    if (continuing && Number(previous.paidMonths || 0) >= months) return null;
-    const start = continuing ? new Date(previous.startDate) : new Date();
-    const paidThrough = new Date(start.getTime() + paidMonths * 30 * 86_400_000);
-    Object.assign(subscription, {
-      billingMode: "monthly",
-      startDate: start.toISOString(),
-      termMonths: months,
-      monthlyAmount: Math.round(plan.price / months),
-      paidMonths,
-      paidThrough: paidThrough.toISOString(),
-      nextDueDate: paidMonths < months ? paidThrough.toISOString() : null,
-    });
-  }
   const goLive = row.status === "Approved";
   const updated = await query(
     "UPDATE listings SET status = $1, data = $2::jsonb, updated_at = NOW() WHERE id = $3 RETURNING *",
@@ -123,6 +104,87 @@ export async function activateListingAfterPayment({ listingId, accountEmail, pac
       context: { businessName: row.name, contactPhone: row.data?.phone || "", businessUrl: await listingPublicUrl(listingId) },
     }).catch(() => {});
   }
+  return updated.rows[0];
+}
+
+const AUTO_GRACE_DAYS = 3;
+
+async function findByPayMongoSubscription(paymongoSubscriptionId) {
+  if (!paymongoSubscriptionId) return null;
+  const found = await query(
+    `SELECT listings.*, users.email AS owner_email FROM listings
+       LEFT JOIN users ON users.id = listings.owner_id
+       WHERE listings.data->'subscription'->>'paymongoSubscriptionId' = $1`,
+    [paymongoSubscriptionId],
+  );
+  return found.rows[0] || null;
+}
+
+// A card payment collected automatically by a PayMongo subscription (from the
+// webhook, or from the owner's confirm call). Each paid invoice counts once.
+// The first one activates the subscription and publishes an approved listing.
+export async function recordAutoSubscriptionPayment({ paymongoSubscriptionId, invoiceId }) {
+  const row = await findByPayMongoSubscription(paymongoSubscriptionId);
+  if (!row || !invoiceId) return null;
+  const subscription = row.data.subscription;
+  const paidInvoices = Array.isArray(subscription.paidInvoices) ? subscription.paidInvoices : [];
+  if (paidInvoices.includes(invoiceId)) return row;
+  const months = Number(subscription.termMonths) || 1;
+  const nextInvoices = [...paidInvoices, invoiceId];
+  const paidMonths = Math.min(nextInvoices.length, months);
+  const start = paidInvoices.length && subscription.startDate ? new Date(subscription.startDate) : new Date();
+  const dayMs = 86_400_000;
+  const finished = paidMonths >= months;
+  const paidThrough = new Date(start.getTime() + paidMonths * 30 * dayMs + (finished ? 0 : AUTO_GRACE_DAYS * dayMs));
+  const nextSubscription = {
+    ...subscription,
+    status: "Active",
+    billingMode: "auto",
+    paymentMethod: "card",
+    paymentReference: invoiceId,
+    paymentStatus: "ok",
+    paidInvoices: nextInvoices,
+    paidMonths,
+    startDate: start.toISOString(),
+    paidThrough: paidThrough.toISOString(),
+    nextDueDate: finished ? null : new Date(start.getTime() + paidMonths * 30 * dayMs).toISOString(),
+    remindersSent: [],
+  };
+  const goLive = row.status === "Approved";
+  const updated = await query(
+    "UPDATE listings SET status = $1, data = $2::jsonb, updated_at = NOW() WHERE id = $3 RETURNING *",
+    [goLive ? "Published" : row.status, JSON.stringify({ ...row.data, subscription: nextSubscription }), row.id],
+  );
+  if (!paidInvoices.length) {
+    notify({ userId: row.owner_id, email: row.owner_email, event: "subscription-started" }).catch(() => {});
+  }
+  if (goLive) {
+    notify({
+      userId: row.owner_id,
+      email: row.data?.email || row.owner_email,
+      event: "listing-approved",
+      context: { businessName: row.name, contactPhone: row.data?.phone || "", businessUrl: await listingPublicUrl(row.id) },
+    }).catch(() => {});
+  }
+  return updated.rows[0];
+}
+
+// A monthly charge failed (PayMongo retries daily up to three times).
+export async function recordAutoSubscriptionProblem({ paymongoSubscriptionId, problem }) {
+  const row = await findByPayMongoSubscription(paymongoSubscriptionId);
+  if (!row) return null;
+  const subscription = row.data.subscription;
+  if (subscription.paymentStatus === problem) return row;
+  const updated = await query(
+    "UPDATE listings SET data = $1::jsonb, updated_at = NOW() WHERE id = $2 RETURNING *",
+    [JSON.stringify({ ...row.data, subscription: { ...subscription, paymentStatus: problem } }), row.id],
+  );
+  notify({
+    userId: row.owner_id,
+    email: row.data?.email || row.owner_email,
+    event: "subscription-failed",
+    context: { businessName: row.name },
+  }).catch(() => {});
   return updated.rows[0];
 }
 

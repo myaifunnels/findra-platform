@@ -109,8 +109,9 @@ export function IntegrationsAdmin({ onNotify }) {
 function PayMongoIntegration({ onNotify }) {
   const { status, busy, setBusy, error, setError, apply } = useIntegration("/api/paymongo/integration", {
     configured: false, enabled: false, keyHint: "", mode: "test", appUrl: "", availableModes: { test: false, live: false },
+    availablePublicKeys: { test: false, live: false }, publicKeyConfigured: false, webhookRegistered: false, monthlyAuto: false,
   });
-  const [form, setForm] = useState({ testSecretKey: "", liveSecretKey: "", mode: "test", appUrl: "", enabled: true });
+  const [form, setForm] = useState({ testSecretKey: "", liveSecretKey: "", testPublicKey: "", livePublicKey: "", mode: "test", appUrl: "", enabled: true, monthlyAuto: false });
   useEffect(() => {
     if (!status.loading) {
       setForm((current) => ({
@@ -118,9 +119,22 @@ function PayMongoIntegration({ onNotify }) {
         mode: status.mode === "live" ? "live" : "test",
         appUrl: status.appUrl || current.appUrl,
         enabled: status.enabled !== false,
+        monthlyAuto: status.monthlyAuto === true,
       }));
     }
-  }, [status.loading, status.mode, status.appUrl, status.enabled]);
+  }, [status.loading, status.mode, status.appUrl, status.enabled, status.monthlyAuto]);
+  const registerWebhook = async () => {
+    setBusy("webhook");
+    setError("");
+    try {
+      await apply(await fetch("/api/paymongo/webhook/register", { method: "POST", headers: { "Content-Type": "application/json" } }));
+      onNotify?.({ type: "success", title: "Webhook registered", message: "PayMongo will now report monthly payments to Findra." });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy("");
+    }
+  };
   const toggle = async () => {
     if (!status.configured) return setError("Save a PayMongo key first.");
     const enabled = !status.enabled;
@@ -141,7 +155,7 @@ function PayMongoIntegration({ onNotify }) {
     setError("");
     try {
       await apply(await fetch("/api/paymongo/integration/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }));
-      setForm((current) => ({ ...current, testSecretKey: "", liveSecretKey: "" }));
+      setForm((current) => ({ ...current, testSecretKey: "", liveSecretKey: "", testPublicKey: "", livePublicKey: "" }));
       onNotify?.({ type: "success", title: "PayMongo saved", message: `${form.mode === "live" ? "Live" : "Test"} checkout is ready.` });
     } catch (err) {
       setError(err.message);
@@ -156,6 +170,8 @@ function PayMongoIntegration({ onNotify }) {
         <Fields>
           <label>Test key<input type="password" autoComplete="off" value={form.testSecretKey} onChange={(event) => setForm({ ...form, testSecretKey: event.target.value })} placeholder={status.availableModes?.test ? "Saved — paste to replace" : "sk_test_…"} /></label>
           <label>Live key<input type="password" autoComplete="off" value={form.liveSecretKey} onChange={(event) => setForm({ ...form, liveSecretKey: event.target.value })} placeholder={status.availableModes?.live ? "Saved — paste to replace" : "sk_live_…"} /></label>
+          <label>Test public key<input type="text" autoComplete="off" value={form.testPublicKey} onChange={(event) => setForm({ ...form, testPublicKey: event.target.value })} placeholder={status.availablePublicKeys?.test ? "Saved — paste to replace" : "pk_test_…"} /></label>
+          <label>Live public key<input type="text" autoComplete="off" value={form.livePublicKey} onChange={(event) => setForm({ ...form, livePublicKey: event.target.value })} placeholder={status.availablePublicKeys?.live ? "Saved — paste to replace" : "pk_live_…"} /></label>
           <label>Mode
             <select value={form.mode} onChange={(event) => setForm({ ...form, mode: event.target.value })}>
               <option value="test">Test</option>
@@ -164,9 +180,18 @@ function PayMongoIntegration({ onNotify }) {
           </label>
           <label>Return URL<input type="url" value={form.appUrl} onChange={(event) => setForm({ ...form, appUrl: event.target.value })} placeholder="https://findra.ph" /></label>
         </Fields>
+        <label className="findra-int-check">
+          <input type="checkbox" checked={form.monthlyAuto} onChange={(event) => setForm({ ...form, monthlyAuto: event.target.checked })} />
+          <span>Offer automatic monthly card billing (needs Subscriptions enabled by PayMongo, a public key, and the webhook)</span>
+        </label>
+        <p className="findra-int-meta">
+          Public key: {status.publicKeyConfigured ? "saved" : "missing"} · Webhook: {status.webhookRegistered ? "registered" : "not registered"} ·
+          Monthly billing: {status.monthlyAuto ? "on" : "off"}
+        </p>
         {error && <p className="findra-int-error"><WarningCircle weight="fill" /> {error}</p>}
         <Actions>
           <button className="admin-primary" disabled={busy === "connect"} type="submit">{busy === "connect" ? "Saving…" : "Save PayMongo"}</button>
+          <button type="button" className="secondary-button" disabled={busy === "webhook" || !status.configured} onClick={registerWebhook}>{busy === "webhook" ? "Registering…" : status.webhookRegistered ? "Re-register webhook" : "Register webhook"}</button>
           <a href="https://dashboard.paymongo.com/developers" target="_blank" rel="noreferrer">PayMongo dashboard <ArrowRight /></a>
         </Actions>
       </form>

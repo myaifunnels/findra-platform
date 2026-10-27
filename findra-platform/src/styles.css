@@ -9525,11 +9525,18 @@ th {
 .payment-due-card h3 small { color: var(--muted); font-size: 13px; font-weight: 600; }
 .payment-due-card p { margin: 6px 0 12px; max-width: 62ch; }
 .payment-due-card .plan-upgrade-methods { margin-bottom: 12px; }
-.payment-due-card .billing-mode-options { flex-direction: column; align-items: stretch; }
+.payment-due-card { grid-template-columns: auto minmax(0, 1fr); }
+.payment-due-card .billing-mode-options { display: grid; grid-template-columns: 1fr; gap: 8px; }
 .payment-due-card .plan-price-note { margin: 0 0 12px; max-width: 62ch; }
 .installment-due { grid-column: 1 / -1; display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid rgba(120, 150, 135, 0.25); }
 .installment-due p { margin: 0; }
 .installment-due .admin-primary { justify-self: start; }
+.card-entry { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; margin: 0 0 14px; max-width: 520px; }
+.card-entry label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; }
+.card-entry label:first-child, .card-entry label:nth-child(2) { grid-column: 1 / -1; }
+.card-entry input { height: 42px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line, rgba(120, 150, 135, 0.35)); background: transparent; color: inherit; font: inherit; }
+.findra-int-check { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; margin: 10px 0 4px; }
+@media (max-width: 560px) { .card-entry { grid-template-columns: 1fr; } }
 [data-theme="dark"] .status.published { background: #164c31; border-color: #3c9a61; color: #c8ffdb; }
 [data-theme="dark"] .status.pending { background: #5a4012; border-color: #bb8530; color: #fff0bf; }
 [data-theme="dark"] .status.declined { background: #57282a; border-color: #bb6267; color: #ffd9dc; }
