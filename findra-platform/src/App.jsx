@@ -4212,6 +4212,21 @@ function UserDashboard({ go, listing, onSave, onSaveDraft, onRefresh, onLogout, 
             Your listing is live and its details are locked. Contact support to request changes.
           </div>
         )}
+        {listing && listing.status === "Suspended" && section !== "Plan & Billing" && (
+          <section className="admin-content">
+            <div className="panel billing-card">
+              <div className="billing-icon"><WarningCircle /></div>
+              <div>
+                <span>LISTING OFFLINE</span>
+                <h3>{listing.name} is offline</h3>
+                <p>Your last monthly card payment did not go through, so your listing was taken down. It goes live again automatically as soon as a charge succeeds.</p>
+                <button className="admin-primary" onClick={() => setSection("Plan & Billing")}>
+                  <CreditCard /> View billing <ArrowRight />
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
         {listing && listing.status === "Pending" && section !== "Plan & Billing" && (
           <section className="admin-content">
             <div className="panel billing-card">
@@ -4283,6 +4298,10 @@ function UserDashboard({ go, listing, onSave, onSaveDraft, onRefresh, onLogout, 
                     {listing.status === "Approved" ? (
                       <button className="admin-primary" onClick={() => setSection("Plan & Billing")}>
                         <CreditCard /> Complete Payment <ArrowRight />
+                      </button>
+                    ) : listing.status === "Suspended" ? (
+                      <button className="admin-primary" onClick={() => setSection("Plan & Billing")}>
+                        <CreditCard /> View billing <ArrowRight />
                       </button>
                     ) : listing.status === "Published" ? (
                       <button className="admin-primary" onClick={() => go(`/listing/${listing.id}`)}>
