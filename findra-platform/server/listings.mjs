@@ -92,9 +92,11 @@ export async function activateListingAfterPayment({ listingId, accountEmail, pac
     billingMode: "full",
   };
   const goLive = row.status === "Approved";
+  // A listing taken down for a failed charge comes back once a charge succeeds.
+  const restore = row.status === "Suspended";
   const updated = await query(
     "UPDATE listings SET status = $1, data = $2::jsonb, updated_at = NOW() WHERE id = $3 RETURNING *",
-    [goLive ? "Published" : row.status, JSON.stringify({ ...(row.data || {}), subscription }), listingId],
+    [goLive || restore ? "Published" : row.status, JSON.stringify({ ...(row.data || {}), subscription }), listingId],
   );
   if (goLive) {
     notify({
@@ -169,15 +171,17 @@ export async function recordAutoSubscriptionPayment({ paymongoSubscriptionId, in
   return updated.rows[0];
 }
 
-// A monthly charge failed (PayMongo retries daily up to three times).
+// A monthly charge failed. The client's rule: if the card fails, the listing
+// comes down (Suspended) until a later charge succeeds.
 export async function recordAutoSubscriptionProblem({ paymongoSubscriptionId, problem }) {
   const row = await findByPayMongoSubscription(paymongoSubscriptionId);
   if (!row) return null;
   const subscription = row.data.subscription;
-  if (subscription.paymentStatus === problem) return row;
+  const takeDown = row.status === "Published";
+  if (subscription.paymentStatus === problem && !takeDown) return row;
   const updated = await query(
-    "UPDATE listings SET data = $1::jsonb, updated_at = NOW() WHERE id = $2 RETURNING *",
-    [JSON.stringify({ ...row.data, subscription: { ...subscription, paymentStatus: problem } }), row.id],
+    "UPDATE listings SET status = $1, data = $2::jsonb, updated_at = NOW() WHERE id = $3 RETURNING *",
+    [takeDown ? "Suspended" : row.status, JSON.stringify({ ...row.data, subscription: { ...subscription, paymentStatus: problem } }), row.id],
   );
   notify({
     userId: row.owner_id,

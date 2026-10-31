@@ -3356,7 +3356,7 @@ function StatusPill({ status }) {
         ? Clock
         : status === "Approved"
           ? CreditCard
-          : status === "Declined"
+          : status === "Declined" || status === "Suspended"
             ? XCircle
             : FileText;
   return (
@@ -3520,7 +3520,7 @@ function ListingsAdmin({
             <p>{rows.length} {rows.length === 1 ? "listing" : "listings"} shown</p>
           </div>
           <div className="status-tabs" aria-label="Filter listings by status">
-            {["All", "Published", "Approved", "Pending", "Draft", "Declined"].map((x) => (
+            {["All", "Published", "Approved", "Suspended", "Pending", "Draft", "Declined"].map((x) => (
               <button
                 className={status === x ? "active" : ""}
                 onClick={() => setStatus(x)}
@@ -4763,7 +4763,9 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
               </>
             ) : (
               <p>
-                {listing.status === "Declined"
+                {listing.status === "Suspended"
+                  ? "Your listing is offline because your last monthly card payment failed. It goes live again as soon as a charge succeeds — see Plan & Billing."
+                  : listing.status === "Declined"
                   ? "Your profile needs a few updates before it can be approved. Please review the email we sent and resubmit."
                   : "Your profile is under review (3–5 working days). We will email you a payment link once it is approved. Nothing is charged until then."}
               </p>
@@ -4826,7 +4828,8 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
             <div className="installment-due">
               {subscription.paymentStatus && subscription.paymentStatus !== "ok" ? (
                 <p className="inquiry-form-error">
-                  Your latest monthly payment did not go through. PayMongo retries your card daily for 3 days — please make
+                  Your latest monthly payment did not go through{listing.status === "Suspended" ? ", so your listing has been taken down" : ""}.
+                  PayMongo retries your card daily for 3 days and your listing returns as soon as a charge succeeds. Please make
                   sure the card has enough balance, or contact hello@findra.ph.
                 </p>
               ) : subscription.nextDueDate ? (

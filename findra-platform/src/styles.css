@@ -9519,6 +9519,8 @@ th {
 .status.pending { background: #fff0ce; border-color: #f0c96e; color: #714200; }
 .status.declined { background: #ffe2e2; border-color: #eea0a0; color: #8a2424; }
 .status.draft { background: #e9efec; border-color: #b9c8c1; color: #385047; }
+.status.suspended { background: #ffe2e2; border-color: #eea0a0; color: #8a2424; }
+[data-theme="dark"] .status.suspended { background: #57282a; border-color: #bb6267; color: #ffd9dc; }
 .status.approved { background: #dbeafe; border-color: #93bbf0; color: #17408a; }
 [data-theme="dark"] .status.approved { background: #17325f; border-color: #4f7fd1; color: #d4e4ff; }
 .payment-due-card { align-items: flex-start; }
