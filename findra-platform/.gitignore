@@ -4,3 +4,6 @@ dist/
 node_modules/
 .npm-cache/
 *.log
+
+# Client handover files (contain passwords). Never commit.
+docs/client/
