@@ -129,6 +129,8 @@ export async function recordAutoSubscriptionPayment({ paymongoSubscriptionId, in
   const row = await findByPayMongoSubscription(paymongoSubscriptionId);
   if (!row || !invoiceId) return null;
   const subscription = row.data.subscription;
+  // A subscription that ended on a missed payment stays ended.
+  if (subscription.status === "Ended") return row;
   const paidInvoices = Array.isArray(subscription.paidInvoices) ? subscription.paidInvoices : [];
   if (paidInvoices.includes(invoiceId)) return row;
   const months = Number(subscription.termMonths) || 1;
@@ -171,12 +173,14 @@ export async function recordAutoSubscriptionPayment({ paymongoSubscriptionId, in
   return updated.rows[0];
 }
 
-// A monthly charge failed. The client's rule: if the card fails, the listing
-// comes down (Suspended) until a later charge succeeds.
+// A monthly charge failed. The listing comes down (Suspended) while PayMongo
+// retries the card; a retry that succeeds brings it back. If every retry
+// fails, endAutoSubscription ends the subscription.
 export async function recordAutoSubscriptionProblem({ paymongoSubscriptionId, problem }) {
   const row = await findByPayMongoSubscription(paymongoSubscriptionId);
   if (!row) return null;
   const subscription = row.data.subscription;
+  if (subscription.status === "Ended") return row;
   const takeDown = row.status === "Published";
   if (subscription.paymentStatus === problem && !takeDown) return row;
   const updated = await query(
@@ -187,6 +191,33 @@ export async function recordAutoSubscriptionProblem({ paymongoSubscriptionId, pr
     userId: row.owner_id,
     email: row.data?.email || row.owner_email,
     event: "subscription-failed",
+    context: { businessName: row.name },
+  }).catch(() => {});
+  return updated.rows[0];
+}
+
+// Client rule: a missed monthly credit card payment ends the subscription.
+// The listing stays down and a later charge does not bring it back.
+export async function endAutoSubscription({ paymongoSubscriptionId }) {
+  const row = await findByPayMongoSubscription(paymongoSubscriptionId);
+  if (!row) return null;
+  const subscription = row.data.subscription;
+  if (subscription.status === "Ended") return row;
+  const updated = await query(
+    "UPDATE listings SET status = $1, data = $2::jsonb, updated_at = NOW() WHERE id = $3 RETURNING *",
+    [
+      row.status === "Published" || row.status === "Suspended" ? "Suspended" : row.status,
+      JSON.stringify({
+        ...row.data,
+        subscription: { ...subscription, status: "Ended", paymentStatus: "unpaid", endedAt: new Date().toISOString(), nextDueDate: null },
+      }),
+      row.id,
+    ],
+  );
+  notify({
+    userId: row.owner_id,
+    email: row.data?.email || row.owner_email,
+    event: "subscription-expired",
     context: { businessName: row.name },
   }).catch(() => {});
   return updated.rows[0];

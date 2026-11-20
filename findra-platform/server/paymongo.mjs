@@ -5,6 +5,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { readSession } from "./auth.mjs";
 import {
   activateListingAfterPayment,
+  endAutoSubscription,
   recordAutoSubscriptionPayment,
   recordAutoSubscriptionProblem,
   termMonths,
@@ -291,11 +292,17 @@ async function handleWebhook(request, response) {
     });
   } else if (event?.type === "subscription.invoice.payment_failed") {
     await recordAutoSubscriptionProblem({ paymongoSubscriptionId: resource?.attributes?.resource_id, problem: "past_due" });
-  } else if (event?.type === "subscription.past_due" || event?.type === "subscription.unpaid") {
-    await recordAutoSubscriptionProblem({
-      paymongoSubscriptionId: resource?.id,
-      problem: event.type === "subscription.unpaid" ? "unpaid" : "past_due",
-    });
+  } else if (event?.type === "subscription.past_due") {
+    await recordAutoSubscriptionProblem({ paymongoSubscriptionId: resource?.id, problem: "past_due" });
+  } else if (event?.type === "subscription.unpaid") {
+    // PayMongo's retries all failed: the payment is missed. Client rule: the
+    // subscription ends. Cancel it at PayMongo so the card is not charged
+    // again, then take the listing down for good.
+    await payMongoRequest(`/subscriptions/${resource?.id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ data: { attributes: { cancellation_reason: "other" } } }),
+    }).catch((error) => console.error("PayMongo subscription cancel failed", resource?.id, error.message));
+    await endAutoSubscription({ paymongoSubscriptionId: resource?.id });
   }
   return json(response, 200, { received: true });
 }
@@ -330,7 +337,7 @@ async function startAutoSubscription(request, response) {
   const record = await paymongoRecord();
   const publicKey = publicKeyFrom(record);
   if (record.settings?.monthlyAuto !== true || !/^pk_(test|live)_/.test(publicKey))
-    return json(response, 409, { error: "Monthly card billing is not enabled yet. Please pay in full with GCash, QR Ph or online banking, or contact Findra." });
+    return json(response, 409, { error: "Monthly credit card billing is not enabled yet. Please pay in full with another method, or contact Findra." });
   const { user, row } = await loadOwnedListing(request, body.listingId);
   const current = row.data?.subscription;
   if (row.status !== "Approved" || current?.status !== "Awaiting payment")
@@ -424,11 +431,13 @@ async function createCheckoutSession(request, response) {
   const plan = (await activePackageById(body.packageId)) || (await activePackage());
   if (!plan) return json(response, 409, { error: "There is no active subscription package. Please contact Findra." });
   const method = ALLOWED_METHODS.has(body.method) ? body.method : "gcash";
-  // Client rule: card payments on a multi-month package are billed monthly
-  // through /api/paymongo/subscriptions, never as one lump-sum checkout.
-  if (method === "card" && termMonths(plan.interval) > 1)
+  // Client rule: credit cards on a multi-month package are billed monthly
+  // through /api/paymongo/subscriptions, never as one lump-sum checkout. A
+  // debit card pays the full term here. PayMongo does not tell us whether a
+  // card is credit or debit, so this follows the owner's choice.
+  if (method === "card" && termMonths(plan.interval) > 1 && body.cardType !== "debit")
     return json(response, 409, {
-      error: "Card payments for this package are billed monthly. Choose Card on the Plan & billing page, or pay in full with GCash, QR Ph or online banking.",
+      error: "Credit card payments for this package are billed monthly. Choose Credit card on the Plan & billing page, or pay in full with another method.",
     });
   const name =String(body.accountName || body.listingName || "Findra customer")
     .trim()

@@ -4219,7 +4219,11 @@ function UserDashboard({ go, listing, onSave, onSaveDraft, onRefresh, onLogout, 
               <div>
                 <span>LISTING OFFLINE</span>
                 <h3>{listing.name} is offline</h3>
-                <p>Your last monthly card payment did not go through, so your listing was taken down. It goes live again automatically as soon as a charge succeeds.</p>
+                <p>
+                  {listing.subscription?.status === "Ended"
+                    ? "A monthly credit card payment was missed, so your subscription ended and your listing was taken down. Contact hello@findra.ph to start a new subscription."
+                    : "Your last monthly card payment did not go through, so your listing was taken down. It goes live again automatically if the card is charged successfully in the next few days."}
+                </p>
                 <button className="admin-primary" onClick={() => setSection("Plan & Billing")}>
                   <CreditCard /> View billing <ArrowRight />
                 </button>
@@ -4405,12 +4409,17 @@ function UserDashboard({ go, listing, onSave, onSaveDraft, onRefresh, onLogout, 
   );
 }
 
+// Credit and debit cards are both PayMongo "card" payments, but they bill
+// differently: a credit card on a multi-month package is charged monthly,
+// while a debit card pays the whole term at once like the other methods.
 const upgradePaymentMethods = [
   ["gcash", "GCash"],
-  ["card", "Card"],
-  ["qrph", "QRPh"],
-  ["dob", "Online banking"],
+  ["credit_card", "Credit card"],
+  ["debit_card", "Debit card"],
+  ["qrph", "QR Ph"],
+  ["dob", "Bank transfer (online banking)"],
 ];
+const paymongoMethodFor = (value) => (value === "credit_card" || value === "debit_card" ? "card" : value);
 
 function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment }) {
   // "Awaiting payment" means a package was chosen but Findra has not been paid
@@ -4616,7 +4625,8 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
           accountEmail: session?.email,
           accountName: session?.name,
           listingName: listing?.name,
-          method,
+          method: paymongoMethodFor(method),
+          cardType: method === "debit_card" ? "debit" : method === "credit_card" ? "credit" : undefined,
           packageId: item.id,
           listingId: listing?.id,
           redirectPath: "/user",
@@ -4664,10 +4674,10 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
                 {(() => {
                   const months = packageTierMonths[awaiting.billing] || 1;
                   const monthlyAmount = Math.round(Number(awaiting.amount) / months);
-                  // Client rule: a card on a multi-month package is always
-                  // billed monthly (PayMongo Subscriptions); every other
-                  // method pays the whole term at once.
-                  const cardMonthly = method === "card" && months > 1;
+                  // Client rule: a credit card on a multi-month package is
+                  // always billed monthly (PayMongo Subscriptions); every
+                  // other method, debit cards included, pays the whole term.
+                  const cardMonthly = method === "credit_card" && months > 1;
                   const auto = cardMonthly && monthlyAuto;
                   return (
                     <>
@@ -4685,26 +4695,27 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
                               checked={method === value}
                               onChange={(event) => chooseMethod(event.target.value)}
                             />
-                            {value === "card" && months > 1 ? `${label} · ₱${monthlyAmount.toLocaleString()}/month` : label}
+                            {value === "credit_card" && months > 1 ? `${label} · ₱${monthlyAmount.toLocaleString()}/month` : label}
                           </label>
                         ))}
                       </div>
                       {months > 1 && !cardMonthly && (
                         <p className="plan-price-note">
-                          GCash, QR Ph and online banking pay the full ₱{Number(awaiting.amount).toLocaleString()} today.
-                          Choose Card to pay ₱{monthlyAmount.toLocaleString()} a month instead.
+                          GCash, debit card, QR Ph and bank transfer pay the full ₱{Number(awaiting.amount).toLocaleString()} today.
+                          Choose Credit card to pay ₱{monthlyAmount.toLocaleString()} a month instead.
                         </p>
                       )}
                       {cardMonthly && !monthlyAuto && (
                         <p className="inquiry-form-error">
-                          Monthly card billing is not available yet. Please choose GCash, QR Ph or online banking, or contact Findra.
+                          Monthly credit card billing is not available yet. Please choose another method, or contact Findra.
                         </p>
                       )}
                       {auto ? (
                         <>
                           <p className="plan-price-note">
-                            Pay ₱{monthlyAmount.toLocaleString()} today and your listing goes live. Your card is then charged
-                            ₱{monthlyAmount.toLocaleString()} automatically every month until all {months} months are paid.
+                            Pay ₱{monthlyAmount.toLocaleString()} today and your listing goes live. Your credit card is then charged
+                            ₱{monthlyAmount.toLocaleString()} automatically every month until all {months} months are paid. If a
+                            monthly payment is missed, your subscription ends and your listing is taken down.
                             Card details go straight to PayMongo; Findra never sees or stores them.
                           </p>
                           <div className="card-entry">
@@ -4772,7 +4783,7 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
             ) : (
               <p>
                 {listing.status === "Suspended"
-                  ? "Your listing is offline because your last monthly card payment failed. It goes live again as soon as a charge succeeds — see Plan & Billing."
+                  ? "Your listing is offline because a monthly credit card payment was missed — see Plan & Billing."
                   : listing.status === "Declined"
                   ? "Your profile needs a few updates before it can be approved. Please review the email we sent and resubmit."
                   : "Your profile is under review (3–5 working days). We will email you a payment link once it is approved. Nothing is charged until then."}
@@ -4834,11 +4845,17 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
           </dl>
           {subscription.billingMode === "auto" && (
             <div className="installment-due">
-              {subscription.paymentStatus && subscription.paymentStatus !== "ok" ? (
+              {subscription.status === "Ended" ? (
+                <p className="inquiry-form-error">
+                  A monthly payment was missed, so your subscription has ended and your listing has been taken down. No further
+                  charges will be made to your card. Contact hello@findra.ph to start a new subscription.
+                </p>
+              ) : subscription.paymentStatus && subscription.paymentStatus !== "ok" ? (
                 <p className="inquiry-form-error">
                   Your latest monthly payment did not go through{listing.status === "Suspended" ? ", so your listing has been taken down" : ""}.
-                  PayMongo retries your card daily for 3 days and your listing returns as soon as a charge succeeds. Please make
-                  sure the card has enough balance, or contact hello@findra.ph.
+                  PayMongo retries your card daily for 3 days and your listing returns as soon as a charge succeeds. If every retry
+                  fails, the payment counts as missed and your subscription ends. Please make sure the card has enough balance, or
+                  contact hello@findra.ph.
                 </p>
               ) : subscription.nextDueDate ? (
                 <p>
@@ -4893,10 +4910,10 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
               ) : subscription && isUpgrade && upgradeTarget?.id === item.id ? (
                 <div className="plan-upgrade-confirm">
                   <div className="plan-upgrade-methods">
-                    {/* Cards on multi-month packages are billed monthly, which
-                        only the first payment of a new listing supports, so a
-                        lump-sum upgrade is offered through the other methods. */}
-                    {upgradePaymentMethods.filter(([value]) => value !== "card" || months < 2).map(([value, label]) => (
+                    {/* Credit cards on multi-month packages are billed monthly,
+                        which only the first payment of a new listing supports,
+                        so a lump-sum upgrade uses the other methods. */}
+                    {upgradePaymentMethods.filter(([value]) => value !== "credit_card" || months < 2).map(([value, label]) => (
                       <label key={value} className={method === value ? "selected" : ""}>
                         <input
                           type="radio"
@@ -4935,7 +4952,7 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
                   onClick={() => {
                     setUpgradeTarget(item);
                     setUpgradeError("");
-                    if (method === "card" && months > 1) setMethod("gcash");
+                    if (method === "credit_card" && months > 1) setMethod("gcash");
                   }}
                 >
                   Upgrade to this plan <ArrowRight />
