@@ -1,0 +1,1 @@
+@findra-platform/AGENTS.md
