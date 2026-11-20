@@ -347,7 +347,12 @@ async function startAutoSubscription(request, response) {
   if (!plan || months < 2) return json(response, 409, { error: "This package cannot be billed monthly." });
   const monthlyAmount = Math.round(Number(plan.price) / months);
   const names = String(user.display_name || "Findra owner").trim().split(/\s+/);
-  const phone = String(row.data?.phone || "").replace(/[^\d+]/g, "");
+  // PayMongo wants "+" and digits (e.g. +639171234567); drop a phone it
+  // would reject rather than fail the whole sign-up.
+  let phone = String(row.data?.phone || "").replace(/[^\d+]/g, "");
+  if (/^0\d{10}$/.test(phone)) phone = `+63${phone.slice(1)}`;
+  else if (/^63\d{10}$/.test(phone)) phone = `+${phone}`;
+  if (!/^\+\d{11,13}$/.test(phone)) phone = "";
   const customer = await payMongoRequest("/customers", {
     method: "POST",
     body: JSON.stringify({
@@ -356,6 +361,8 @@ async function startAutoSubscription(request, response) {
           first_name: names[0] || "Findra",
           last_name: names.slice(1).join(" ") || names[0] || "Owner",
           email: user.email,
+          // Required by PayMongo: where the customer gets notices.
+          default_device: "email",
           ...(phone ? { phone } : {}),
         },
       },
