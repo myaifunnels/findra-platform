@@ -4478,7 +4478,12 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
     setUpgradeError("");
     try {
       const digits = card.number.replace(/\D/g, "");
-      const [expMonth, expYear] = card.expiry.split("/").map((part) => Number(String(part).trim()));
+      // Accept "12/30", "12/2030", "1230" or "122030".
+      const expiry = card.expiry.trim();
+      const expiryDigits = expiry.replace(/\D/g, "");
+      const [expMonth, expYear] = expiry.includes("/")
+        ? expiry.split("/").map((part) => Number(String(part).trim()))
+        : [Number(expiryDigits.slice(0, 2)), Number(expiryDigits.slice(2))];
       if (!card.name.trim() || digits.length < 13 || !expMonth || !expYear || card.cvc.trim().length < 3)
         throw new Error("Enter the name on the card, card number, expiry (MM/YY) and security code.");
       const startResponse = await fetch("/api/paymongo/subscriptions", {
@@ -4744,7 +4749,14 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
                                 autoComplete="cc-exp"
                                 placeholder="MM/YY"
                                 value={card.expiry}
-                                onChange={(event) => setCard({ ...card, expiry: event.target.value.replace(/[^\d/]/g, "").slice(0, 5) })}
+                                onChange={(event) => {
+                                  // Add the slash for the owner: "1230" becomes "12/30".
+                                  const raw = event.target.value.replace(/[^\d/]/g, "");
+                                  const digits = raw.replace(/\D/g, "").slice(0, 4);
+                                  const typingSlash = raw.endsWith("/") && digits.length === 2;
+                                  const expiry = digits.length > 2 || typingSlash ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+                                  setCard({ ...card, expiry });
+                                }}
                               />
                             </label>
                             <label>
