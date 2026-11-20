@@ -4420,16 +4420,13 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
   const [packages, setPackages] = useState([]);
   const [upgradeTarget, setUpgradeTarget] = useState(null);
   const [method, setMethod] = useState("gcash");
-  // "full" pays the whole term at once; "auto" charges the card every month
-  // through PayMongo subscriptions until the term is paid.
-  const [billingMode, setBillingMode] = useState("full");
   const [monthlyAuto, setMonthlyAuto] = useState(false);
   const [card, setCard] = useState({ name: "", number: "", expiry: "", cvc: "" });
   const [submitting, setSubmitting] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
   const [status, setStatus] = useState(null);
-  const chooseBillingMode = (mode) => {
-    setBillingMode(mode);
+  const chooseMethod = (value) => {
+    setMethod(value);
     setUpgradeError("");
   };
   useEffect(() => {
@@ -4667,34 +4664,41 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
                 {(() => {
                   const months = packageTierMonths[awaiting.billing] || 1;
                   const monthlyAmount = Math.round(Number(awaiting.amount) / months);
-                  const auto = billingMode === "auto" && monthlyAuto && months > 1;
+                  // Client rule: a card on a multi-month package is always
+                  // billed monthly (PayMongo Subscriptions); every other
+                  // method pays the whole term at once.
+                  const cardMonthly = method === "card" && months > 1;
+                  const auto = cardMonthly && monthlyAuto;
                   return (
                     <>
                       <p>
                         Your business profile is approved. Pay to make it live on Findra. The package is a{" "}
                         {String(awaiting.billing).toLowerCase()} commitment and cannot be cancelled once paid.
                       </p>
-                      {monthlyAuto && months > 1 && (
-                        <div className="plan-upgrade-methods billing-mode-options">
-                          <label className={billingMode === "full" ? "selected" : ""}>
+                      <div className="plan-upgrade-methods">
+                        {upgradePaymentMethods.map(([value, label]) => (
+                          <label key={value} className={method === value ? "selected" : ""}>
                             <input
                               type="radio"
-                              name="payment-due-mode"
-                              checked={billingMode === "full"}
-                              onChange={() => chooseBillingMode("full")}
+                              name="payment-due-method"
+                              value={value}
+                              checked={method === value}
+                              onChange={(event) => chooseMethod(event.target.value)}
                             />
-                            Pay in full · ₱{Number(awaiting.amount).toLocaleString()}
+                            {value === "card" && months > 1 ? `${label} · ₱${monthlyAmount.toLocaleString()}/month` : label}
                           </label>
-                          <label className={billingMode === "auto" ? "selected" : ""}>
-                            <input
-                              type="radio"
-                              name="payment-due-mode"
-                              checked={billingMode === "auto"}
-                              onChange={() => chooseBillingMode("auto")}
-                            />
-                            Pay monthly · ₱{monthlyAmount.toLocaleString()} × {months}, charged automatically to your card
-                          </label>
-                        </div>
+                        ))}
+                      </div>
+                      {months > 1 && !cardMonthly && (
+                        <p className="plan-price-note">
+                          GCash, QR Ph and online banking pay the full ₱{Number(awaiting.amount).toLocaleString()} today.
+                          Choose Card to pay ₱{monthlyAmount.toLocaleString()} a month instead.
+                        </p>
+                      )}
+                      {cardMonthly && !monthlyAuto && (
+                        <p className="inquiry-form-error">
+                          Monthly card billing is not available yet. Please choose GCash, QR Ph or online banking, or contact Findra.
+                        </p>
                       )}
                       {auto ? (
                         <>
@@ -4744,27 +4748,12 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
                             </label>
                           </div>
                         </>
-                      ) : (
-                        <div className="plan-upgrade-methods">
-                          {upgradePaymentMethods.map(([value, label]) => (
-                            <label key={value} className={method === value ? "selected" : ""}>
-                              <input
-                                type="radio"
-                                name="payment-due-method"
-                                value={value}
-                                checked={method === value}
-                                onChange={(event) => setMethod(event.target.value)}
-                              />
-                              {label}
-                            </label>
-                          ))}
-                        </div>
-                      )}
+                      ) : null}
                       {upgradeError && <p className="inquiry-form-error">{upgradeError}</p>}
                       <button
                         type="button"
                         className="admin-primary"
-                        disabled={submitting || !awaitingPackage}
+                        disabled={submitting || !awaitingPackage || (cardMonthly && !monthlyAuto)}
                         onClick={() => (auto ? startAutoBilling() : startUpgrade(awaitingPackage))}
                       >
                         {submitting
@@ -4904,7 +4893,10 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
               ) : subscription && isUpgrade && upgradeTarget?.id === item.id ? (
                 <div className="plan-upgrade-confirm">
                   <div className="plan-upgrade-methods">
-                    {upgradePaymentMethods.map(([value, label]) => (
+                    {/* Cards on multi-month packages are billed monthly, which
+                        only the first payment of a new listing supports, so a
+                        lump-sum upgrade is offered through the other methods. */}
+                    {upgradePaymentMethods.filter(([value]) => value !== "card" || months < 2).map(([value, label]) => (
                       <label key={value} className={method === value ? "selected" : ""}>
                         <input
                           type="radio"
@@ -4938,7 +4930,14 @@ function PlanBilling({ listing, go, session, onSave, onRefresh, resumePayment })
                   </div>
                 </div>
               ) : subscription && isUpgrade ? (
-                <button className="admin-primary" onClick={() => { setUpgradeTarget(item); setUpgradeError(""); }}>
+                <button
+                  className="admin-primary"
+                  onClick={() => {
+                    setUpgradeTarget(item);
+                    setUpgradeError("");
+                    if (method === "card" && months > 1) setMethod("gcash");
+                  }}
+                >
                   Upgrade to this plan <ArrowRight />
                 </button>
               ) : subscription ? (
